@@ -1,0 +1,152 @@
+spring:
+  application:
+    name: customs-clearance-backend
+  
+  profiles:
+    active: dev
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/customs_clearance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:customs_user}
+    password: ${DB_PASSWORD:customs_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: true
+    defer-datasource-initialization: true
+    
+  sql:
+    init:
+      mode: never
+      
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+      
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      
+logging:
+  level:
+    com.customs.clearance: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/customs-clearance-backend.log
+    
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    
+# Custom application properties
+customs:
+  clearance:
+    api:
+      version: v1
+      timeout: 30000
+    security:
+      jwt:
+        secret: ${JWT_SECRET:mySecretKey}
+        expiration: 86400000 # 24 hours in milliseconds
+    integration:
+      external-api:
+        base-url: ${EXTERNAL_API_URL:http://localhost:9000}
+        timeout: 10000
+        
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+      
+  datasource:
+    url: jdbc:mysql://localhost:3306/customs_clearance_dev_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    
+logging:
+  level:
+    com.customs.clearance: DEBUG
+    root: INFO
+    
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+      
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql-service}:${DB_PORT:3306}/${DB_NAME:customs_clearance_prod_db}?useSSL=true&serverTimezone=UTC
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    
+logging:
+  level:
+    com.customs.clearance: WARN
+    root: WARN
+  file:
+    name: /app/logs/customs-clearance-backend.log
+    
+server:
+  port: ${SERVER_PORT:8080}
+  
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+      
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+    
+  h2:
+    console:
+      enabled: true

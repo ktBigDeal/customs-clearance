@@ -1,0 +1,1 @@
+# Text Extractor Model Serving

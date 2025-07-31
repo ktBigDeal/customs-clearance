@@ -1,0 +1,242 @@
+# ===================================
+# Claude Code 관련
+# ===================================
+.claude/
+CLAUDE.local.md
+
+# ===================================
+# 환경 변수 및 보안 파일
+# ===================================
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+*.secret
+secrets/
+auth-config.json
+
+# ===================================
+# IDE 및 에디터 설정
+# ===================================
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+
+# ===================================
+# 시스템 파일
+# ===================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===================================
+# Frontend (Next.js/React)
+# ===================================
+node_modules/
+.next/
+.nuxt/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+
+# Frontend Build & Cache
+dist/
+build/
+out/
+.cache/
+.parcel-cache/
+.turbo/
+
+# ===================================
+# Backend (Spring Boot/Java)
+# ===================================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ===================================
+# Application Tier (FastAPI/Python)
+# ===================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Python Distribution / Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ===================================
+# Data Tier (MySQL/Database)
+# ===================================
+*.sql.bak
+*.sql.backup
+mysql-data/
+postgres-data/
+data/
+backups/
+dumps/
+
+# ===================================
+# Infrastructure & DevOps
+# ===================================
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Kubernetes
+k8s-secrets/
+helm-values.local.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+# ===================================
+# Logs & Monitoring
+# ===================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime logs
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===================================
+# Testing & Coverage
+# ===================================
+coverage/
+.coverage
+.pytest_cache/
+test-results/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ===================================
+# Temporary & Cache Files
+# ===================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+.cache/
+tmp/
+temp/
+
+# ===================================
+# 업로드 파일 (개발 중)
+# ===================================
+uploads/
+attachments/
+user-files/
+
+# ===================================
+# 컴파일된 파일들
+# ===================================
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+
+# ===================================
+# 아카이브 파일 (대용량)
+# ===================================
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+
+# ===================================
+# 허용할 파일들 (예외)
+# ===================================
+# 프로젝트 로고나 아이콘은 허용
+!public/**/*.png
+!public/**/*.jpg
+!public/**/*.jpeg
+!public/**/*.svg
+!public/**/*.ico
+!src/assets/**/*.png
+!src/assets/**/*.jpg
+!src/assets/**/*.jpeg
+!src/assets/**/*.svg
+
+# 문서 이미지는 허용
+!docs/**/*.png
+!docs/**/*.jpg
+!docs/**/*.jpeg
+!README.md
+!**/README.md

@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  ai-gateway:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/customs_ai_db
+      - REDIS_URL=redis://redis:6379/0
+      - SPRING_BOOT_BASE_URL=http://host.docker.internal:8080
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - customs-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=customs_ai_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - customs-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - customs-network
+
+  model-a:
+    build:
+      context: ../models/model-a
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - MODEL_NAME=document-classifier
+      - MODEL_VERSION=1.0.0
+    volumes:
+      - ../models/model-a/models:/app/models
+    restart: unless-stopped
+    networks:
+      - customs-network
+
+  model-b:
+    build:
+      context: ../models/model-b
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - MODEL_NAME=text-extractor
+      - MODEL_VERSION=1.0.0
+    volumes:
+      - ../models/model-b/models:/app/models
+    restart: unless-stopped
+    networks:
+      - customs-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  customs-network:
+    driver: bridge
