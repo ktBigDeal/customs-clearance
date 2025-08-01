@@ -10,15 +10,7 @@ import re
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-MODEL_NAME = "Generate Customs Declaration Item"
-MODEL_VERSION = "1.0.0"
-
-app = FastAPI(
-    title="Generate Customs Declaration Model API",
-    description="Generate customs declaration items based on OCR results and predefined rules.",
-    version=MODEL_VERSION
-)
-
+app = FastAPI()
 
 # Load API keys (assuming api_key.txt is in the specified path)
 path = ''
@@ -55,6 +47,13 @@ with open(path + "수입신고서_전체항목정의(v1).json", "r", encoding="u
     data = json.load(f)
 for 항목명, 항목내용 in data.items():
     documents.extend(process_entry(항목명, 항목내용))
+
+# Load and process 수출신고서_전체항목정의(v1).json
+export_documents = []
+with open(path + "수출신고서_전체항목정의(v1).json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+for 항목명, 항목내용 in data.items():
+    export_documents.extend(process_entry(항목명, 항목내용))
 
 # Load and process 무역통계부호.json
 def flatten_dict(section, d, prefix=None):
@@ -108,9 +107,9 @@ def get_stat_documents_by_section(stat_documents, section_name):
 
 # Prompt Templates
 prompt = PromptTemplate(
-    input_variables=["항목명", "작성요령", "ocr_result"],
+    input_variables=["통관","항목명", "작성요령", "ocr_result"],
     template="""
-너는 수입신고서 자동작성 AI야.
+너는 {통관}신고서 자동작성 AI야.
 다음 문서와 작성요령을 참고해서 "{항목명}" 항목에 들어갈 값을 작성해줘.
 
 ※ 작성요령:
@@ -129,9 +128,9 @@ OCR 추출값 : {ocr_result}
 )
 
 item_prompt = PromptTemplate(
-    input_variables=["item_key", "작성요령", "item_data", "hsk_code_predicted"],
+    input_variables=["통관","item_key", "작성요령", "item_data", "hsk_code_predicted"],
     template="""
-너는 수입신고서 자동작성 AI야.
+너는 {통관}신고서 자동작성 AI야.
 다음 품목 정보와 작성요령을 참고해서 "{item_key}" 항목에 들어갈 값을 작성해줘.
 
 ※ 작성요령:
@@ -155,7 +154,7 @@ llm_chain = LLMChain(llm=llm, prompt=prompt)
 item_llm_chain = LLMChain(llm=llm, prompt=item_prompt)
 
 # Helper functions for processing
-async def process_main_item(항목명, llm_chain, documents_to_search, stat_code_documents, current_ocr_result):
+async def process_main_item(통관, 항목명, llm_chain, documents_to_search, stat_code_documents, current_ocr_result):
     retrieved_docs = get_documents_by_main_item_name(documents_to_search, f"{항목명}")
     retrieved_stat = []
     for docs in retrieved_docs:
@@ -165,13 +164,14 @@ async def process_main_item(항목명, llm_chain, documents_to_search, stat_code
     retrieved_docs.extend(retrieved_stat)
     작성요령 = "\n".join([doc.page_content for doc in retrieved_docs])
     항목값 = await llm_chain.arun({
+        "통관": 통관,
         "항목명": 항목명,
         "작성요령": 작성요령,
         "ocr_result": json.dumps(current_ocr_result, ensure_ascii=False)
     })
     return 항목명, 항목값.strip()
 
-async def process_item_detail(item_key, item_llm_chain, documents_to_search, stat_code_documents, item_data, current_hsk_predicted):
+async def process_item_detail(통관, item_key, item_llm_chain, documents_to_search, stat_code_documents, item_data, current_hsk_predicted):
     retrieved_docs = get_documents_by_main_item_name(documents_to_search, item_key)
     retrieved_stat = []
     for docs in retrieved_docs:
@@ -181,6 +181,7 @@ async def process_item_detail(item_key, item_llm_chain, documents_to_search, sta
     retrieved_docs.extend(retrieved_stat)
     작성요령 = "\n".join([doc.page_content for doc in retrieved_docs])
     item_value = await item_llm_chain.arun({
+        "통관": 통관,
         "item_key": item_key,
         "작성요령": 작성요령,
         "item_data": json.dumps(item_data, ensure_ascii=False),
@@ -188,11 +189,12 @@ async def process_item_detail(item_key, item_llm_chain, documents_to_search, sta
     })
     return item_key, item_value.strip()
 
-async def process_all_items(items_list_data, 물품_list, item_llm_chain, documents_to_search, stat_code_documents, current_hsk_predicted):
+async def process_all_items(통관, items_list_data, 물품_list, item_llm_chain, documents_to_search, stat_code_documents, current_hsk_predicted):
     all_item_results = []
     for item_data in items_list_data:
         item_tasks = [
             process_item_detail(
+                통관,
                 item_key,
                 item_llm_chain,
                 documents_to_search,
@@ -216,6 +218,39 @@ async def process_all_items(items_list_data, 물품_list, item_llm_chain, docume
 ]
 all_target_items = 항목명_list + 물품_list
 
+수출_항목명_list = [
+    "수출대행자",
+    "제조자",
+    "구매자",
+    "신고구분",
+    "거래구분",
+    "종류",
+    "목적국",
+    "선박명(또는 항공편명)",
+    "운송형태",
+    "송품장부호",
+    "원산지",
+    "순중량",
+    "총중량",
+    "총포장개수",
+    "결제금액"
+]
+
+수출_물품_list = [
+    "물품상태",
+    "품명",
+    "거래품명",
+    "상표명",
+    "모델및규격",
+    "수량",
+    "단가",
+    "금액",
+    "세번부호",
+    "순중량",
+    "총중량",
+    "포장개수"
+]
+all_export_target_items = 수출_항목명_list + 수출_물품_list
 # Filter documents based on target items
 filtered_documents = []
 for doc in documents:
@@ -223,6 +258,14 @@ for doc in documents:
     if item_in_metadata:
         if any(item_in_metadata == target_item or item_in_metadata.startswith(f"{target_item} - ") for target_item in all_target_items):
             filtered_documents.append(doc)
+
+# Filter export documents based on target items
+export_filtered_documents = []
+for doc in export_documents:
+    item_in_metadata = doc.metadata.get("항목")
+    if item_in_metadata:
+        if any(item_in_metadata == target_item or item_in_metadata.startswith(f"{target_item} - ") for target_item in all_export_target_items):
+            export_filtered_documents.append(doc)
 
 # OCR mapping function
 def map_ocr_data(ocr_data, mapping):
@@ -299,6 +342,20 @@ class ItemResult(BaseModel):
     금액: str
     총포장갯수: str
 
+class ExportItemResult(BaseModel):
+    물품상태: str
+    품명: str
+    거래품명: str
+    상표명: str
+    모델및규격: str
+    수량: str
+    단가: str
+    금액: str
+    세번부호: str
+    순중량: str
+    총중량: str
+    포장개수: str
+
 class DeclarationRequest(BaseModel):
     ocr_data: Dict[str, Any]
     hsk_data: Dict[str, Any]
@@ -320,7 +377,25 @@ class DeclarationResponse(BaseModel):
     총포장갯수: str
     품목별_결과: List[ItemResult]
 
-@app.post("/generate-customs-declaration", response_model=DeclarationResponse)
+class ExportDeclarationResponse(BaseModel):
+    수출대행자: str
+    제조자: str
+    구매자: str
+    신고구분: str
+    거래구분: str
+    종류: str
+    목적국: str
+    선박명: str
+    운송형태: str
+    송품장부호: str
+    원산지: str
+    순중량: str
+    총중량: str
+    총포장개수: str
+    결제금액: str
+    품목별_결과: List[ExportItemResult]
+
+@app.post("/generate-customs-declaration/import", response_model=DeclarationResponse)
 async def generate_declaration(request: DeclarationRequest):
     mapped_ocr_result = map_ocr_data(request.ocr_data, ocr_mapping)
     hsk_code_predicted = request.hsk_data
@@ -328,6 +403,7 @@ async def generate_declaration(request: DeclarationRequest):
     final_result = {}
     main_item_tasks = [
         process_main_item(
+            "수입",
             항목명,
             llm_chain,
             filtered_documents,
@@ -340,6 +416,7 @@ async def generate_declaration(request: DeclarationRequest):
 
     items_list_data = mapped_ocr_result.get("items", [])
     llm_item_results = await process_all_items(
+        "통관",
         items_list_data,
         물품_list,
         item_llm_chain,
@@ -381,6 +458,71 @@ async def generate_declaration(request: DeclarationRequest):
 
     return DeclarationResponse(**response_data)
 
+@app.post("/generate-customs-declaration/export", response_model=ExportDeclarationResponse)
+async def generate_export_declaration(request: DeclarationRequest):
+    mapped_ocr_result = map_ocr_data(request.ocr_data, ocr_mapping)
+    hsk_code_predicted = request.hsk_data
+    final_result = {}
+
+    main_item_tasks = [
+        process_main_item(
+            "수출",
+            항목명,
+            llm_chain,
+            export_filtered_documents,
+            stat_code_documents,
+            mapped_ocr_result
+        ) for 항목명 in 수출_항목명_list
+    ]
+    main_item_results = await asyncio.gather(*main_item_tasks)
+    final_result.update(dict(main_item_results))
+    items_list_data = mapped_ocr_result.get("items", [])
+    llm_item_results = await process_all_items(
+        "수출",
+        items_list_data,
+        수출_물품_list,
+        item_llm_chain,
+        export_filtered_documents,
+        stat_code_documents,
+        hsk_code_predicted
+    )
+    final_result["품목별 결과"] = llm_item_results
+    response_data = {
+        "수출대행자": final_result.get("수출대행자", "미기재"),
+        "제조자": final_result.get("제조자", "미기재"),
+        "구매자": final_result.get("구매자", "미기재"),
+        "신고구분": final_result.get("신고구분", "미기재"),
+        "거래구분": final_result.get("거래구분", "미기재"),
+        "종류": final_result.get("종류", "미기재"),
+        "목적국": final_result.get("목적국", "미기재"),
+        "선박명": final_result.get("선박명(또는 항공편명)", "미기재"),
+        "운송형태": final_result.get("운송형태", "미기재"),
+        "송품장부호": final_result.get("송품장부호", "미기재"),
+        "원산지": final_result.get("원산지", "미기재"),
+        "순중량": final_result.get("순중량", "미기재"),
+        "총중량": final_result.get("총중량", "미기재"),
+        "총포장개수": final_result.get("총포장개수", "미기재"),
+        "결제금액": final_result.get("결제금액", "미기재"),
+        "품목별_결과": [
+            {
+                "물품상태": item.get("물품상태", "미기재"),
+                "품명": item.get("품명", "미기재"),
+                "거래품명": item.get("거래품명", "미기재"),
+                "상표명": item.get("상표명", "미기재"),
+                "모델및규격": item.get("모델및규격", "미기재"),
+                "수량": item.get("수량", "미기재"),
+                "단가": item.get("단가", "미기재"),
+                "금액": item.get("금액", "미기재"),
+                "세번부호": item.get("세번부호", "미기재"),
+                "순중량": item.get("순중량", "미기재"),
+                "총중량": item.get("총중량", "미기재"),
+                "포장개수": item.get("포장개수", "미기재"),
+            } for item in final_result.get("품목별 결과", [])
+        ]
+    }
+    return ExportDeclarationResponse(**response_data)
+
+# FastAPI 실행 (개발 서버)
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8003)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

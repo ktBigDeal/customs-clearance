@@ -1,11 +1,10 @@
 import requests
 import json
-import time # Import time
 
 # Define the FastAPI endpoint URL
 # If running locally, replace with your local address (e.g., "http://127.0.0.1:8001/generate-customs-declaration")
-# If running on Colab with ngrok/other tunneling, use the public URL
-api_url = "http://127.0.0.1:8000/generate-customs-declaration" # Changed port to 8001
+# api_url = "http://127.0.0.1:8000/generate-customs-declaration/import"
+api_url = "http://127.0.0.1:8000/generate-customs-declaration/export" 
 
 # Sample input data (using the dummy data from cell sbU3n-2y_uWp)
 ocr_data_input = {
@@ -70,11 +69,11 @@ payload = {
 
 try:
     # Add a small delay to give the server time to start
-    print("Waiting for server to start...")
     print("Attempting to send request...")
 
     # Send the POST request
     response = requests.post(api_url, json=payload)
+    print("POST " + api_url)
     response.raise_for_status()
 
     # Print the JSON response
