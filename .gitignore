@@ -240,3 +240,4 @@ user-files/
 !docs/**/*.jpeg
 !README.md
 !**/README.md.env
+*.env
