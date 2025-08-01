@@ -1,0 +1,1 @@
+# Generate custom declaration Model Serving
