@@ -239,4 +239,4 @@ user-files/
 !docs/**/*.jpg
 !docs/**/*.jpeg
 !README.md
-!**/README.md
+!**/README.md.env
