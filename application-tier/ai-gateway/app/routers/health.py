@@ -1,5 +1,8 @@
 """
-Health check endpoints for the AI Gateway.
+AI 게이트웨이를 위한 헬스 체크 엔드포인트
+
+이 모듈은 애플리케이션의 상태를 모니터링하기 위한 헬스 체크 엔드포인트를 제공합니다.
+시스템 리소스, 외부 의존성, Kubernetes 통합을 지원합니다.
 """
 
 import time
@@ -16,12 +19,20 @@ from ..schemas.common import HealthResponse, HealthStatus
 logger = get_logger(__name__)
 router = APIRouter()
 
-# Application start time for uptime calculation
+# 업타임 계산을 위한 애플리케이션 시작 시간
 start_time = time.time()
 
 
 async def get_system_info() -> Dict[str, Any]:
-    """Get system information for health checks"""
+    """
+    헬스 체크를 위한 시스템 정보 수집
+    
+    CPU, 메모리, 디스크 사용량 등의 시스템 리소스 정보를 수집합니다.
+    psutil 라이브러리를 사용하여 실시간 시스템 메트릭을 수집합니다.
+    
+    Returns:
+        Dict[str, Any]: 시스템 리소스 정보 딕셔너리
+    """
     try:
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
@@ -45,7 +56,15 @@ async def get_system_info() -> Dict[str, Any]:
 
 
 async def check_dependencies() -> Dict[str, Any]:
-    """Check external dependencies"""
+    """
+    외부 의존성 체크
+    
+    Spring Boot 백엔드, 데이터베이스, Redis 등의 외부 서비스 상태를 체크합니다.
+    각 서비스에 대해 연결 상태와 응답 시간을 측정합니다.
+    
+    Returns:
+        Dict[str, Any]: 외부 의존성 체크 결과
+    """
     settings = get_settings()
     checks = {}
     
@@ -80,7 +99,16 @@ async def check_dependencies() -> Dict[str, Any]:
 
 @router.get("/", response_model=HealthResponse)
 async def health_check():
-    """Basic health check endpoint"""
+    """
+    기본 헬스 체크 엔드포인트
+    
+    애플리케이션의 전반적인 상태를 체크합니다.
+    시스템 리소스, 외부 의존성, 업타임 등의 정보를 종합하여
+    전체적인 건강 상태를 평가합니다.
+    
+    Returns:
+        HealthResponse: 종합적인 헬스 체크 결과
+    """
     settings = get_settings()
     uptime = time.time() - start_time
     
@@ -119,7 +147,18 @@ async def health_check():
 
 @router.get("/ready")
 async def readiness_check():
-    """Readiness check endpoint for Kubernetes"""
+    """
+    Kubernetes를 위한 준비 상태 체크 엔드포인트
+    
+    애플리케이션이 요청을 받을 준비가 되었는지 확인합니다.
+    주요 외부 의존성(예: Spring Boot)이 사용 가능한지 검증합니다.
+    
+    Returns:
+        dict: 준비 상태 정보
+        
+    Raises:
+        HTTPException: 서비스가 준비되지 않은 경우
+    """
     settings = get_settings()
     dependencies = await check_dependencies()
     
@@ -145,7 +184,15 @@ async def readiness_check():
 
 @router.get("/live")
 async def liveness_check():
-    """Liveness check endpoint for Kubernetes"""
+    """
+    Kubernetes를 위한 활성 상태 체크 엔드포인트
+    
+    애플리케이션이 아직 살아있는지 확인합니다.
+    간단한 상태 체크로 프로세스가 동작 중인지 확인합니다.
+    
+    Returns:
+        dict: 활성 상태 정보
+    """
     settings = get_settings()
     
     return {

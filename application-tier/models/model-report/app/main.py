@@ -1,3 +1,10 @@
+"""
+LangChain 기반 관세신고서 생성 서비스
+
+이 모듈은 LangChain과 OpenAI GPT를 사용하여 OCR 결과를 바탕으로
+한국 관세청 규정에 맞는 수입/수출 신고서를 자동 생성합니다.
+"""
+
 from fastapi import FastAPI
 import json
 import asyncio
@@ -9,22 +16,55 @@ from langchain.schema import Document
 import re
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+from pathlib import Path
+
+# --- 환경 변수 로딩 ---
+env_path = Path(__file__).parent.parent / '.env'
+
+# 절대 경로를 사용해 .env 파일 로드
+load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path="../.env")
 
 app = FastAPI()
 
-# Load API keys (assuming api_key.txt is in the specified path)
-path = ''
+base_path = Path(__file__).parent.parent
+
+# API 키 로드 함수
 def load_api_keys(filepath="api_key.txt"):
+    """
+    API 키 파일에서 환경 변수를 로드
+    
+    지정된 파일에서 API 키들을 읽어서 환경 변수로 설정합니다.
+    파일 형태: KEY=VALUE 형식의 한 줄씩 작성
+    
+    Args:
+        filepath (str): API 키 파일 경로
+    """
     with open(filepath, "r") as f:
         for line in f:
             line = line.strip()
             if line and "=" in line:
                 key, value = line.split("=", 1)
                 os.environ[key.strip()] = value.strip()
-load_api_keys(path + 'api_key.txt')
 
-# Load and process 수입신고서_전체항목정의(v1).json
+# load_api_keys(path + 'api_key.txt')
+
+# 수입신고서 전체항목정의 처리
 def process_entry(항목명, 내용):
+    """
+    신고서 항목 정의를 Document 객체로 변환
+    
+    한국 관세청의 수입/수출 신고서 항목정의를 LangChain Document 형태로 변환합니다.
+    각 항목의 조건, 타입, 작성요령, 예시 등을 구조화합니다.
+    
+    Args:
+        항목명 (str): 신고서 항목명
+        내용 (dict): 항목의 상세 정보
+        
+    Returns:
+        List[Document]: LangChain Document 객체 리스트
+    """
     documents = []
     if 'TYPE' in 내용:
         content = (
@@ -43,14 +83,14 @@ def process_entry(항목명, 내용):
     return documents
 
 documents = []
-with open(path + "수입신고서_전체항목정의(v1).json", "r", encoding="utf-8") as f:
+with open(base_path / "수입신고서_전체항목정의(v1).json", "r", encoding="utf-8") as f:
     data = json.load(f)
 for 항목명, 항목내용 in data.items():
     documents.extend(process_entry(항목명, 항목내용))
 
 # Load and process 수출신고서_전체항목정의(v1).json
 export_documents = []
-with open(path + "수출신고서_전체항목정의(v1).json", "r", encoding="utf-8") as f:
+with open(base_path / "수출신고서_전체항목정의(v1).json", "r", encoding="utf-8") as f:
     data = json.load(f)
 for 항목명, 항목내용 in data.items():
     export_documents.extend(process_entry(항목명, 항목내용))
@@ -77,7 +117,7 @@ def make_documents(json_path):
             stat_code_documents.append(Document(page_content=f"{section}: {codes}", metadata={"section": section}))
     return stat_code_documents
 
-stat_code_documents = make_documents(path + "무역통계부호.json")
+stat_code_documents = make_documents(base_path / "무역통계부호.json")
 
 # AI Model Setting
 llm = ChatOpenAI(temperature=0.3, model_name="gpt-4o-mini")

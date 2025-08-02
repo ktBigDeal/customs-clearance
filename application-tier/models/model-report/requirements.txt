@@ -1,5 +1,4 @@
 # This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
 # platform: win-64
 # report agent 실행한 가상환경 전체 requirements.txt
 aiohappyeyeballs=2.6.1=pypi_0

@@ -1,5 +1,8 @@
 """
-AI Gateway endpoints for integration with Spring Boot backend.
+Spring Boot 백엔드와의 통합을 위한 AI 게이트웨이 엔드포인트
+
+이 모듈은 Spring Boot 백엔드와 AI 모델 서비스 간의 통합을 담당합니다.
+문서 처리, 위험 평가, 검증 등의 AI 기반 서비스를 제공합니다.
 """
 
 import asyncio
@@ -24,7 +27,15 @@ router = APIRouter()
 
 
 async def get_spring_boot_client():
-    """Get HTTP client for Spring Boot backend"""
+    """
+    Spring Boot 백엔드를 위한 HTTP 클라이언트 반환
+    
+    설정된 기본 URL과 인증 헤더를 사용하여 비동기 HTTP 클라이언트를 생성합니다.
+    타임아웃과 API 키 설정을 포함합니다.
+    
+    Returns:
+        httpx.AsyncClient: Spring Boot 백엔드 통신용 HTTP 클라이언트
+    """
     settings = get_settings()
     return httpx.AsyncClient(
         base_url=settings.SPRING_BOOT_BASE_URL,
@@ -41,7 +52,22 @@ async def process_document(
     request: DocumentProcessingRequest,
     background_tasks: BackgroundTasks
 ):
-    """Process customs clearance documents using AI models"""
+    """
+    AI 모델을 사용한 관세 통관 문서 처리
+    
+    주어진 문서에서 텍스트를 추출하고, 버화된 데이터를 생성합니다.
+    처리 결과는 백그라운드로 Spring Boot 백엔드에 전송됩니다.
+    
+    Args:
+        request (DocumentProcessingRequest): 문서 처리 요청 데이터
+        background_tasks (BackgroundTasks): 백그라운드 작업 처리용
+        
+    Returns:
+        DocumentProcessingResponse: 문서 처리 결과
+        
+    Raises:
+        HTTPException: 문서 처리 실패 시
+    """
     
     document_id = request.document_id or str(uuid4())
     

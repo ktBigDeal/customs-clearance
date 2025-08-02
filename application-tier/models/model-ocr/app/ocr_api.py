@@ -1,3 +1,10 @@
+"""
+Azure Document Intelligence 기반 OCR API 서비스
+
+이 모듈은 관세 문서 3종(Invoice, Packing List, Bill of Lading)에 대해
+Azure Document Intelligence를 사용하여 OCR 처리를 수행하고 구조화된 데이터를 추출합니다.
+"""
+
 import os
 import json
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -5,12 +12,29 @@ from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from pathlib import Path
 
 # --- 환경 변수 로딩 ---
+env_path = Path(__file__).parent.parent / 'api_key.env'
+
+# 절대 경로를 사용해 .env 파일 로드
+load_dotenv(dotenv_path=env_path)
 load_dotenv(dotenv_path="../api_key.env")
 
 # --- 필드 파싱 ---
 def parse_field(field):
+    """
+    Azure Document Intelligence 필드 데이터 파싱
+    
+    Azure Document Intelligence에서 반환된 필드 데이터를 
+    Python 객체로 변환하는 함수입니다.
+    
+    Args:
+        field: Azure Document Intelligence 필드 객체
+        
+    Returns:
+        변환된 Python 객체 (문자열, 숫자, 리스트, 사전 등)
+    """
     if field is None:
         return None
 
@@ -29,6 +53,20 @@ def parse_field(field):
 
 # --- 문서 분석 ---
 def analyze_document_to_json(client, model_id, file_bytes: bytes):
+    """
+    문서를 분석하여 JSON 형태로 변환
+    
+    Azure Document Intelligence를 사용하여 문서를 분석하고
+    추출된 필드 데이터를 JSON 형태로 변환합니다.
+    
+    Args:
+        client: Azure Document Intelligence 클라이언트
+        model_id (str): 사용할 모델 ID
+        file_bytes (bytes): 분석할 문서 파일 바이트
+        
+    Returns:
+        dict: 추출된 필드 데이터를 포함하는 딕셔너리
+    """
     poller = client.begin_analyze_document(model_id, document=file_bytes)
     result = poller.result()
 
@@ -38,6 +76,21 @@ def analyze_document_to_json(client, model_id, file_bytes: bytes):
 
 # --- JSON 병합 ---
 def merge_jsons(invoice, packing_list1, packing_list2, bill_of_lading):
+    """
+    여러 문서에서 추출된 데이터를 통합
+    
+    Invoice, Packing List, Bill of Lading에서 추출된 데이터를
+    하나의 통합된 JSON 객체로 병합합니다.
+    
+    Args:
+        invoice (dict): 인보이스에서 추출된 데이터
+        packing_list1 (dict): 첫 번째 포장 명세서 데이터
+        packing_list2 (dict): 두 번째 포장 명세서 데이터
+        bill_of_lading (dict): 선하증권에서 추출된 데이터
+        
+    Returns:
+        dict: 병합된 데이터를 포함하는 딕셔너리
+    """
     merged = {
         "invoice_number": invoice.get("invoice_number", ""),
         "country_export": invoice.get("country_export", ""),

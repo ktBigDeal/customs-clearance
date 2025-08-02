@@ -4,7 +4,7 @@ import json
 # Define the FastAPI endpoint URL
 # If running locally, replace with your local address (e.g., "http://127.0.0.1:8001/generate-customs-declaration")
 # api_url = "http://127.0.0.1:8000/generate-customs-declaration/import"
-api_url = "http://127.0.0.1:8000/generate-customs-declaration/export" 
+api_url = "http://localhost:8000/api/v1/report/generate-export-declaration"
 
 # Sample input data (using the dummy data from cell sbU3n-2y_uWp)
 ocr_data_input = {

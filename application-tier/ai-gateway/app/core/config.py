@@ -1,5 +1,8 @@
 """
-Configuration settings for the AI Gateway application.
+AI 게이트웨이 애플리케이션을 위한 설정 관리 모듈
+
+이 모듈은 환경 변수와 기본값을 통해 애플리케이션의 모든 설정을 관리합니다.
+Pydantic BaseSettings를 사용하여 설정 값들의 타입 안전성과 검증을 보장합니다.
 """
 
 import os
@@ -10,12 +13,18 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """
+    애플리케이션 설정 클래스
+    
+    환경 변수 또는 .env 파일에서 설정 값들을 읽어와서 애플리케이션 전체에서
+    사용할 수 있는 설정 객체를 생성합니다. 모든 설정 값들은 타입 힌트와 기본값을
+    가지고 있어 안전하게 사용할 수 있습니다.
+    """
     
     # Application settings
     APP_NAME: str = "Customs Clearance AI Gateway"
     VERSION: str = "1.0.0"
-    DEBUG: bool = False
+    DEBUG: bool = True
     ENVIRONMENT: str = "development"
     
     # Server settings
@@ -43,6 +52,10 @@ class Settings(BaseSettings):
     # Spring Boot backend integration
     SPRING_BOOT_BASE_URL: str = "http://localhost:8080"
     SPRING_BOOT_API_KEY: Optional[str] = None
+    
+    # Model services configuration
+    MODEL_OCR_URL: str = "http://localhost:8001"
+    MODEL_REPORT_URL: str = "http://localhost:8002"
     
     # AI Model settings
     MODEL_STORAGE_PATH: str = "./models"
@@ -73,17 +86,33 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Get cached settings instance"""
+    """
+    캐시된 설정 인스턴스 반환
+    
+    설정 객체를 싱글톤 패턴으로 관리하여 메모리 효율성을 높이고
+    설정 값 읽기 성능을 최적화합니다.
+    
+    Returns:
+        Settings: 애플리케이션 설정 객체
+    """
     return Settings()
 
 
-# Environment-specific configurations
 def get_cors_origins() -> List[str]:
-    """Get CORS origins based on environment"""
+    """
+    환경별 CORS 허용 출처 목록 반환
+    
+    실행 환경(development, staging, production)에 따라 적절한
+    CORS 허용 출처 목록을 반환합니다. 프로덕션 환경에서는 보안을 위해
+    허용 출처를 제한합니다.
+    
+    Returns:
+        List[str]: CORS 허용 출처 URL 목록
+    """
     settings = get_settings()
     
     if settings.ENVIRONMENT == "production":
-        # In production, restrict CORS origins
+        # 프로덕션 환경에서는 CORS 출처를 제한
         return [
             "https://your-production-frontend.com",
             "https://your-production-backend.com"
@@ -96,5 +125,5 @@ def get_cors_origins() -> List[str]:
             "http://localhost:8080"
         ]
     else:
-        # Development - allow local origins
+        # 개발 환경 - 로컬 출처 허용
         return settings.CORS_ORIGINS

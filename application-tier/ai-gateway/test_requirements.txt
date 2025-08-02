@@ -1,0 +1,13 @@
+# Testing dependencies for ai-gateway
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+pytest-cov==4.1.0
+httpx==0.25.2
+fastapi[all]>=0.104.1
+responses==0.24.1
+aioresponses==0.7.6
+testcontainers==3.7.1
+
+# Base requirements
+-r requirements.txt

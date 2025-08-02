@@ -117,11 +117,11 @@ curl http://localhost:8000  # AI Gateway
 
 | 서비스 | URL | 설명 |
 |--------|-----|------|
-| **웹 애플리케이션** | http://localhost:3000 | 메인 포털 |
-| **API 문서** | http://localhost:8080/swagger-ui | Spring Boot API |
-| **AI API 문서** | http://localhost:8000/docs | FastAPI 문서 |
-| **데이터베이스** | http://localhost:8081 | phpMyAdmin |
-| **모니터링** | http://localhost:3001 | Grafana 대시보드 |
+| **웹 애플리케이션** | <http://localhost:3000> | 메인 포털 |
+| **API 문서** | <http://localhost:8080/swagger-ui> | Spring Boot API |
+| **AI API 문서** | <http://localhost:8000/docs> | FastAPI 문서 |
+| **데이터베이스** | <http://localhost:8081> | phpMyAdmin |
+| **모니터링** | <http://localhost:3001> | Grafana 대시보드 |
 
 ---
 
@@ -353,9 +353,9 @@ python scripts/test-connection.py
 
 ### 📖 **API 문서 접속**
 
-- **Spring Boot API**: http://localhost:8080/swagger-ui/index.html
-- **FastAPI 문서**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Spring Boot API**: <http://localhost:8080/swagger-ui/index.html>
+- **FastAPI 문서**: <http://localhost:8000/docs>
+- **ReDoc**: <http://localhost:8000/redoc>
 
 ---
 
@@ -453,6 +453,7 @@ kubectl scale deployment frontend --replicas=3
 **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 **Examples**:
+
 ```bash
 feat(auth): add JWT authentication
 fix(api): resolve declaration status update bug
@@ -471,7 +472,7 @@ style(frontend): improve button component styling
 
 ## 📞 지원 및 문의
 
-- **📧 이메일**: customs-dev@customs.go.kr
+- **📧 이메일**: <customs-dev@customs.go.kr>
 - **📱 이슈 트래킹**: [GitHub Issues](https://github.com/your-org/customs-clearance/issues)
 - **📖 위키**: [프로젝트 위키](https://github.com/your-org/customs-clearance/wiki)
 

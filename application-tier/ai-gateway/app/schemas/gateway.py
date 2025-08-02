@@ -96,7 +96,7 @@ class RiskAssessmentRequest(BaseModel):
 class RiskFactor(BaseModel):
     """Risk factor information"""
     factor_name: str
-    risk_level: str = Field(..., regex="^(LOW|MEDIUM|HIGH|CRITICAL)$")
+    risk_level: str = Field(..., pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
     score: float = Field(ge=0.0, le=1.0)
     description: str
     recommendations: List[str] = Field(default_factory=list)
@@ -105,7 +105,7 @@ class RiskFactor(BaseModel):
 class RiskAssessmentResponse(BaseResponse):
     """Response schema for risk assessment"""
     declaration_id: str
-    overall_risk_level: str = Field(..., regex="^(LOW|MEDIUM|HIGH|CRITICAL)$")
+    overall_risk_level: str = Field(..., pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
     overall_risk_score: float = Field(ge=0.0, le=1.0)
     risk_factors: List[RiskFactor] = Field(default_factory=list)
     recommendations: List[str] = Field(default_factory=list)
@@ -125,7 +125,7 @@ class ValidationError(BaseModel):
     field_name: str
     error_code: str
     error_message: str
-    severity: str = Field(..., regex="^(WARNING|ERROR|CRITICAL)$")
+    severity: str = Field(..., pattern="^(WARNING|ERROR|CRITICAL)$")
     suggested_fix: Optional[str] = None
 
 

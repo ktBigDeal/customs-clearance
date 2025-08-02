@@ -1,5 +1,8 @@
 """
-Custom middleware for the AI Gateway application.
+AI 게이트웨이 애플리케이션을 위한 커스텀 미들웨어
+
+이 모듈은 요청 로깅, 인증, 레이트 리미팅 등의 미들웨어를 제공합니다.
+모든 HTTP 요청에 대해 로깅, 보안, 성능 처리를 수행합니다.
 """
 
 import time
@@ -19,7 +22,12 @@ security = HTTPBearer(auto_error=False)
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log all requests and responses"""
+    """
+    요청 및 응답 로깅 미들웨어
+    
+    모든 HTTP 요청과 응답에 대한 정보를 로그로 기록합니다.
+    요청 ID, 처리 시간, 상태 코드 등의 정보를 추적합니다.
+    """
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Generate request ID
@@ -61,7 +69,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Basic authentication middleware"""
+    """
+    기본 인증 미들웨어
+    
+    HTTP Bearer 토큰을 사용한 기본적인 인증 기능을 제공합니다.
+    공개 엔드포인트는 인증을 건너뛰고, 디버그 모드에서는 인증을 비활성화합니다.
+    """
     
     # Public endpoints that don't require authentication
     PUBLIC_PATHS = {
@@ -108,7 +121,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
     
     def _validate_token(self, token: str) -> bool:
-        """Validate authentication token"""
+        """
+        인증 토큰 유효성 검사
+        
+        주어진 토큰의 유효성을 검사합니다.
+        개발 환경에서는 상시 true를 반환하고,
+        프로덕션에서는 실제 JWT 검증 등을 수행해야 합니다.
+        
+        Args:
+            token (str): 검사할 인증 토큰
+            
+        Returns:
+            bool: 토큰 유효성 여부
+        """
         # TODO: Implement proper token validation
         # This is a basic implementation for development
         if settings.DEBUG:
@@ -119,7 +144,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return token == settings.SECRET_KEY
     
     def _get_user_from_token(self, token: str) -> dict:
-        """Extract user information from token"""
+        """
+        토큰에서 사용자 정보 추출
+        
+        인증 토큰에서 사용자 정보를 추출합니다.
+        개발 환경에서는 기본 사용자 정보를 반환하고,
+        프로덕션에서는 JWT 디코딩 등을 통해 실제 사용자 정보를 추출해야 합니다.
+        
+        Args:
+            token (str): 사용자 정보를 포함하는 토큰
+            
+        Returns:
+            dict: 사용자 정보 딕셔너리
+        """
         # TODO: Implement proper user extraction
         # This is a basic implementation for development
         return {
@@ -130,7 +167,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting middleware"""
+    """
+    요청 빈도 제한 미들웨어
+    
+    클라이언트 IP별로 분당 요청 수를 제한하여 API 남용을 방지합니다.
+    메모리 기반의 간단한 구현이며, 프로덕션에서는 Redis 등을 사용해야 합니다.
+    """
     
     def __init__(self, app, calls_per_minute: int = 100):
         super().__init__(app)
