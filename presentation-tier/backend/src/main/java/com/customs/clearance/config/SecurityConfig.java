@@ -13,7 +13,27 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 /**
- * Security configuration for the customs clearance application
+ * 관세 통관 시스템의 보안 설정 컨피그레이션 클래스
+ * 
+ * 스프링 시큐리티를 사용하여 애플리케이션의 보안 정책을 정의합니다.
+ * CORS, CSRF, 인증/인가 규칙을 설정하여 보안성을 보장합니다.
+ * 
+ * <p>주요 보안 기능:</p>
+ * <ul>
+ *   <li>CORS(교차 원점 리소스 공유) 설정</li>
+ *   <li>CSRF(교차 사이트 요청 위조) 보호</li>
+ *   <li>Stateless 세션 관리 (JWT 기반)</li>
+ *   <li>API 엔드포인트별 접근 규칙</li>
+ *   <li>공개 API 및 스웨거 예외 처리</li>
+ * </ul>
+ * 
+ * <p>대부분의 API는 인증이 필요하지만, 헬스 체크와 같은 공개 API는 예외입니다.</p>
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0.0
+ * @see SecurityFilterChain
+ * @see CorsConfigurationSource
+ * @since 2024-01-01
  */
 @Configuration
 @EnableWebSecurity

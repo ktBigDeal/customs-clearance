@@ -20,7 +20,29 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of DeclarationService
+ * 관세 신고서 비즈니스 로직 서비스 구현체
+ * 
+ * 관세 신고서의 모든 비즈니스 로직을 구현하는 서비스 계층 구현체입니다.
+ * 데이터 액세스, 데이터 변환, 비즈니스 규칙 검증 등을 담당합니다.
+ * 
+ * <p>주요 기능:</p>
+ * <ul>
+ *   <li>데이터 무결성 보장 (중복 방지, 제약 조건 검증)</li>
+ *   <li>트랜잭션 관리 및 예외 처리</li>
+ *   <li>DTO ↔ Entity 변환 로직</li>
+ *   <li>로깅 및 모니터링</li>
+ *   <li>비즈니스 규칙 적용</li>
+ * </ul>
+ * 
+ * <p>모든 조회 메서드는 읽기 전용 트랜잭션에서 실행되며,</p>
+ * <p>생성/수정/삭제 메서드는 쓰기 트랜잭션에서 실행됩니다.</p>
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0.0
+ * @see DeclarationService
+ * @see DeclarationRepository
+ * @see DeclarationMapper
+ * @since 2024-01-01
  */
 @Slf4j
 @Service

@@ -9,7 +9,32 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * DTO for declaration creation/update requests
+ * 관세 신고서 생성/수정 요청용 DTO 클래스
+ * 
+ * 클라이언트로부터 받는 신고서 데이터를 담는 데이터 전송 객체입니다.
+ * Bean Validation API를 통해 입력 데이터의 유효성을 검증하고 비즈니스 규칙을 적용합니다.
+ * 
+ * <p>주요 검증 규칙:</p>
+ * <ul>
+ *   <li>신고서 번호: 필수, 50자 이내</li>
+ *   <li>수입/수출업체명: 필수, 100자 이내</li>
+ *   <li>신고일자: 필수, 미래 날짜 불가</li>
+ *   <li>총 금액: 필수, 0.01 이상, 소수점 2자리</li>
+ *   <li>통화 코드: 3자리 대문자 알파벳</li>
+ *   <li>원산지/항구: 필수, 50자 이내</li>
+ * </ul>
+ * 
+ * <p>사용 예시:</p>
+ * <pre>
+ * POST /api/v1/declarations
+ * PUT /api/v1/declarations/{id}
+ * </pre>
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0.0
+ * @see Declaration
+ * @see DeclarationResponseDto
+ * @since 2024-01-01
  */
 @Data
 @NoArgsConstructor

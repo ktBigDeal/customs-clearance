@@ -25,7 +25,29 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * REST Controller for Declaration operations
+ * 관세 신고서 관리 REST 컨트롤러
+ * 
+ * 관세 신고서의 CRUD 업무 및 다양한 검색 기능을 제공하는 REST API 엔드포인트를 정의합니다.
+ * 이 컨트롤러는 전체 관세 통관 시스템의 핵심 비즈니스 로직을 담당합니다.
+ * 
+ * <p>주요 기능:</p>
+ * <ul>
+ *   <li>신고서 생성, 조회, 수정, 삭제 (CRUD)</li>
+ *   <li>상태별, 국가별, 날짜별 검색</li>
+ *   <li>수입업체명 기반 검색</li>
+ *   <li>통계 정보 제공</li>
+ *   <li>페이지네이션 지원</li>
+ * </ul>
+ * 
+ * <p>API 버전: v1</p>
+ * <p>기본 경로: /declarations</p>
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0.0
+ * @see DeclarationService
+ * @see DeclarationRequestDto
+ * @see DeclarationResponseDto
+ * @since 2024-01-01
  */
 @Slf4j
 @RestController

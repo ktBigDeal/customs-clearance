@@ -12,7 +12,32 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Declaration entity representing a customs declaration
+ * 관세 신고서 엔티티 클래스
+ * 
+ * 관세 신고서의 모든 데이터를 나타내는 JPA 엔티티입니다.
+ * 수입/수출 신고서에 필요한 모든 필수 정보와 비즈니스 규칙을 포함합니다.
+ * 
+ * <p>주요 데이터 필드:</p>
+ * <ul>
+ *   <li>신고서 번호 (고유값, 중복 불가)</li>
+ *   <li>수입업체 및 수출업체 정보</li>
+ *   <li>신고 날짜 및 총 금액</li>
+ *   <li>상태 관리 (PENDING → UNDER_REVIEW → APPROVED/REJECTED → CLEARED)</li>
+ *   <li>원산지 및 통관 항구 정보</li>
+ * </ul>
+ * 
+ * <p>데이터 무결성 및 검증:</p>
+ * <ul>
+ *   <li>Bean Validation API를 통한 필드 검증</li>
+ *   <li>신고서 번호 유니크 제약</li>
+ *   <li>금액 정밀도 설정 (15자리, 소수점 2자리)</li>
+ * </ul>
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0.0
+ * @see BaseEntity
+ * @see DeclarationStatus
+ * @since 2024-01-01
  */
 @Data
 @Entity
