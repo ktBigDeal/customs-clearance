@@ -1,7 +1,6 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { MainNav } from './main-nav';
@@ -14,7 +13,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
-  const t = useTranslations();
 
   return (
     <>

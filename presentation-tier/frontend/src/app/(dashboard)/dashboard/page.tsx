@@ -1,6 +1,5 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import {
   BarChart3,
   FileText,
@@ -17,12 +16,10 @@ import { Card } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 
 export default function DashboardPage() {
-  const t = useTranslations();
-
   // Mock data for dashboard
   const stats = [
     {
-      title: t('dashboard.totalDeclarations'),
+      title: '총 신고서',
       value: '1,234',
       change: '+12%',
       trend: 'up',
@@ -31,7 +28,7 @@ export default function DashboardPage() {
       bgColor: 'bg-blue-50',
     },
     {
-      title: t('dashboard.pendingDeclarations'),
+      title: '대기 중인 신고서',
       value: '23',
       change: '-5%',
       trend: 'down',
@@ -40,7 +37,7 @@ export default function DashboardPage() {
       bgColor: 'bg-orange-50',
     },
     {
-      title: t('dashboard.approvedDeclarations'),
+      title: '승인된 신고서',
       value: '1,156',
       change: '+8%',
       trend: 'up',
@@ -49,7 +46,7 @@ export default function DashboardPage() {
       bgColor: 'bg-green-50',
     },
     {
-      title: t('dashboard.rejectedDeclarations'),
+      title: '거부된 신고서',
       value: '55',
       change: '+2%',
       trend: 'up',
@@ -110,16 +107,44 @@ export default function DashboardPage() {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return '승인됨';
+      case 'CLEARED':
+        return '통관완료';
+      case 'UNDER_REVIEW':
+        return '검토중';
+      case 'PENDING_DOCUMENTS':
+        return '서류대기';
+      case 'REJECTED':
+        return '거부됨';
+      default:
+        return status;
+    }
+  };
+
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case 'IMPORT':
+        return '수입';
+      case 'EXPORT':
+        return '수출';
+      default:
+        return type;
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-foreground">
-            {t('dashboard.title')}
+            대시보드
           </h1>
           <p className="text-muted-foreground">
-            {t('dashboard.welcome')}
+            관세 통관 시스템에 오신 것을 환영합니다
           </p>
         </div>
 
@@ -163,11 +188,11 @@ export default function DashboardPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">
-                  {t('dashboard.recentDeclarations')}
+                  최근 신고서
                 </h2>
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4 mr-2" />
-                  {t('dashboard.viewAllDeclarations')}
+                  전체 신고서 보기
                 </Button>
               </div>
               <div className="space-y-4">
@@ -186,14 +211,14 @@ export default function DashboardPage() {
                             declaration.status
                           )}`}
                         >
-                          {t(`declarations.statuses.${declaration.status}`)}
+                          {getStatusText(declaration.status)}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {declaration.company}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {t(`declarations.types.${declaration.type}`)} •{' '}
+                        {getTypeText(declaration.type)} •{' '}
                         {declaration.date}
                       </p>
                     </div>
@@ -212,12 +237,12 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">
-                {t('dashboard.quickActions')}
+                빠른 작업
               </h2>
               <div className="space-y-3">
-                <Button className="w-full justify-start" variant="customs">
+                <Button className="w-full justify-start" variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
-                  {t('dashboard.newDeclaration')}
+                  새 신고서 작성
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <FileText className="h-4 w-4 mr-2" />
@@ -233,9 +258,9 @@ export default function DashboardPage() {
             {/* Processing Time */}
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-5 w-5 text-customs-600" />
+                <TrendingUp className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold">
-                  {t('dashboard.averageProcessingTime')}
+                  평균 처리 시간
                 </h2>
               </div>
               <div className="space-y-3">
