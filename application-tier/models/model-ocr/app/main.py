@@ -5,6 +5,7 @@ Azure Document Intelligence 기반 OCR API 서비스
 Azure Document Intelligence를 사용하여 OCR 처리를 수행하고 구조화된 데이터를 추출합니다.
 """
 
+import asyncio
 import os
 import json
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -13,13 +14,14 @@ from azure.core.credentials import AzureKeyCredential
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 # --- 환경 변수 로딩 ---
-env_path = Path(__file__).parent.parent / 'api_key.env'
+env_path = Path(__file__).parent.parent / '.env'
 
 # 절대 경로를 사용해 .env 파일 로드
 load_dotenv(dotenv_path=env_path)
-load_dotenv(dotenv_path="../api_key.env")
+load_dotenv(dotenv_path="../.env")
 
 # --- 필드 파싱 ---
 def parse_field(field):
@@ -75,7 +77,7 @@ def analyze_document_to_json(client, model_id, file_bytes: bytes):
     return {name: parse_field(field) for name, field in fields.items()}
 
 # --- JSON 병합 ---
-def merge_jsons(invoice, packing_list1, packing_list2, bill_of_lading):
+def merge_jsons(invoice, packing_list, bill_of_lading):
     """
     여러 문서에서 추출된 데이터를 통합
     
@@ -100,9 +102,9 @@ def merge_jsons(invoice, packing_list1, packing_list2, bill_of_lading):
         "buyer": invoice.get("buyer", ""),
         "total_amount": invoice.get("total_amount", ""),
         "items": [],
-        "gross_weight": packing_list1.get("gross_weight", ""),
-        "net_weight": packing_list1.get("net_weight", ""),
-        "total_packages": packing_list1.get("total_packages", ""),
+        "gross_weight": packing_list.get("gross_weight", ""),
+        "net_weight": packing_list.get("net_weight", ""),
+        "total_packages": packing_list.get("total_packages", ""),
         "bill_number": bill_of_lading.get("bill_number", ""),
         "port_departure": bill_of_lading.get("port_departure", ""),
         "port_destination": bill_of_lading.get("port_destination", ""),
@@ -111,7 +113,7 @@ def merge_jsons(invoice, packing_list1, packing_list2, bill_of_lading):
     }
 
     invoice_items = invoice.get("items", [])
-    packing_items = packing_list2.get("items", [])
+    packing_items = packing_list.get("items", [])
 
     for i in range(len(invoice_items)):
         invoice_item = invoice_items[i]
@@ -149,6 +151,9 @@ endpoint = os.getenv("AZURE_ENDPOINT")
 key = os.getenv("AZURE_API_KEY")
 client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))
 
+# 전역 executor 정의
+executor = ThreadPoolExecutor()
+
 # --- API 엔드포인트 ---
 @app.post("/ocr/")
 async def analyze_docs(
@@ -157,16 +162,23 @@ async def analyze_docs(
     bill_of_lading_file: UploadFile = File(...)
 ):
     try:
-        invoice_bytes = await invoice_file.read()
-        packing_bytes = await packing_list_file.read()
-        bill_bytes = await bill_of_lading_file.read()
+        # 비동기로 파일 바이트 읽기
+        invoice_bytes, packing_bytes, bill_bytes = await asyncio.gather(
+            invoice_file.read(),
+            packing_list_file.read(),
+            bill_of_lading_file.read()
+        )
 
-        json_invoice = analyze_document_to_json(client, "model-invoice", invoice_bytes)
-        json_packing_list1 = analyze_document_to_json(client, "model-packing_list", packing_bytes)
-        json_packing_list2 = analyze_document_to_json(client, "model-packing_list_2", packing_bytes)
-        json_bill_of_lading = analyze_document_to_json(client, "model-bill_of_lading", bill_bytes)
+        loop = asyncio.get_event_loop()
 
-        merged_json = merge_jsons(json_invoice, json_packing_list1, json_packing_list2, json_bill_of_lading)
+        # 분석을 쓰레드에서 병렬 실행
+        json_invoice, json_packing_list, json_bill_of_lading = await asyncio.gather(
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-invoice", invoice_bytes),
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-packing_list", packing_bytes),
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-bill_of_lading", bill_bytes)
+        )
+
+        merged_json = merge_jsons(json_invoice, json_packing_list, json_bill_of_lading)
         return merged_json
 
     except Exception as e:

@@ -15,7 +15,7 @@ python main.py
 ```bash
 cd application-tier/models/model-ocr
 source .venv/Scripts/activate
-python -m uvicorn app.ocr_api:app --host 127.0.0.1 --port 8001
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
 ### 3단계: Report 모델 시작 (별도 터미널)
