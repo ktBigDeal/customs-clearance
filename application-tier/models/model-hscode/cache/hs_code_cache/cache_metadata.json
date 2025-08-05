@@ -1,0 +1,24 @@
+{
+  "data_hash": "30d73fb329884a87171eaa9fa3f22d59",
+  "created_at": "2025-08-02T03:11:44.501494",
+  "model_name": "jhgan/ko-sroberta-multitask",
+  "total_items": 37049,
+  "cache_version": "2.1",
+  "data_structure": {
+    "columns": 28,
+    "has_final_combined_text": true,
+    "text_quality": {
+      "avg_length": 585.4129666117844,
+      "empty_count": 0
+    }
+  },
+  "file_info": {
+    "embeddings": "108.54 MB",
+    "tfidf_matrix": "233.27 MB",
+    "tfidf_vectorizer": "1.05 MB",
+    "integrated_df": "50.89 MB",
+    "metadata": "0.00 MB",
+    "mappings": "4.07 MB",
+    "chapter_descriptions": "0.01 MB"
+  }
+}
