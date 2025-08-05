@@ -19,7 +19,7 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
     /** JWT 서명에 사용할 시크릿 키 (Base64 인코딩된 문자열 권장) */
-    @Value("${customs.clearance.security.jwt.secret}")
+    @Value("${JWT_SECRET}")
     private String jwtSecret;
 
     /** JWT 만료 시간(밀리초) */
