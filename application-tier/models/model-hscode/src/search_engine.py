@@ -10,7 +10,10 @@ from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from pathlib import Path
+
+# 프로젝트 루트를 sys.path에 추가 (model-hscode 폴더)
+sys.path.append(str(Path(__file__).parent.parent))
 from config import SYSTEM_CONFIG
 
 class SearchEngine:

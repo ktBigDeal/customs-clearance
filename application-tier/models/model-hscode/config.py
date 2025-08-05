@@ -1,19 +1,23 @@
 import os
+from pathlib import Path
 
 def get_file_path(filename):
     """파일 경로를 찾아서 반환"""
+    # 현재 파일의 디렉토리를 기준으로 절대 경로 생성
+    current_dir = Path(__file__).parent
+    
     # data 폴더에서 먼저 찾기
-    data_path = os.path.join("./data", filename)
-    if os.path.exists(data_path):
-        return data_path
+    data_path = current_dir / "data" / filename
+    if data_path.exists():
+        return str(data_path)
     
     # 루트 디렉토리에서 찾기
-    root_path = f"./{filename}"
-    if os.path.exists(root_path):
-        return root_path
+    root_path = current_dir / filename
+    if root_path.exists():
+        return str(root_path)
     
-    # 기본값 반환
-    return data_path
+    # 기본값 반환 (data 폴더 경로)
+    return str(data_path)
 
 FILE_PATHS = {
     'hs_codes': get_file_path("관세청_HS부호_2025.csv"),
@@ -146,11 +150,11 @@ SYSTEM_CONFIG = {
     # 검색 결과 상위 개수
     'top_k': 30,
     
-    # 캐시 디렉토리
-    'cache_dir': './cache',
+    # 캐시 디렉토리 (절대 경로)
+    'cache_dir': str(Path(__file__).parent / 'cache'),
     
-    # OpenAI API 키 파일
-    'openai_api_file': './docs/Aivle-api.txt',
+    # OpenAI API 키 파일 (절대 경로)
+    'openai_api_file': str(Path(__file__).parent / 'docs' / 'Aivle-api.txt'),
     
     # TF-IDF 벡터라이저 설정 (final_combined_text 최적화)
     'tfidf_config': {
@@ -251,7 +255,7 @@ CACHE_CONFIG = {
 # LLM 분석 설정 (OpenAI)
 LLM_CONFIG = {
     # 기본 모델
-    'default_model': 'gpt-3.5-turbo',
+    'default_model': 'gpt-4.1-mini',
     
     # 분석 설정
     'analysis': {

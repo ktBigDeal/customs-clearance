@@ -1,5 +1,7 @@
 from src.hs_recommender import HSCodeRecommender
 from config import SYSTEM_CONFIG
+from pathlib import Path
+import os
 
 def print_system_info(recommender: HSCodeRecommender):
     """시스템 정보 출력 (final_combined_text 구조 정보 포함)"""
@@ -258,7 +260,8 @@ def main():
     print("="*80)
     
     # 추천 시스템 초기화
-    cache_dir = './cache/hs_code_cache'
+    project_root = Path(__file__).parent.parent
+    cache_dir = project_root /"model-hscode"/"cache"/ "hs_code_cache"
     recommender = HSCodeRecommender(
         semantic_model_name=SYSTEM_CONFIG['semantic_model'],
         top_k=SYSTEM_CONFIG['top_k'],

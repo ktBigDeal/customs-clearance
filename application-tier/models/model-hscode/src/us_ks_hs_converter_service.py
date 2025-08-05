@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 import os
@@ -9,12 +8,33 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 import torch
+from dataclasses import dataclass
+import pandas as pd
 
 try:
     import openai
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
+
+@dataclass
+class ProductAnalysis:
+    """LLM 분석 결과 구조체"""
+    material: str
+    function: str
+    target_user: str
+    size_category: str
+    key_features: List[str]
+    alternative_hs6: List[str]
+    reasoning: str
+
+@dataclass
+class LLMRanking:
+    """LLM 순위 매김 결과"""
+    rank: int
+    hs_code: str
+    confidence: float
+    reason: str
 
 class HSCodeStructureAnalyzer:
     """HS 코드 구조 분석 클래스"""
@@ -24,12 +44,9 @@ class HSCodeStructureAnalyzer:
         """HS 코드를 구성 요소별로 분해"""
         hs_code = str(hs_code).strip()
         
-        # HS 코드 길이에 따른 올바른 처리
         if len(hs_code) <= 10:
-            # 뒤쪽에 0을 채워서 10자리로 만듦
             hs_code = hs_code.ljust(10, '0')
         else:
-            # 10자리를 초과하면 앞 10자리만 사용
             hs_code = hs_code[:10]
         
         return {
@@ -66,10 +83,11 @@ class HSCodeStructureAnalyzer:
         
         return min(similarity, 1.0)
 
-class HSCodeConverter:
-    """HS 체계를 반영한 미국→한국 HS코드 변환 시스템 (핵심 모듈)"""
+class HSCodeConverterService:
+    """HS 체계를 반영한 미국→한국 HS코드 변환 서비스 (LLM 강화)"""
     
-    def __init__(self, us_tariff_file: str = None, korea_recommender_system=None):
+    def __init__(self, us_tariff_file: str = None, korea_recommender_system=None,
+                 openai_api_key: str = None):
         self.us_tariff_file = us_tariff_file
         self.korea_recommender = korea_recommender_system
         
@@ -81,7 +99,7 @@ class HSCodeConverter:
         self.korea_data = None
         self.korea_hs6_index = {}
         
-        # HS 6자리 분류 설명 (대분류 맥락 정보)
+        # HS 6자리 분류 설명
         self.hs6_descriptions = {}
         
         # HS 구조 분석기
@@ -93,11 +111,33 @@ class HSCodeConverter:
         # 텍스트 검색 엔진
         self.semantic_model = None
         
-        # OpenAI 클라이언트
+        # LLM 관련 설정
         self.openai_client = None
+        self.llm_available = False
+        self.use_llm = False
         
+        # LLM 초기화 시도
+        if openai_api_key and OPENAI_AVAILABLE:
+            try:
+                self.openai_client = openai.OpenAI(api_key=openai_api_key)
+                # API 키 유효성 간단 테스트
+                test_response = self.openai_client.models.list()
+                self.llm_available = True
+                self.use_llm = True
+                print("🤖 OpenAI LLM 연결 완료")
+            except Exception as e:
+                print(f"⚠️ OpenAI LLM 연결 실패: {e}")
+                print("📊 기본 모드로 전환합니다.")
+                self.llm_available = False
+                self.openai_client = None
+        
+        # LLM 캐시
+        self.llm_analysis_cache = {}
+        self.llm_ranking_cache = {}
         self.initialized = False
-        print("HS 코드 변환 시스템 (핵심 모듈) 초기화")
+        
+        llm_status = "LLM 강화" if self.llm_available else "기본 모드"
+        print(f"HS 코드 변환 시스템 ({llm_status}) 초기화")
     
     def initialize_system(self, progress_callback=None):
         """시스템 초기화"""
@@ -140,7 +180,8 @@ class HSCodeConverter:
                 progress_callback(1.0, "초기화 완료!")
             
             self.initialized = True
-            return True, "✅ 시스템 초기화 완료!"
+            llm_status = " (LLM 강화 모드)" if self.llm_available else ""
+            return True, f"✅ 시스템 초기화 완료!{llm_status}"
             
         except Exception as e:
             error_msg = f"❌ 초기화 실패: {str(e)}"
@@ -537,8 +578,310 @@ class HSCodeConverter:
                 candidate['similarity_score'] = 0.5
             return candidates
     
+    # ===========================================
+    # LLM 관련 새로운 메소드들
+    # ===========================================
+    
+    def analyze_product_with_llm(self, us_info: Dict, additional_name: str = "") -> Optional[ProductAnalysis]:
+        """LLM을 활용한 상품 특성 분석"""
+        if not self.llm_available:
+            return None
+        
+        # 캐시 확인
+        cache_key = f"{us_info['hs_code']}:{additional_name}"
+        if cache_key in self.llm_analysis_cache:
+            return self.llm_analysis_cache[cache_key]
+        
+        try:
+            prompt = self._build_product_analysis_prompt(us_info, additional_name)
+            
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "당신은 국제무역과 HS 코드 분류 전문가입니다. 상품을 정확하게 분석하여 구조화된 정보를 제공해주세요."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=1000
+            )
+            
+            analysis = self._parse_llm_analysis(response.choices[0].message.content)
+            
+            # 캐시 저장
+            if analysis:
+                self.llm_analysis_cache[cache_key] = analysis
+            return analysis
+            
+        except Exception as e:
+            print(f"⚠️ LLM 상품 분석 실패: {e}")
+            return None
+    
+    def _build_product_analysis_prompt(self, us_info: Dict, additional_name: str) -> str:
+        """상품 분석용 프롬프트 생성"""
+        hs_chapter = us_info['hs_components']['chapter']
+        hs6 = us_info['hs_components']['hs6']
+        
+        return f"""
+다음 상품의 특성을 전문적으로 분석해주세요:
+
+**기본 정보**:
+- 미국 HS 코드: {us_info['hs_code']} (장: {hs_chapter}, HS6: {hs6})
+- 영문명: {us_info['english_name']}
+- 한글명: {us_info.get('korean_name', '없음')}
+- 추가 상품명: {additional_name or '없음'}
+
+**분석 요청**:
+다음 JSON 형식으로 정확하게 응답해주세요:
+
+```json
+{{
+    "material": "주요 재질 (예: 플라스틱, 알루미늄, 섬유, 복합재료 등)",
+    "function": "주요 기능 (예: 통신, 측정, 가공, 보관, 이동 등)",
+    "target_user": "대상 사용자 (예: 일반소비자, 전문가, 산업용, 의료용 등)",
+    "size_category": "크기 분류 (예: 휴대용, 탁상용, 대형산업용 등)",
+    "key_features": ["주요특징1", "주요특징2", "주요특징3"],
+    "alternative_hs6": ["{hs6}", "대안HS6자리1", "대안HS6자리2"],
+    "reasoning": "분석 근거와 HS 분류 맥락"
+}}
+```
+
+**주의사항**:
+- HS 코드 체계의 논리를 고려해주세요
+- 대안 HS6는 현재 {hs6}와 다르지만 실제로는 같은 상품일 가능성이 있는 분류를 제시해주세요
+- JSON 형식을 정확히 지켜주세요
+"""
+    
+    def _parse_llm_analysis(self, llm_response: str) -> Optional[ProductAnalysis]:
+        """LLM 응답을 ProductAnalysis 객체로 파싱"""
+        try:
+            # JSON 부분만 추출
+            json_match = re.search(r'```json\s*(.*?)\s*```', llm_response, re.DOTALL)
+            if json_match:
+                json_text = json_match.group(1)
+            else:
+                # JSON 블록이 없으면 전체에서 JSON 찾기
+                json_text = llm_response
+            
+            # JSON 파싱
+            data = json.loads(json_text)
+            
+            return ProductAnalysis(
+                material=data.get('material', '알 수 없음'),
+                function=data.get('function', '알 수 없음'),
+                target_user=data.get('target_user', '알 수 없음'),
+                size_category=data.get('size_category', '알 수 없음'),
+                key_features=data.get('key_features', []),
+                alternative_hs6=data.get('alternative_hs6', []),
+                reasoning=data.get('reasoning', '')
+            )
+            
+        except Exception as e:
+            print(f"⚠️ LLM 응답 파싱 실패: {e}")
+            return None
+    
+    def get_llm_suggested_candidates(self, product_analysis: ProductAnalysis) -> List[Dict]:
+        """LLM이 제안한 대안 HS 분류의 한국 후보들"""
+        if not product_analysis:
+            return []
+        
+        candidates = []
+        
+        for alt_hs6 in product_analysis.alternative_hs6:
+            if alt_hs6 in self.korea_hs6_index:
+                alt_candidates = self.get_korea_candidates_by_hs6(alt_hs6)
+                # 대안 후보임을 표시
+                for candidate in alt_candidates:
+                    candidate['is_alternative'] = True
+                    candidate['source_hs6'] = alt_hs6
+                candidates.extend(alt_candidates)
+        
+        return candidates
+    
+    def llm_rank_candidates(self, product_analysis: ProductAnalysis, 
+                           candidates: List[Dict]) -> List[LLMRanking]:
+        """LLM을 활용한 후보 순위 매김"""
+        
+        if not self.llm_available or not product_analysis or len(candidates) == 0:
+            return []
+        
+        # 너무 많은 후보는 상위 15개만 LLM에게 전달
+        top_candidates = candidates[:15]
+        
+        try:
+            prompt = self._build_ranking_prompt(product_analysis, top_candidates)
+            
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "당신은 HS 코드 매칭 전문가입니다. 상품 특성을 바탕으로 가장 적합한 한국 HSK 코드를 선택해주세요."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,
+                max_tokens=1500
+            )
+            
+            return self._parse_llm_rankings(response.choices[0].message.content)
+            
+        except Exception as e:
+            print(f"⚠️ LLM 순위 매김 실패: {e}")
+            return []
+    
+    def _build_ranking_prompt(self, product_analysis: ProductAnalysis, 
+                             candidates: List[Dict]) -> str:
+        """후보 순위 매김용 프롬프트 생성"""
+        
+        candidates_text = ""
+        for i, candidate in enumerate(candidates, 1):
+            alt_info = f" (대안분류: {candidate['source_hs6']})" if candidate.get('is_alternative') else ""
+            candidates_text += f"{i}. {candidate['hs_code']}: {candidate['name_kr']}{alt_info}\n"
+        
+        return f"""
+다음 상품 분석 결과를 바탕으로 가장 적합한 한국 HSK 코드 3개를 순위별로 선택해주세요:
+
+**상품 특성**:
+- 재질: {product_analysis.material}
+- 기능: {product_analysis.function}
+- 대상 사용자: {product_analysis.target_user}
+- 크기 분류: {product_analysis.size_category}
+- 주요 특징: {', '.join(product_analysis.key_features)}
+
+**분석 근거**: {product_analysis.reasoning}
+
+**후보 목록**:
+{candidates_text}
+
+다음 JSON 형식으로 정확하게 응답해주세요:
+
+```json
+{{
+    "rankings": [
+        {{
+            "rank": 1,
+            "hs_code": "가장 적합한 HSK 코드",
+            "confidence": 0.95,
+            "reason": "이 코드를 1순위로 선택한 구체적인 이유"
+        }},
+        {{
+            "rank": 2,
+            "hs_code": "두 번째로 적합한 HSK 코드",
+            "confidence": 0.80,
+            "reason": "이 코드를 2순위로 선택한 구체적인 이유"
+        }},
+        {{
+            "rank": 3,
+            "hs_code": "세 번째로 적합한 HSK 코드",
+            "confidence": 0.65,
+            "reason": "이 코드를 3순위로 선택한 구체적인 이유"
+        }}
+    ]
+}}
+```
+
+**선택 기준**:
+1. 상품의 재질과 기능이 가장 잘 맞는 코드
+2. 대상 사용자와 용도가 일치하는 코드
+3. HS 코드 체계의 논리에 부합하는 코드
+"""
+    
+    def _parse_llm_rankings(self, llm_response: str) -> List[LLMRanking]:
+        """LLM 순위 응답 파싱"""
+        try:
+            json_match = re.search(r'```json\s*(.*?)\s*```', llm_response, re.DOTALL)
+            if json_match:
+                json_text = json_match.group(1)
+            else:
+                json_text = llm_response
+            
+            data = json.loads(json_text)
+            rankings = []
+            
+            for item in data.get('rankings', []):
+                rankings.append(LLMRanking(
+                    rank=item.get('rank', 0),
+                    hs_code=item.get('hs_code', ''),
+                    confidence=item.get('confidence', 0.5),
+                    reason=item.get('reason', '')
+                ))
+            
+            return rankings
+            
+        except Exception as e:
+            print(f"⚠️ LLM 순위 파싱 실패: {e}")
+            return []
+    
+    def generate_matching_explanation(self, us_info: Dict, korea_match: Dict, 
+                                    product_analysis: Optional[ProductAnalysis] = None) -> str:
+        """LLM 기반 매칭 설명 생성"""
+        
+        if not self.llm_available:
+            return self._generate_simple_explanation(us_info, korea_match)
+        
+        try:
+            analysis_text = ""
+            if product_analysis:
+                analysis_text = f"""
+**상품 분석**:
+- 재질: {product_analysis.material}
+- 기능: {product_analysis.function}
+- 대상: {product_analysis.target_user}
+
+**분석 근거**: {product_analysis.reasoning}"""
+            
+            prompt = f"""
+다음 HS 코드 변환 결과에 대해 사용자가 이해하기 쉽게 설명해주세요:
+
+**변환 결과**:
+- 미국 HS: {us_info['hs_code']} - {us_info['english_name']}
+- 한국 HSK: {korea_match['hs_code']} - {korea_match['name_kr']}
+{analysis_text}
+
+다음 내용을 포함해서 친근하고 이해하기 쉽게 3-4문장으로 설명해주세요:
+1. 왜 이 한국 코드가 적합한지
+2. 두 코드의 공통점
+3. 주의사항이나 추가 확인이 필요한 부분
+"""
+            
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "당신은 친근하고 전문적인 무역 컨설턴트입니다. 복잡한 HS 코드 내용을 쉽게 설명해주세요."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=500
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            print(f"⚠️ 설명 생성 실패: {e}")
+            return self._generate_simple_explanation(us_info, korea_match)
+    
+    def _generate_simple_explanation(self, us_info: Dict, korea_match: Dict) -> str:
+        """간단한 설명 생성 (LLM 없을 때)"""
+        us_hs6 = us_info['hs_components']['hs6']
+        korea_hs6 = korea_match['hs_code'][:6]
+        
+        if us_hs6 == korea_hs6:
+            return f"두 코드 모두 HS {us_hs6} 분류에 속하므로 국제적으로 동일한 상품군으로 인정됩니다. 한국에서는 '{korea_match['name_kr']}'로 분류되며, 세부 규정은 관세청에 확인하시기 바랍니다."
+        else:
+            return f"미국 코드는 HS {us_hs6} 분류이지만, 한국에서는 HS {korea_hs6} 분류({korea_match['name_kr']})로 매핑됩니다. 두 국가 간 세부 분류 체계가 다를 수 있으니 관세청 확인을 권장합니다."
+    
+    # ===========================================
+    # 메인 변환 로직 (기존 방식 + LLM 강화)
+    # ===========================================
+    
     def convert_hs_code(self, us_hs_code: str, us_product_name: str = "") -> Dict:
-        """HS 코드 변환 실행"""
+        """HS 코드 변환 실행 (LLM 강화 버전)"""
         if not self.initialized:
             return {
                 'status': 'error',
@@ -548,7 +891,9 @@ class HSCodeConverter:
         # 캐시 확인
         cache_key = f"{us_hs_code}:{us_product_name}"
         if cache_key in self.conversion_cache:
-            return self.conversion_cache[cache_key]
+            cached_result = self.conversion_cache[cache_key].copy()
+            cached_result['from_cache'] = True
+            return cached_result
         
         # 1단계: 미국 HS 코드 조회
         us_info = self.lookup_us_hs_code(us_hs_code)
@@ -562,73 +907,171 @@ class HSCodeConverter:
             }
             return result
         
-        # 2단계: HS 6자리 기준 한국 후보군 생성
-        hs6 = us_info['hs_components']['hs6']
-        korea_candidates = self.get_korea_candidates_by_hs6(hs6)
+        # 2단계: LLM 기반 상품 특성 분석 (선택적)
+        product_analysis = None
+        if self.llm_available:
+            product_analysis = self.analyze_product_with_llm(us_info, us_product_name)
         
-        if not korea_candidates:
+        # 3단계: 후보군 생성
+        hs6 = us_info['hs_components']['hs6']
+        primary_candidates = self.get_korea_candidates_by_hs6(hs6)
+        
+        # LLM 제안 대안 후보군
+        alternative_candidates = []
+        if self.llm_available and product_analysis:
+            alternative_candidates = self.get_llm_suggested_candidates(product_analysis)
+        
+        all_candidates = primary_candidates + alternative_candidates
+        
+        if not all_candidates:
             result = {
                 'status': 'no_hs6_match',
-                'message': f"HS 6자리 '{hs6}'에 해당하는 한국 코드가 없습니다.",
+                'message': f"HS 6자리 '{hs6}' 및 대안 분류에서 한국 코드를 찾을 수 없습니다.",
                 'us_hs_code': us_hs_code,
                 'us_info': us_info,
+                'product_analysis': self._analysis_to_dict(product_analysis) if product_analysis else None,
                 'hs6': hs6
             }
             return result
         
-        # 3단계: 상품명 기반 세분류 매칭
+        # 4단계: 시맨틱 유사도 계산
         search_query = self._build_enhanced_search_query(us_info, us_product_name)
-        best_candidates = self._rank_candidates_by_similarity(search_query, korea_candidates)
+        semantic_ranked = self._rank_candidates_by_similarity(search_query, all_candidates.copy())
         
-        # 4단계: 최종 결과 생성
-        final_result = best_candidates[0] if best_candidates else None
+        # 5단계: LLM 기반 심층 매칭 (선택적)
+        llm_rankings = []
+        if self.llm_available and product_analysis and len(all_candidates) > 0:
+            llm_rankings = self.llm_rank_candidates(product_analysis, semantic_ranked)
         
-        if final_result:
-            # HS 구조 기반 신뢰도 계산
-            hs_similarity = self.hs_analyzer.calculate_hs_similarity(us_hs_code, final_result['hs_code'])
-            semantic_similarity = final_result.get('similarity_score', 0.5)
-            
-            # 최종 신뢰도 (HS 구조 50% + 의미 유사도 50%)
-            final_confidence = (hs_similarity * 0.5) + (semantic_similarity * 0.5)
-            
-            result = {
-                'status': 'success',
-                'us_hs_code': us_hs_code,
-                'us_product_name': us_product_name,
-                'us_info': us_info,
-                'korea_recommendation': {
-                    'hs_code': final_result['hs_code'],
-                    'name_kr': final_result['name_kr'],
-                    'name_en': final_result.get('name_en', ''),
-                    'data_source': final_result.get('data_source', ''),
-                    'confidence': final_confidence
-                },
-                'hs_analysis': {
-                    'hs6_match': True,
-                    'hs_similarity': hs_similarity,
-                    'semantic_similarity': semantic_similarity,
-                    'total_candidates': len(korea_candidates),
-                    'us_hs6': hs6,
-                    'korea_hs6': final_result['hs_code'][:6]
-                },
-                'search_query': search_query,
-                'all_candidates': best_candidates[:3]
-            }
-            
-            # 캐시 저장
-            self.conversion_cache[cache_key] = result
-            return result
+        # 6단계: 하이브리드 점수 계산
+        final_candidates = self._calculate_hybrid_scores(
+            semantic_ranked, llm_rankings, us_info['hs_code']
+        )
         
-        else:
+        if not final_candidates:
             result = {
                 'status': 'no_match',
                 'message': '적합한 한국 HSK 코드를 찾을 수 없습니다.',
                 'us_hs_code': us_hs_code,
                 'us_info': us_info,
-                'hs6': hs6,
-                'korea_candidates_count': len(korea_candidates)
+                'product_analysis': self._analysis_to_dict(product_analysis) if product_analysis else None
             }
             return result
+        
+        # 최종 추천 결과
+        best_match = final_candidates[0]
+        
+        # 7단계: LLM 기반 설명 생성 (선택적)
+        explanation = ""
+        if self.llm_available:
+            explanation = self.generate_matching_explanation(us_info, best_match, product_analysis)
+        
+        # 최종 결과 반환
+        result = {
+            'status': 'success',
+            'method': 'llm_enhanced' if self.llm_available else 'traditional',
+            'us_hs_code': us_hs_code,
+            'us_product_name': us_product_name,
+            'us_info': us_info,
+            'korea_recommendation': {
+                'hs_code': best_match['hs_code'],
+                'name_kr': best_match['name_kr'],
+                'name_en': best_match.get('name_en', ''),
+                'data_source': best_match.get('data_source', ''),
+                'confidence': best_match.get('final_score', 0.5),
+                'is_alternative_classification': best_match.get('is_alternative', False),
+                'source_hs6': best_match.get('source_hs6', hs6)
+            },
+            'hs_analysis': {
+                'hs6_match': True,
+                'hs_similarity': best_match.get('score_breakdown', {}).get('hs_structure', 0.5),
+                'semantic_similarity': best_match.get('score_breakdown', {}).get('semantic', 0.5),
+                'total_candidates': len(all_candidates),
+                'us_hs6': hs6,
+                'korea_hs6': best_match['hs_code'][:6],
+                'llm_enhanced': self.llm_available
+            },
+            'search_query': search_query,
+            'all_candidates': final_candidates[:3],
+            'explanation': explanation,
+            'product_analysis': self._analysis_to_dict(product_analysis) if product_analysis else None
+        }
+        
+        # 캐시 저장
+        self.conversion_cache[cache_key] = result
+        return result
+    
+    def _calculate_hybrid_scores(self, semantic_candidates: List[Dict], 
+                                llm_rankings: List[LLMRanking], us_hs_code: str) -> List[Dict]:
+        """하이브리드 점수 계산 (시맨틱 + LLM + 구조적 유사도)"""
+        
+        # LLM 순위를 딕셔너리로 변환
+        llm_scores = {}
+        for ranking in llm_rankings:
+            llm_scores[ranking.hs_code] = {
+                'confidence': ranking.confidence,
+                'rank': ranking.rank,
+                'reason': ranking.reason
+            }
+        
+        # 각 후보에 대해 하이브리드 점수 계산
+        for candidate in semantic_candidates:
+            korea_code = candidate['hs_code']
+            
+            # 1. 시맨틱 유사도 (기존)
+            semantic_score = candidate.get('similarity_score', 0.5)
+            
+            # 2. HS 구조적 유사도 (기존)
+            hs_similarity = self.hs_analyzer.calculate_hs_similarity(us_hs_code, korea_code)
+            
+            # 3. LLM 신뢰도
+            llm_score = 0.5  # 기본값
+            llm_reason = ""
+            if korea_code in llm_scores:
+                llm_info = llm_scores[korea_code]
+                llm_score = llm_info['confidence']
+                llm_reason = llm_info['reason']
+                # 순위가 높을수록 추가 보너스
+                rank_bonus = max(0, (4 - llm_info['rank']) * 0.1)
+                llm_score = min(1.0, llm_score + rank_bonus)
+            
+            # 가중 평균 계산
+            if self.llm_available and llm_rankings:
+                # LLM 사용 가능시: 시맨틱 25% + LLM 55% + 구조적 20%
+                final_score = (semantic_score * 0.25) + (llm_score * 0.55) + (hs_similarity * 0.20)
+            else:
+                # LLM 없을 시: 시맨틱 50% + 구조적 50% (기존과 동일)
+                final_score = (semantic_score * 0.5) + (hs_similarity * 0.5)
+            
+            # 대안 분류 페널티 (기본 HS6가 아닌 경우 약간 감점)
+            if candidate.get('is_alternative', False):
+                final_score *= 0.9
+            
+            candidate['final_score'] = final_score
+            candidate['score_breakdown'] = {
+                'semantic': semantic_score,
+                'hs_structure': hs_similarity,
+                'llm_confidence': llm_score,
+                'llm_reason': llm_reason
+            }
+        
+        # 최종 점수 기준으로 정렬
+        return sorted(semantic_candidates, key=lambda x: x['final_score'], reverse=True)
+    
+    def _analysis_to_dict(self, analysis: Optional[ProductAnalysis]) -> Optional[Dict]:
+        """ProductAnalysis를 딕셔너리로 변환"""
+        if not analysis:
+            return None
+        
+        return {
+            'material': analysis.material,
+            'function': analysis.function,
+            'target_user': analysis.target_user,
+            'size_category': analysis.size_category,
+            'key_features': analysis.key_features,
+            'alternative_hs6': analysis.alternative_hs6,
+            'reasoning': analysis.reasoning
+        }
     
     def _get_alternative_suggestions(self, us_hs_code: str) -> List[str]:
         """유사한 HS 코드 대안 제시"""
@@ -658,7 +1101,7 @@ class HSCodeConverter:
         return list(set(suggestions))  # 중복 제거
     
     def get_system_statistics(self) -> Dict:
-        """시스템 통계 반환"""
+        """시스템 통계 반환 (LLM 정보 포함)"""
         stats = {
             'system_status': {
                 'initialized': self.initialized,
@@ -666,10 +1109,13 @@ class HSCodeConverter:
                 'korea_data_loaded': self.korea_data is not None,
                 'semantic_model_loaded': self.semantic_model is not None,
                 'openai_available': self.openai_client is not None,
-                'conversion_cache_size': len(self.conversion_cache)
+                'llm_available': self.llm_available,
+                'conversion_cache_size': len(self.conversion_cache),
+                'llm_analysis_cache_size': len(self.llm_analysis_cache),
+                'llm_ranking_cache_size': len(self.llm_ranking_cache)
             }
         }
-        
+
         if self.us_data is not None:
             stats['us_data'] = {
                 'total_codes': len(self.us_data),
@@ -678,50 +1124,65 @@ class HSCodeConverter:
                 'has_korean_names': (~self.us_data['korean_name'].isna()).sum(),
                 'hs6_descriptions': len(self.hs6_descriptions)
             }
-        
+
         if self.korea_data is not None:
             stats['korea_data'] = {
                 'total_codes': len(self.korea_data),
                 'unique_hs6': len(self.korea_hs6_index),
                 'unique_chapters': len(self.korea_data['chapter'].unique())
             }
-        
+
         # HS 6자리 교집합 분석
         if self.us_hs6_index and self.korea_hs6_index:
             us_hs6_set = set(self.us_hs6_index.keys())
             korea_hs6_set = set(self.korea_hs6_index.keys())
-            
             stats['hs6_analysis'] = {
                 'us_only_hs6': len(us_hs6_set - korea_hs6_set),
                 'korea_only_hs6': len(korea_hs6_set - us_hs6_set),
                 'common_hs6': len(us_hs6_set & korea_hs6_set),
                 'coverage_rate': len(us_hs6_set & korea_hs6_set) / len(us_hs6_set) * 100 if us_hs6_set else 0
             }
-        
+
         return stats
-    
+
     def clear_cache(self):
         """변환 캐시 초기화"""
         cache_size = len(self.conversion_cache)
+        llm_cache_size = len(self.llm_analysis_cache) + len(self.llm_ranking_cache)
         self.conversion_cache.clear()
-        return cache_size
+        self.llm_analysis_cache.clear()
+        self.llm_ranking_cache.clear()
+        return cache_size + llm_cache_size
 
 
 def main():
-    """대화형 HS 코드 변환 시스템"""
+    """대화형 HS 코드 변환 시스템 (LLM 강화)"""
     print("="*80)
-    print("🔄 HS Code Converter - 미국→한국 HS코드 변환 시스템")
+    print("🚀 HS Code Converter - 미국→한국 HS코드 변환 시스템 (LLM 강화)")
     print("="*80)
     
+    # OpenAI API 키 입력받기
+    print("🔑 LLM 강화 기능을 사용하려면 OpenAI API 키를 입력하세요.")
+    print("   (키를 입력하지 않으면 기본 모드로 실행됩니다)")
+    openai_api_key = input("OpenAI API 키 (선택사항): ").strip()
+    
+    if not openai_api_key:
+        print("📊 기본 모드로 실행합니다.")
+    else:
+        print("🤖 LLM 강화 모드로 실행합니다.")
+    
     # 변환 시스템 초기화
-    us_tariff_file = r".\관세청_미국 관세율표_20250714.xlsx"
+    from pathlib import Path
+    project_root = Path(__file__).parent.parent
+    us_tariff_file = project_root/"관세청_미국 관세율표_20250714.xlsx"
     
     # 한국 추천 시스템 로드 시도
     korea_recommender = None
     try:
         from hs_recommender import HSCodeRecommender
-        cache_dir = r'C:\Users\User\통관\cache\hs_code_cache'
-        korea_recommender = HSCodeRecommender(cache_dir=cache_dir)
+        
+        cache_dir = project_root /"cache"/ "hs_code_cache"
+        korea_recommender = HSCodeRecommender(cache_dir=str(cache_dir))
         if korea_recommender.load_data():
             print("✅ 한국 추천 시스템 로드 완료")
         else:
@@ -731,7 +1192,12 @@ def main():
         print("⚠️ 한국 추천 시스템 모듈을 찾을 수 없음")
         korea_recommender = None
     
-    converter = HSCodeConverter(us_tariff_file, korea_recommender)
+    # LLM 강화 변환기 초기화
+    converter = HSCodeConverterService(
+        str(us_tariff_file), 
+        korea_recommender, 
+        openai_api_key if openai_api_key else None
+    )
     
     # 시스템 초기화
     print("\n🚀 시스템 초기화 중...")
@@ -751,7 +1217,7 @@ def main():
     print("="*80)
     print("💡 사용법:")
     print("- 미국 HS 코드를 입력하세요 (4-10자리 숫자)")
-    print("- 상품명은 선택사항입니다 (더 정확한 매칭을 위해 권장)")
+    print("- 상품명은 선택사항입니다 (LLM 사용시 더 정확한 분석 가능)")
     print("- 'quit', 'exit', 'q' 입력시 종료")
     print("- 'status' 입력시 시스템 상태 확인")
     print("- 'cache' 입력시 캐시 정보 확인")
@@ -789,7 +1255,8 @@ def main():
                 continue
             
             # 상품명 입력 (선택사항)
-            product_name = input("📦 상품명 (선택사항, Enter로 건너뛰기): ").strip()
+            llm_hint = " (LLM 분석에 도움됨)" if converter.llm_available else ""
+            product_name = input(f"📦 상품명 (선택사항{llm_hint}): ").strip()
             
             print(f"\n🔄 변환 중... [{us_hs_code}" + (f" - {product_name}" if product_name else "") + "]")
             print("-"*50)
@@ -799,7 +1266,7 @@ def main():
             
             # 결과 출력
             if result['status'] == 'success':
-                print_success_result(result, converter)
+                print_enhanced_success_result(result, converter)
             elif result['status'] == 'error':
                 print_error_result(result)
             elif result['status'] == 'no_hs6_match':
@@ -822,7 +1289,7 @@ def main():
             continue
 
 def print_system_status(converter):
-    """시스템 상태 출력"""
+    """시스템 상태 출력 (LLM 정보 포함)"""
     print("\n" + "="*50)
     print("📊 시스템 상태")
     print("="*50)
@@ -834,6 +1301,8 @@ def print_system_status(converter):
     print(f"- 미국 데이터: {'✅ 로드됨' if converter.us_data is not None else '❌ 없음'}")
     print(f"- 한국 데이터: {'✅ 로드됨' if converter.korea_data is not None else '❌ 없음'}")
     print(f"- 시맨틱 모델: {'✅ 로드됨' if converter.semantic_model is not None else '❌ 없음'}")
+    print(f"- LLM 기능: {'🤖 활성화' if converter.llm_available else '❌ 비활성화'}")
+    print(f"- 동작 모드: {'🚀 LLM 강화' if converter.llm_available else '📊 기본 모드'}")
     
     if converter.us_data is not None:
         print(f"\n📊 **미국 데이터**")
@@ -845,24 +1314,36 @@ def print_system_status(converter):
         print(f"\n📊 **한국 데이터**")
         print(f"- 총 코드 수: {len(converter.korea_data):,}개")
         print(f"- HS 6자리 종류: {len(converter.korea_hs6_index):,}개")
+    
+    if converter.llm_available:
+        print(f"\n🤖 **LLM 캐시**")
+        print(f"- 상품 분석 캐시: {len(converter.llm_analysis_cache)}개")
+        print(f"- 순위 분석 캐시: {len(converter.llm_ranking_cache)}개")
 
 def print_cache_info(converter):
-    """캐시 정보 출력"""
+    """캐시 정보 출력 (LLM 캐시 포함)"""
     print("\n" + "="*50)
     print("💾 캐시 정보")
     print("="*50)
     
     cache_size = len(converter.conversion_cache)
+    llm_analysis_size = len(converter.llm_analysis_cache)
+    llm_ranking_size = len(converter.llm_ranking_cache)
+    
     print(f"- 변환 캐시: {cache_size}개 항목")
+    if converter.llm_available:
+        print(f"- LLM 분석 캐시: {llm_analysis_size}개 항목")
+        print(f"- LLM 순위 캐시: {llm_ranking_size}개 항목")
     
     if cache_size > 0:
         print(f"\n📋 **최근 변환 내역** (최대 5개)")
         for i, (cache_key, result) in enumerate(list(converter.conversion_cache.items())[-5:], 1):
             us_code, product_name = cache_key.split(':', 1)
             status = result.get('status', 'unknown')
-            print(f"{i}. {us_code}" + (f" ({product_name})" if product_name else "") + f" - {status}")
+            method = result.get('method', 'unknown')
+            print(f"{i}. {us_code}" + (f" ({product_name})" if product_name else "") + f" - {status} ({method})")
         
-        clear_choice = input("\n🗑️ 캐시를 초기화하시겠습니까? (y/N): ").strip()
+        clear_choice = input("\n🗑️ 모든 캐시를 초기화하시겠습니까? (y/N): ").strip()
         if clear_choice.lower() in ['y', 'yes']:
             cleared_count = converter.clear_cache()
             print(f"✅ 캐시 초기화 완료 ({cleared_count}개 항목 삭제)")
@@ -966,7 +1447,7 @@ def print_candidates_table(candidates, hs6_description):
     
     # 데이터 행 출력
     for i, candidate in enumerate(candidates, 1):
-        similarity = candidate.get('similarity_score', 0.0)
+        final_score = candidate.get('final_score', 0.0)
         
         # 후보 상품명도 맥락 정보와 함께 표시
         candidate_name = enhance_product_name_with_context(
@@ -982,15 +1463,15 @@ def print_candidates_table(candidates, hs6_description):
         name_truncated = truncate_text_to_width(candidate_name, name_width)
         name_text = pad_text_to_width(name_truncated, name_width)
         
-        similarity_text = pad_text_to_width(f"{similarity:.1%}", similarity_width)
+        similarity_text = pad_text_to_width(f"{final_score:.1%}", similarity_width)
         
         print(f"│{rank_text}│{code_text}│{name_text}│{similarity_text}│")
     
     # 하단 경계
     print("└" + "─" * rank_width + "┴" + "─" * code_width + "┴" + "─" * name_width + "┴" + "─" * similarity_width + "┘")
 
-def print_success_result(result, converter):
-    """성공 결과 출력 (Gradio 스타일)"""
+def print_enhanced_success_result(result, converter):
+    """성공 결과 출력 (LLM 강화 버전)"""
     us_info = result['us_info']
     korea_rec = result['korea_recommendation']
     hs_analysis = result['hs_analysis']
@@ -1005,12 +1486,30 @@ def print_success_result(result, converter):
         hs6_description
     )
     
-    print("✅ **변환 성공!**\n")
+    # 결과 헤더
+    method_icon = "🤖" if result.get('method') == 'llm_enhanced' else "📊"
+    method_text = "LLM 강화 변환 성공!" if result.get('method') == 'llm_enhanced' else "기본 변환 성공!"
+    print(f"{method_icon} **{method_text}**\n")
+    
+    # 캐시 정보
+    if result.get('from_cache'):
+        print("💾 (캐시에서 로드됨)\n")
     
     print("📋 **미국 HS 코드 정보**")
     print(f"- 코드: {result['us_hs_code']}")
     print(f"- 영문명: {us_info['english_name']}")
     print(f"- 한글명: {us_info.get('korean_name', '없음')}")
+    
+    # LLM 분석 결과 표시
+    if result.get('product_analysis'):
+        analysis = result['product_analysis']
+        print(f"\n🧠 **LLM 상품 분석**")
+        print(f"- 재질: {analysis['material']}")
+        print(f"- 기능: {analysis['function']}")
+        print(f"- 대상: {analysis['target_user']}")
+        print(f"- 크기: {analysis['size_category']}")
+        if analysis['key_features']:
+            print(f"- 특징: {', '.join(analysis['key_features'])}")
     
     print(f"\n🎯 **추천 한국 HSK 코드**")
     print(f"- 코드: {korea_rec['hs_code']}")
@@ -1018,11 +1517,20 @@ def print_success_result(result, converter):
     print(f"- 신뢰도: {korea_rec['confidence']:.1%}")
     print(f"- 데이터 출처: {korea_rec.get('data_source', '통합')}")
     
+    # 대안 분류 정보
+    if korea_rec.get('is_alternative_classification'):
+        print(f"- 분류 유형: 🔄 대안 분류 (HS {korea_rec['source_hs6']})")
+    
     print(f"\n📊 **분석 정보**")
     print(f"- HS 6자리 매칭: ✅ 완료 ({hs_analysis['us_hs6']})")
     print(f"- 구조 유사도: {hs_analysis['hs_similarity']:.1%}")
     print(f"- 의미 유사도: {hs_analysis['semantic_similarity']:.1%}")
     print(f"- 후보군 수: {hs_analysis['total_candidates']}개")
+    
+    # LLM 설명
+    if result.get('explanation'):
+        print(f"\n💬 **매칭 설명**")
+        print(f"{result['explanation']}")
     
     # 기타 항목인 경우 맥락 설명 추가
     if is_other_item(us_info.get('english_name', '')) or is_other_item(korea_rec.get('name_kr', '')):
@@ -1034,6 +1542,10 @@ def print_success_result(result, converter):
     if 'all_candidates' in result and result['all_candidates']:
         print(f"\n🎯 **상위 후보 목록**")
         print_candidates_table(result['all_candidates'][:3], hs6_description)
+
+def print_success_result(result, converter):
+    """기존 성공 결과 출력 (호환성 유지)"""
+    print_enhanced_success_result(result, converter)
 
 def print_error_result(result):
     """오류 결과 출력"""
@@ -1053,6 +1565,14 @@ def print_no_match_result(result, converter):
     print("📋 **미국 코드 정보**")
     print(f"- 영문명: {result['us_info']['english_name']}")
     print(f"- 한글명: {result['us_info'].get('korean_name', '없음')}")
+    
+    # LLM 분석 결과가 있으면 표시
+    if result.get('product_analysis'):
+        analysis = result['product_analysis']
+        print(f"\n🧠 **LLM 상품 분석**")
+        print(f"- 재질: {analysis['material']}")
+        print(f"- 기능: {analysis['function']}")
+        print(f"- 분석: {analysis['reasoning']}")
     
     print(f"\n💡 **분야 맥락**")
     hs6_description = converter.get_hs6_description(result['hs6'])

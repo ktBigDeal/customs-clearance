@@ -5,10 +5,12 @@ from typing import Dict, List, Optional, Any
 import os
 
 import sys
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, current_dir)
-sys.path.insert(0, parent_dir)
+from pathlib import Path
+
+# 프로젝트 루트를 sys.path에 추가 (model-hscode 폴더)
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from data_processor import DataProcessor
 from search_engine import SearchEngine

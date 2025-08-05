@@ -9,13 +9,20 @@ import torch
 from datetime import datetime
 from typing import Dict, Optional, Any
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from pathlib import Path
+
+# 프로젝트 루트를 sys.path에 추가 (model-hscode 폴더)
+sys.path.append(str(Path(__file__).parent.parent))
 from config import FILE_PATHS
 
 class CacheManager:
     """캐시 관리 담당 클래스 (final_combined_text 지원)"""
     
-    def __init__(self, cache_dir: str = './cache'):
+    def __init__(self, cache_dir: str = None):
+        if cache_dir is None:
+            # 기본 캐시 디렉토리를 절대 경로로 설정
+            project_root = Path(__file__).parent.parent
+            cache_dir = project_root /"model-hscode"/"cache"/ "hs_code_cache"
         self.cache_dir = cache_dir
         self.cache_paths = {
             'embeddings': os.path.join(cache_dir, 'semantic_embeddings.npy'),
