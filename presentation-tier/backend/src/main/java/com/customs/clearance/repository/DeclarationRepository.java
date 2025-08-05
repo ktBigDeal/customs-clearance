@@ -1,69 +1,24 @@
 package com.customs.clearance.repository;
 
 import com.customs.clearance.entity.Declaration;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for Declaration entity
+ * {@link Declaration} 엔티티에 대한 기본 CRUD 연산을 처리하는 Spring Data JPA 리포지토리입니다.
+ * <p>
+ * 신고번호로 단건 조회하는 기능이 포함되어 있습니다.
+ * 
+ * @author Customs Clearance Team
+ * @version 1.0
  */
-@Repository
 public interface DeclarationRepository extends JpaRepository<Declaration, Long> {
-
     /**
-     * Find declaration by declaration number
+     * 고유한 신고번호로 신고 정보를 조회합니다.
+     *
+     * @param declarationNumber 조회할 신고번호
+     * @return 해당 신고번호에 대한 {@link Declaration}, 존재하지 않을 경우 빈 {@link Optional}
      */
     Optional<Declaration> findByDeclarationNumber(String declarationNumber);
-
-    /**
-     * Check if declaration number exists
-     */
-    boolean existsByDeclarationNumber(String declarationNumber);
-
-    /**
-     * Find declarations by status
-     */
-    List<Declaration> findByStatus(Declaration.DeclarationStatus status);
-
-    /**
-     * Find declarations by importer name containing (case insensitive)
-     */
-    Page<Declaration> findByImporterNameContainingIgnoreCase(String importerName, Pageable pageable);
-
-    /**
-     * Find declarations by date range
-     */
-    @Query("SELECT d FROM Declaration d WHERE d.declarationDate BETWEEN :startDate AND :endDate")
-    List<Declaration> findByDeclarationDateBetween(
-            @Param("startDate") LocalDate startDate, 
-            @Param("endDate") LocalDate endDate);
-
-    /**
-     * Find declarations by country of origin
-     */
-    List<Declaration> findByCountryOfOrigin(String countryOfOrigin);
-
-    /**
-     * Find declarations by port of entry
-     */
-    List<Declaration> findByPortOfEntry(String portOfEntry);
-
-    /**
-     * Count declarations by status
-     */
-    long countByStatus(Declaration.DeclarationStatus status);
-
-    /**
-     * Find recent declarations (last 30 days)
-     */
-    @Query("SELECT d FROM Declaration d WHERE d.declarationDate >= :thirtyDaysAgo ORDER BY d.declarationDate DESC")
-    List<Declaration> findRecentDeclarations(@Param("thirtyDaysAgo") LocalDate thirtyDaysAgo);
 }

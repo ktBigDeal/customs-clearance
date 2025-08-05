@@ -2,8 +2,8 @@ package com.customs.clearance.controller;
 
 import com.customs.clearance.dto.DeclarationRequestDto;
 import com.customs.clearance.dto.DeclarationResponseDto;
-import com.customs.clearance.entity.Declaration;
-import com.customs.clearance.service.DeclarationService;
+import com.customs.clearance.entity.DeclarationEx;
+import com.customs.clearance.service.DeclarationServiceEx;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(DeclarationController.class)
+@WebMvcTest(DeclarationControllerEx.class)
 @ActiveProfiles("test")
 class DeclarationControllerTest {
 
@@ -32,7 +32,7 @@ class DeclarationControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private DeclarationService declarationService;
+    private DeclarationServiceEx declarationService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -61,7 +61,7 @@ class DeclarationControllerTest {
         responseDto.setDeclarationDate(LocalDate.now());
         responseDto.setTotalValue(new BigDecimal("1000.00"));
         responseDto.setCurrency("USD");
-        responseDto.setStatus(Declaration.DeclarationStatus.PENDING);
+        responseDto.setStatus(DeclarationEx.DeclarationStatus.PENDING);
         responseDto.setDescription("Test declaration");
         responseDto.setCountryOfOrigin("USA");
         responseDto.setPortOfEntry("New York");
@@ -95,8 +95,8 @@ class DeclarationControllerTest {
 
     @Test
     void updateDeclarationStatus_ValidRequest_ReturnsUpdated() throws Exception {
-        responseDto.setStatus(Declaration.DeclarationStatus.APPROVED);
-        when(declarationService.updateDeclarationStatus(eq(1L), eq(Declaration.DeclarationStatus.APPROVED)))
+        responseDto.setStatus(DeclarationEx.DeclarationStatus.APPROVED);
+        when(declarationService.updateDeclarationStatus(eq(1L), eq(DeclarationEx.DeclarationStatus.APPROVED)))
                 .thenReturn(responseDto);
 
         mockMvc.perform(patch("/api/v1/declarations/1/status")

@@ -1,6 +1,6 @@
 package com.customs.clearance.dto;
 
-import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.entity.DeclarationEx;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
  * 
  * @author Customs Clearance Team
  * @version 1.0.0
- * @see Declaration
+ * @see DeclarationEx
  * @see DeclarationRequestDto
  * @since 2024-01-01
  */
@@ -47,7 +47,7 @@ public class DeclarationResponseDto {
     private LocalDate declarationDate;
     private BigDecimal totalValue;
     private String currency;
-    private Declaration.DeclarationStatus status;
+    private DeclarationEx.DeclarationStatus status;
     private String description;
     private String countryOfOrigin;
     private String portOfEntry;

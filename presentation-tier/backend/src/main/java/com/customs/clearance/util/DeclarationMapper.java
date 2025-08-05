@@ -2,7 +2,7 @@ package com.customs.clearance.util;
 
 import com.customs.clearance.dto.DeclarationRequestDto;
 import com.customs.clearance.dto.DeclarationResponseDto;
-import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.entity.DeclarationEx;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,12 +14,12 @@ public class DeclarationMapper {
     /**
      * Convert DeclarationRequestDto to Declaration entity
      */
-    public Declaration toEntity(DeclarationRequestDto dto) {
+    public DeclarationEx toEntity(DeclarationRequestDto dto) {
         if (dto == null) {
             return null;
         }
 
-        Declaration declaration = new Declaration();
+        DeclarationEx declaration = new DeclarationEx();
         declaration.setDeclarationNumber(dto.getDeclarationNumber());
         declaration.setImporterName(dto.getImporterName());
         declaration.setExporterName(dto.getExporterName());
@@ -29,7 +29,7 @@ public class DeclarationMapper {
         declaration.setDescription(dto.getDescription());
         declaration.setCountryOfOrigin(dto.getCountryOfOrigin());
         declaration.setPortOfEntry(dto.getPortOfEntry());
-        declaration.setStatus(Declaration.DeclarationStatus.PENDING);
+        declaration.setStatus(DeclarationEx.DeclarationStatus.PENDING);
 
         return declaration;
     }
@@ -37,7 +37,7 @@ public class DeclarationMapper {
     /**
      * Convert Declaration entity to DeclarationResponseDto
      */
-    public DeclarationResponseDto toResponseDto(Declaration entity) {
+    public DeclarationResponseDto toResponseDto(DeclarationEx entity) {
         if (entity == null) {
             return null;
         }
@@ -63,7 +63,7 @@ public class DeclarationMapper {
     /**
      * Update entity from DTO (for update operations)
      */
-    public void updateEntityFromDto(DeclarationRequestDto dto, Declaration entity) {
+    public void updateEntityFromDto(DeclarationRequestDto dto, DeclarationEx entity) {
         if (dto == null || entity == null) {
             return;
         }

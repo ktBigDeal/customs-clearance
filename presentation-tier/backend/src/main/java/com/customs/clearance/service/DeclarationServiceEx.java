@@ -3,7 +3,7 @@ package com.customs.clearance.service;
 import com.customs.clearance.dto.DeclarationRequestDto;
 import com.customs.clearance.dto.DeclarationResponseDto;
 import com.customs.clearance.dto.DeclarationStatsDto;
-import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.entity.DeclarationEx;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -29,12 +29,12 @@ import java.util.List;
  * 
  * @author Customs Clearance Team
  * @version 1.0.0
- * @see DeclarationServiceImpl
+ * @see DeclarationServiceImplEx
  * @see DeclarationRequestDto
  * @see DeclarationResponseDto
  * @since 2024-01-01
  */
-public interface DeclarationService {
+public interface DeclarationServiceEx {
 
     /**
      * 새로운 관세 신고서를 생성합니다.
@@ -108,7 +108,7 @@ public interface DeclarationService {
      * @return 상태가 업데이트된 신고서의 정보를 담고 있는 응답 DTO
      * @throws ResourceNotFoundException 해당 ID의 신고서가 존재하지 않는 경우
      */
-    DeclarationResponseDto updateDeclarationStatus(Long id, Declaration.DeclarationStatus status);
+    DeclarationResponseDto updateDeclarationStatus(Long id, DeclarationEx.DeclarationStatus status);
 
     /**
      * 신고서를 삭제합니다.
@@ -130,7 +130,7 @@ public interface DeclarationService {
      * @param status 조회할 신고서 상태
      * @return 해당 상태의 신고서 목록
      */
-    List<DeclarationResponseDto> getDeclarationsByStatus(Declaration.DeclarationStatus status);
+    List<DeclarationResponseDto> getDeclarationsByStatus(DeclarationEx.DeclarationStatus status);
 
     /**
      * 수입업체명으로 신고서를 검색합니다.

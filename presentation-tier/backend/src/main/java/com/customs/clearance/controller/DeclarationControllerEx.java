@@ -3,8 +3,8 @@ package com.customs.clearance.controller;
 import com.customs.clearance.dto.DeclarationRequestDto;
 import com.customs.clearance.dto.DeclarationResponseDto;
 import com.customs.clearance.dto.DeclarationStatsDto;
-import com.customs.clearance.entity.Declaration;
-import com.customs.clearance.service.DeclarationService;
+import com.customs.clearance.entity.DeclarationEx;
+import com.customs.clearance.service.DeclarationServiceEx;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -44,7 +44,7 @@ import java.util.List;
  * 
  * @author Customs Clearance Team
  * @version 1.0.0
- * @see DeclarationService
+ * @see DeclarationServiceEx
  * @see DeclarationRequestDto
  * @see DeclarationResponseDto
  * @since 2024-01-01
@@ -54,9 +54,9 @@ import java.util.List;
 @RequestMapping("/declarations")
 @RequiredArgsConstructor
 @Tag(name = "Declaration", description = "Customs Declaration Management API")
-public class DeclarationController {
+public class DeclarationControllerEx {
 
-    private final DeclarationService declarationService;
+    private final DeclarationServiceEx declarationService;
 
     @Operation(summary = "Create a new declaration", description = "Creates a new customs declaration")
     @ApiResponses(value = {
@@ -133,7 +133,7 @@ public class DeclarationController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<DeclarationResponseDto> updateDeclarationStatus(
             @Parameter(description = "Declaration ID") @PathVariable Long id,
-            @Parameter(description = "New status") @RequestParam Declaration.DeclarationStatus status) {
+            @Parameter(description = "New status") @RequestParam DeclarationEx.DeclarationStatus status) {
         log.info("Updating status for declaration ID: {} to status: {}", id, status);
         DeclarationResponseDto response = declarationService.updateDeclarationStatus(id, status);
         return ResponseEntity.ok(response);
@@ -156,7 +156,7 @@ public class DeclarationController {
     @ApiResponse(responseCode = "200", description = "Declarations retrieved successfully")
     @GetMapping("/status/{status}")
     public ResponseEntity<List<DeclarationResponseDto>> getDeclarationsByStatus(
-            @Parameter(description = "Declaration status") @PathVariable Declaration.DeclarationStatus status) {
+            @Parameter(description = "Declaration status") @PathVariable DeclarationEx.DeclarationStatus status) {
         log.info("Fetching declarations with status: {}", status);
         List<DeclarationResponseDto> response = declarationService.getDeclarationsByStatus(status);
         return ResponseEntity.ok(response);

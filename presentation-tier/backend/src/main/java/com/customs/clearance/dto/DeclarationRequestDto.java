@@ -32,7 +32,7 @@ import java.time.LocalDate;
  * 
  * @author Customs Clearance Team
  * @version 1.0.0
- * @see Declaration
+ * @see DeclarationEx
  * @see DeclarationResponseDto
  * @since 2024-01-01
  */
