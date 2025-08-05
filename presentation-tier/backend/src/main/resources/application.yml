@@ -1,4 +1,7 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: customs-clearance-backend
   
@@ -6,14 +9,14 @@ spring:
     active: dev
   
   datasource:
-    url: jdbc:mysql://localhost:3306/customs_clearance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/customs_clearance?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:customs_user}
     password: ${DB_PASSWORD:customs_pass}
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -87,68 +90,68 @@ customs:
         base-url: ${EXTERNAL_API_URL:http://localhost:9000}
         timeout: 10000
         
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-    import: optional:file:.env[.properties]
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: dev
+#     import: optional:file:.env[.properties]
 
-  datasource:
-    url: jdbc:mysql://localhost:3306/customs_clearance_dev_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+#   datasource:
+#     url: jdbc:mysql://localhost:3306/customs_clearance?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+#   jpa:
+#     hibernate:
+#       ddl-auto: update
+#     show-sql: true
     
-logging:
-  level:
-    com.customs.clearance: DEBUG
-    root: INFO
+# logging:
+#   level:
+#     com.customs.clearance: DEBUG
+#     root: INFO
     
----
-spring:
-  config:
-    activate:
-      on-profile: prod
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: prod
       
-  datasource:
-    url: jdbc:mysql://${DB_HOST:mysql-service}:${DB_PORT:3306}/${DB_NAME:customs_clearance_prod_db}?useSSL=true&serverTimezone=UTC
+#   datasource:
+#     url: jdbc:mysql://${DB_HOST:mysql-service}:${DB_PORT:3306}/${DB_NAME:customs_clearance_prod_db}?useSSL=true&serverTimezone=UTC
     
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
+#   jpa:
+#     hibernate:
+#       ddl-auto: validate
+#     show-sql: false
     
-logging:
-  level:
-    com.customs.clearance: WARN
-    root: WARN
-  file:
-    name: /app/logs/customs-clearance-backend.log
+# logging:
+#   level:
+#     com.customs.clearance: WARN
+#     root: WARN
+#   file:
+#     name: /app/logs/customs-clearance-backend.log
     
-server:
-  port: ${SERVER_PORT:8080}
+# server:
+#   port: ${SERVER_PORT:8080}
   
----
-spring:
-  config:
-    activate:
-      on-profile: test
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: test
       
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+#   datasource:
+#     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+#     username: sa
+#     password:
+#     driver-class-name: org.h2.Driver
     
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+#   jpa:
+#     hibernate:
+#       ddl-auto: create-drop
+#     show-sql: true
+#     database-platform: org.hibernate.dialect.H2Dialect
     
-  h2:
-    console:
-      enabled: true
+#   h2:
+#     console:
+#       enabled: true
