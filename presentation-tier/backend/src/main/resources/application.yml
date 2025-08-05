@@ -7,6 +7,11 @@ spring:
   
   profiles:
     active: dev
+
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB
   
   datasource:
     url: jdbc:mysql://localhost:3306/customs_clearance?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true

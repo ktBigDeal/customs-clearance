@@ -66,10 +66,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/public/**").permitAll()
-                .requestMatchers("/api/v1/auth/**").permitAll() // 인증 관련 엔드포인트
+                .requestMatchers("/public/**").permitAll()
+                .requestMatchers("/auth/**").permitAll() // 인증 관련 엔드포인트
+                .requestMatchers("/ocr/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/api/v1/swagger-ui.html", "/api/v1/api-docs/**", "/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
