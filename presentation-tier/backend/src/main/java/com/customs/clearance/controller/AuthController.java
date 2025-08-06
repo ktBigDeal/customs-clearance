@@ -7,8 +7,6 @@ import com.customs.clearance.entity.User;
 import com.customs.clearance.security.JwtTokenProvider;
 import com.customs.clearance.service.UserService;
 
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-
 import java.util.List;
 import java.util.stream.Collectors;
 

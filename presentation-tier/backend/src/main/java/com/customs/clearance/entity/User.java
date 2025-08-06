@@ -2,8 +2,6 @@
 package com.customs.clearance.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 /**
  * 사용자 정보를 나타내는 JPA 엔티티입니다.
