@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 # --- 환경 변수 로딩 ---
 env_path = Path(__file__).parent.parent / '.env'
@@ -157,28 +158,37 @@ executor = ThreadPoolExecutor()
 # --- API 엔드포인트 ---
 @app.post("/ocr/")
 async def analyze_docs(
-    invoice_file: UploadFile = File(...),
-    packing_list_file: UploadFile = File(...),
-    bill_of_lading_file: UploadFile = File(...)
+    invoice_file: Optional[UploadFile] = File(None),
+    packing_list_file: Optional[UploadFile] = File(None),
+    bill_of_lading_file: Optional[UploadFile] = File(None),
 ):
     try:
-        # 비동기로 파일 바이트 읽기
-        invoice_bytes, packing_bytes, bill_bytes = await asyncio.gather(
-            invoice_file.read(),
-            packing_list_file.read(),
-            bill_of_lading_file.read()
-        )
+        # 파일이 없는 경우를 고려해서 기본값 처리
+        invoice_bytes = await invoice_file.read() if invoice_file else None
+        packing_bytes = await packing_list_file.read() if packing_list_file else None
+        bill_bytes = await bill_of_lading_file.read() if bill_of_lading_file else None
 
         loop = asyncio.get_event_loop()
 
-        # 분석을 쓰레드에서 병렬 실행
-        json_invoice, json_packing_list, json_bill_of_lading = await asyncio.gather(
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-invoice", invoice_bytes),
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-packing_list", packing_bytes),
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-bill_of_lading", bill_bytes)
+        # 병렬 분석 실행 (없는 파일은 None 결과 처리)
+        tasks = [
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-invoice", invoice_bytes) if invoice_bytes else None,
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-packing_list", packing_bytes) if packing_bytes else None,
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-bill_of_lading", bill_bytes) if bill_bytes else None
+        ]
+
+        # 실행된 태스크만 await
+        results = await asyncio.gather(*[t if t else asyncio.sleep(0, result=None) for t in tasks])
+
+        json_invoice, json_packing_list, json_bill_of_lading = results
+
+        # None이면 빈 dict로 처리 (merge_json에서 ""로 들어가게 하려면)
+        merged_json = merge_jsons(
+            json_invoice or {},
+            json_packing_list or {},
+            json_bill_of_lading or {}
         )
 
-        merged_json = merge_jsons(json_invoice, json_packing_list, json_bill_of_lading)
         return merged_json
 
     except Exception as e:

@@ -74,7 +74,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/auth/login/**", "/auth/register").permitAll() // 인증 관련 엔드포인트
-                .requestMatchers("/ocr/**").permitAll()
+                .requestMatchers("/ai/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()
