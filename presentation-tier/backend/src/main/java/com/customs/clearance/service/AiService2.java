@@ -19,8 +19,9 @@ import com.customs.clearance.entity.Declaration.DeclarationStatus;
 import com.customs.clearance.entity.User;
 import com.customs.clearance.repository.AttachmentRepository;
 import com.customs.clearance.repository.DeclarationRepository;
+import com.customs.clearance.repository.UserRepository;
+import com.customs.clearance.security.JwtTokenProvider;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
 import java.io.File;
@@ -36,8 +37,11 @@ public class AiService2 {
 
     private final DeclarationRepository declarationRepository;
     private final AttachmentRepository attachmentRepository;
+    private final UserRepository userRepository;
 
     private final RestTemplate restTemplate;
+
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${customs.clearance.file.upload-dir}")
     private String uploadDir;
@@ -47,7 +51,8 @@ public class AiService2 {
         MultipartFile invoiceFile, 
         MultipartFile packingListFile, 
         MultipartFile billOfLadingFile,
-        MultipartFile certificateOfOriginFile
+        MultipartFile certificateOfOriginFile,
+        String token
     ) throws IOException {
 
         if (declaration == null) {
@@ -63,11 +68,15 @@ public class AiService2 {
             throw new IllegalArgumentException("파일 정보 누락");
         }
 
-        Long userId = 3L;
-
-        // if(userId == null){
-        //     throw new IllegalArgumentException("사용자 접근 거부");
-        // }
+        // 토큰으로부터 username 추출
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new IllegalArgumentException("사용자 접근 거부");
+        }
+        
+        String username = jwtTokenProvider.getUsernameFromToken(token);
+        Long userId = userRepository.findByUsername(username)
+                        .map(User::getId)
+                        .orElseThrow(() -> new RuntimeException("사용자 미확인"));
 
         String jsonString = callAiPipeLine(invoiceFile, packingListFile, billOfLadingFile);
 

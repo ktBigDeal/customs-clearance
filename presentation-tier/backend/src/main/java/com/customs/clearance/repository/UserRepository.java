@@ -3,6 +3,9 @@ package com.customs.clearance.repository;
 
 import com.customs.clearance.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.Optional;
 /**
  * {@link User} 엔티티에 대한 기본 CRUD 연산을 처리하는 Spring Data JPA 리포지토리입니다.
