@@ -1,9 +1,14 @@
 // src/main/java/com/customs/clearance/service/UserService.java
 package com.customs.clearance.service;
 
+import com.customs.clearance.dto.RegisterRequest;
 import com.customs.clearance.entity.User;
 import com.customs.clearance.repository.UserRepository;
-    import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 /**
  * 사용자와 관련된 비즈니스 로직을 담당하는 서비스 클래스입니다.
@@ -29,19 +34,22 @@ public class UserService {
      /**
      * 새 사용자를 등록합니다. 이미 동일한 사용자명이 존재할 경우 예외를 발생시킵니다.
      *
-     * @param username 새로 등록할 사용자명
-     * @param rawPassword 평문 비밀번호
+     * @param registerRequest 사용자 등록 요청 DTO
      * @return 저장된 {@link User} 엔티티
      * @throws IllegalArgumentException 사용자명이 중복될 경우 발생
      */
 
-    public User register(String username, String rawPassword) {
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new IllegalArgumentException("이미 존재하는 사용자입니다.");
+    public User register(RegisterRequest registerRequest) {
+        Optional<User> existingUser = userRepository.findByUsername(registerRequest.getUsername());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 사용자명입니다.");
         }
         User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setUsername(registerRequest.getUsername());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setName(registerRequest.getName());
+        user.setEmail(registerRequest.getEmail());
+        user.setRole(registerRequest.getRole());
         return userRepository.save(user);
     }
 
@@ -56,4 +64,13 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
+
+    /**
+     * 시스템에 등록된 모든 사용자를 조회합니다.
+     *
+     * @return 사용자 목록
+     */
+    public List<User> findAllUsers() {
+    return userRepository.findAll();
+}
 }
