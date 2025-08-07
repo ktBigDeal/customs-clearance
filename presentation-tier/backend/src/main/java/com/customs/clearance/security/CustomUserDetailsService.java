@@ -3,6 +3,11 @@ package com.customs.clearance.security;
 
 import com.customs.clearance.entity.User;
 import com.customs.clearance.repository.UserRepository;
+
+import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +33,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
             // 역할(Role)이 있다면 GrantedAuthority 목록에 추가할 수 있습니다.
+            List<GrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
             return new org.springframework.security.core.userdetails.User(
-            user.getUsername(),
-            user.getPassword(),
-            java.util.List.of()); // 필요한 경우 ROLE 추가
+                user.getUsername(),
+                user.getPassword(),
+                authorities); // 필요한 경우 ROLE 추가
     }
 }

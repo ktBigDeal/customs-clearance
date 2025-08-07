@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.customs.clearance.entity.Declaration;
 import com.customs.clearance.service.AiService2;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
@@ -17,18 +18,24 @@ public class AiController2 {
 
     private final AiService2 aiService;
 
-    @PostMapping("/analyze-documents")
+    @PostMapping("/insertDeclaration")
     public Declaration insertDeclaration(
-            @ModelAttribute Declaration declaration,
-            @RequestPart("invoice_file") MultipartFile invoiceFile,
-            @RequestPart("packing_list_file") MultipartFile packingListFile,
-            @RequestPart("bill_of_lading_file") MultipartFile billOfLadingFile,
-            @RequestPart("certificate_of_origin_file") MultipartFile certificateOfOriginFile
+        @ModelAttribute Declaration declaration,
+        @RequestPart(value = "invoice_file", required = false) MultipartFile invoiceFile,
+        @RequestPart(value = "packing_list_file", required = false) MultipartFile packingListFile,
+        @RequestPart(value = "bill_of_lading_file", required = false) MultipartFile billOfLadingFile,
+        @RequestPart(value = "certificate_of_origin_file", required = false) MultipartFile certificateOfOriginFile,
+        HttpServletRequest request
     ) throws IOException {
 
-        Declaration result = aiService.analyzeDocuments(declaration, invoiceFile, packingListFile, billOfLadingFile, certificateOfOriginFile);
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
 
-        return result;
+        return aiService.insertDeclaration(declaration, invoiceFile, packingListFile, billOfLadingFile, certificateOfOriginFile, token);
     }
 
 }

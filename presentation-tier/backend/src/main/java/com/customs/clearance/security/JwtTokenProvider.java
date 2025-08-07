@@ -19,7 +19,7 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
     /** JWT 서명에 사용할 시크릿 키 (Base64 인코딩된 문자열 권장) */
-    @Value("${JWT_SECRET}")
+    @Value("${customs.clearance.security.jwt.secret}")
     private String jwtSecret;
 
     /** JWT 만료 시간(밀리초) */
@@ -27,32 +27,42 @@ public class JwtTokenProvider {
     private long jwtExpirationMs;
 
     /**
-     * 사용자명을 담은 JWT 토큰을 생성합니다.
+     * 사용자명과 역할을 담은 JWT 토큰을 생성합니다.
      *
      * @param username 토큰의 subject로 설정할 사용자명
+     * @param role 토큰에 포함할 사용자 역할
      * @return 생성된 JWT 문자열
      */
-    public String generateToken(String username) {
+    public String generateToken(String username, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
                 .setSubject(username)
+                .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS256, jwtSecret)
                 .compact();
     }
 
+
     /**
      * JWT로부터 사용자명을 추출합니다.
      *
      * @param token 파싱할 JWT
-     * @return JWT의 subject에 해당하는 사용자명
+     * @return JWT의 subject에 해당하는 username
      */
     public String getUsernameFromToken(String token) {
         return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token)
                 .getBody().getSubject();
+    }
+
+    /** 토큰에서 역할 클레임 추출 */
+    public String getRoleFromToken(String token) {
+        Claims claims = Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody();
+        Object role = claims.get("role");
+        return role != null ? role.toString() : null;
     }
 
      /**

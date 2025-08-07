@@ -132,8 +132,9 @@ app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
 app.include_router(ai_gateway.router, prefix="/api/v1/gateway", tags=["AI Gateway"])
 
 # Include new integration routers
-from app.routers import ocr_integration, report_integration, pipeline
+from app.routers import ocr_integration, hs_code_integration, report_integration, pipeline
 app.include_router(ocr_integration.router, prefix="/api/v1/ocr", tags=["OCR Integration"])
+app.include_router(hs_code_integration.router, prefix="/api/v1/hs-code", tags=["HS Code Integration"])
 app.include_router(report_integration.router, prefix="/api/v1/report", tags=["Report Integration"])
 app.include_router(pipeline.router, prefix="/api/v1/pipeline", tags=["Pipeline"])
 

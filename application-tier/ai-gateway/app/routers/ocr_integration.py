@@ -6,7 +6,7 @@ model-ocr 서비스를 위한 OCR 통합 엔드포인트
 """
 
 import asyncio
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import httpx
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import JSONResponse
@@ -39,49 +39,44 @@ async def get_ocr_client():
 
 @router.post("/analyze-documents")
 async def analyze_documents(
-    invoice_file: UploadFile = File(...),
-    packing_list_file: UploadFile = File(...),
-    bill_of_lading_file: UploadFile = File(...)
+    invoice_file: Optional[UploadFile] = File(None),
+    packing_list_file: Optional[UploadFile] = File(None),
+    bill_of_lading_file: Optional[UploadFile] = File(None),
 ):
     """
     OCR 서비스를 사용한 관세 문서 분석
     
     세 개의 주요 관세 문서(Invoice, Packing List, Bill of Lading)를
     Azure Document Intelligence를 통해 분석하고 구조화된 데이터를 추출합니다.
-    
-    Args:
-        invoice_file (UploadFile): 인보이스 문서 파일
-        packing_list_file (UploadFile): 포장 명세서 문서 파일
-        bill_of_lading_file (UploadFile): 선하증권 문서 파일
-        
-    Returns:
-        JSONResponse: OCR 분석 결과와 추출된 데이터
-        
-    Raises:
-        HTTPException: OCR 서비스 통신 실패 또는 분석 오류 시
     """
-    
+
     try:
         logger.info("Starting document analysis via OCR service")
-        
-        # Prepare files for OCR service
-        files = {
-            "invoice_file": (invoice_file.filename, await invoice_file.read(), invoice_file.content_type),
-            "packing_list_file": (packing_list_file.filename, await packing_list_file.read(), packing_list_file.content_type),
-            "bill_of_lading_file": (bill_of_lading_file.filename, await bill_of_lading_file.read(), bill_of_lading_file.content_type)
-        }
-        
-        # Call OCR service
+
+        if not any([invoice_file, packing_list_file, bill_of_lading_file]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="적어도 하나의 파일은 업로드해야 합니다."
+            )
+
+        files = {}
+        if invoice_file:
+            files["invoice_file"] = (invoice_file.filename, await invoice_file.read(), invoice_file.content_type)
+        if packing_list_file:
+            files["packing_list_file"] = (packing_list_file.filename, await packing_list_file.read(), packing_list_file.content_type)
+        if bill_of_lading_file:
+            files["bill_of_lading_file"] = (bill_of_lading_file.filename, await bill_of_lading_file.read(), bill_of_lading_file.content_type)
+
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{settings.MODEL_OCR_URL or 'http://localhost:8001'}/ocr/",
                 files=files
             )
-        
+
         if response.status_code == 200:
             ocr_data = response.json()
             logger.info("OCR analysis completed successfully")
-            
+
             return JSONResponse(
                 status_code=200,
                 content={
@@ -97,7 +92,7 @@ async def analyze_documents(
                 status_code=response.status_code,
                 detail=f"OCR service error: {response.text}"
             )
-            
+
     except httpx.RequestError as e:
         logger.error(f"OCR service connection error: {e}")
         raise HTTPException(

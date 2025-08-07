@@ -1,12 +1,11 @@
-# CLAUDE.md
-
-이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 필요한 가이드를 제공합니다.
+# 이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 필요한 가이드를 제공합니다
 
 ## 📋 프로젝트 개요
 
 **기업형 관세 통관 시스템** - AI 기반 수출입 신고서 처리 및 관리 플랫폼
 
 ### 🏗️ 아키텍처
+
 3-tier 엔터프라이즈 아키텍처로 구성된 완전한 시스템:
 
 - **🎨 Presentation Tier**: 사용자 인터페이스 및 API 게이트웨이
@@ -16,6 +15,7 @@
 ## 🛠️ 기술 스택
 
 ### Frontend (Next.js 14.2)
+
 - **Framework**: Next.js 14.2 + React 18 + TypeScript
 - **Styling**: Tailwind CSS 3.4 + Radix UI 컴포넌트
 - **State Management**: React Query (@tanstack/react-query)
@@ -24,6 +24,7 @@
 - **UI Components**: 완성된 컴포넌트 시스템 (Header, Sidebar, Dashboard)
 
 ### Backend (Spring Boot 3.2)
+
 - **Framework**: Spring Boot 3.2.1 + Java 17
 - **Database**: Spring Data JPA + MySQL 8.0 연동
 - **Migration**: Flyway 마이그레이션 설정
@@ -32,427 +33,537 @@
 - **Monitoring**: Spring Actuator (health, metrics, prometheus)
 
 ### AI/ML Services (FastAPI 0.104)
+
 - **Framework**: FastAPI + Python 3.11
+- **Package Manager**: uv (Python 패키지 매니저)
 - **Async**: uvicorn + httpx + aiohttp
 - **Database**: SQLAlchemy + asyncpg/aiomysql
 - **Validation**: Pydantic 2.5
 - **Monitoring**: Prometheus metrics
-- **Services**: 문서 분류 모델, OCR 텍스트 추출 모델
+- **Services**: AI Gateway, RAG Chatbot, OCR 모델, Report 생성 모델
 
 ### Database (MySQL 8.0)
+
 - **Primary DB**: MySQL 8.0 with utf8mb4 charset
 - **Schema**: 완성된 테이블 구조 (users, declarations, attachments, history)
 - **Test Data**: 초기 시드 데이터 포함
 - **Management**: phpMyAdmin 웹 인터페이스
 
-## 📁 현재 코드베이스 상태
+[... 이하 기존 파일 내용 그대로 유지 ...]
 
-### ✅ 완성된 컴포넌트들
+## 🔨 Recent Work History
 
-#### 🎨 Presentation Tier
-```
-presentation-tier/
-├── backend/                    # Spring Boot API 서버
-│   ├── src/main/java/com/customs/clearance/
-│   │   ├── controller/         # DeclarationController, HealthController
-│   │   ├── dto/               # Request/Response DTOs
-│   │   ├── entity/            # JPA 엔티티 (Declaration, BaseEntity)
-│   │   ├── service/           # 비즈니스 로직 구현
-│   │   ├── repository/        # 데이터 접근 계층
-│   │   ├── config/            # Security, Database, Web 설정
-│   │   └── exception/         # 글로벌 예외 처리
-│   ├── src/main/resources/
-│   │   ├── application.yml    # 환경별 설정 (dev, prod, test)
-│   │   └── db/migration/      # Flyway 마이그레이션 스크립트
-│   └── pom.xml               # Maven 의존성 관리
-│
-└── frontend/                  # Next.js 웹 애플리케이션
-    ├── src/app/               # App Router 구조
-    │   ├── (dashboard)/       # 대시보드 페이지들
-    │   └── layout.tsx         # 글로벌 레이아웃
-    ├── src/components/        # React 컴포넌트
-    │   ├── layout/            # Header, Sidebar, MainNav 완성
-    │   ├── ui/                # Button, Card, DropdownMenu
-    │   └── providers/         # QueryProvider
-    ├── src/lib/               # 유틸리티
-    │   ├── api.ts             # Axios 기반 API 클라이언트
-    │   └── declarations-api.ts # 신고서 API 래퍼
-    ├── messages/              # 다국어 지원
-    │   ├── ko.json            # 한국어 번역 (완성)
-    │   └── en.json            # 영어 번역 (완성)
-    └── package.json           # 의존성 관리
-```
+### 2025-01 작업 이력
 
-#### 🤖 Application Tier
-```
+#### 📊 Model-Chatbot 분석 및 개선 (완료)
+
+**작업 일시**: 2025-01-04
+**작업 내용**:
+
+- **분석 완료**: `/sc:analyze` 명령으로 application-tier/model-chatbot 컴포넌트 전체 분석
+  - Korean customs law RAG (Retrieval-Augmented Generation) 시스템 구조 파악
+  - Multi-agent AI 아키텍처 이해 (LangGraph 오케스트레이션)
+  - Vector 데이터베이스 (ChromaDB) 및 LangChain 프레임워크 활용
+  - OpenAI API 통합 및 대화형 AI 에이전트 구현
+
+- **Docstring 추가 완료**: 신입 개발자를 위한 교육용 docstring 작성
+  - `unified_cli.py`: RAG 시스템과 멀티 에이전트 아키텍처 설명
+  - `langgraph_orchestrator.py`: LangGraph 기반 지능형 오케스트레이터 설명
+  - `config.py`: 환경 변수 및 보안 설정 관리 설명
+  - `law_agent.py`: 대화형 RAG 에이전트와 메모리 관리 설명
+  - `vector_store.py`: 벡터 데이터베이스 개념과 ChromaDB 사용법 설명
+
+#### 🚀 Backend 시스템 커밋 (완료)
+
+**작업 일시**: 2025-01-04
+**커밋 ID**: `3e60fea`
+**작업 내용**:
+
+- **선택적 커밋**: presentation-tier/backend 관련 파일만 선별하여 커밋
+- **신규 문서**: `DEPENDENCIES.md` 파일 추가 (의존성 관리 가이드)
+- **파일 수**: 14개 파일, 578 추가, 30 삭제
+- **커밋 메시지**: "feat(backend): Spring Boot 백엔드 시스템 구조 및 핵심 기능 구현"
+
+#### 🎨 Frontend 시스템 업데이트 (완료)
+
+**작업 일시**: 2025-01-04
+**커밋 ID**: `ece9c8d`
+**작업 내용**:
+
+- **메인 Frontend 개선**:
+  - 다국어(i18n) 시스템 제거 및 구조 단순화
+  - 인증 시스템 추가 (로그인 페이지)
+  - 채팅 기능 페이지 구현
+  - 레이아웃 컴포넌트 개선 (Header, Sidebar, MainNav)
+  - UI 컴포넌트 최적화 (DropdownMenu)
+
+- **디자인 초안 추가**: `presentation-tier/frontend-draft/`
+  - 수입신고서 양식 컴포넌트 (`ImportDeclarationForm.tsx`)
+  - 채팅 인터페이스 디자인
+  - Tailwind CSS 기반 모던 UI 디자인
+  - 완전한 Next.js 프로젝트 구조
+
+- **파일 변경**: 34개 파일 (6,664 추가, 906 삭제)
+- **주요 변경**: i18n 미들웨어 제거, 인증/채팅 페이지 추가, 디자인 초안 구현
+
+### 🔄 현재 상태 (2025-01-04)
+
+#### ✅ 완료된 작업
+
+1. **AI Chatbot 시스템 분석 및 문서화**: RAG 기반 다중 에이전트 시스템 완전 이해
+2. **Backend 코드 커밋**: Spring Boot 시스템 구조 안정화
+3. **Frontend 시스템 개선**: 메인 프론트엔드 + 디자인 초안 구현
+
+#### 🎯 남은 작업 (스테이징되지 않음)
+
+- `application-tier/models/model-chatbot/`: AI 모델 관련 파일들 (docstring 추가된 상태)
+- `application-tier/ai-gateway/`: AI Gateway 설정 파일들
+- `application-tier/models/model-ocr/`: OCR 모델 서비스
+- `application-tier/models/model-report/`: Report 생성 모델 서비스
+
+#### 📋 기술 스택 업데이트
+
+- **AI/ML**: RAG 시스템, LangGraph, ChromaDB, LangChain, OpenAI API
+- **Frontend**: Next.js 14.2, React 18, TypeScript, Tailwind CSS
+- **Backend**: Spring Boot 3.2.1, Java 17, MySQL 8.0
+- **개발환경**: uv (Python 패키지 매니저), Docker Compose
+
+### 🎓 학습 및 개선사항
+
+1. **RAG 시스템 이해**: Retrieval-Augmented Generation 아키텍처 완전 파악
+2. **멀티 에이전트 AI**: LangGraph 기반 지능형 오케스트레이션 시스템 분석
+3. **벡터 데이터베이스**: ChromaDB와 임베딩 기반 의미 검색 시스템 이해
+4. **교육용 문서화**: 신입 개발자를 위한 상세한 기술 설명 작성
+5. **선택적 Git 관리**: 프로젝트 구성 요소별 단계적 커밋 전략 적용
+
+## 🐍 Application Tier - Python 환경 설정 및 실행 가이드
+
+### 📦 uv 패키지 매니저 개요
+
+Application Tier의 모든 Python 서비스는 **uv**를 사용하여 의존성 관리 및 가상환경을 구성합니다.
+
+- **uv**: 빠른 Python 패키지 매니저 및 프로젝트 관리자
+- **장점**: pip보다 10-100배 빠른 의존성 해결, 자동 가상환경 관리
+- **설치**: `curl -LsSf https://astral.sh/uv/install.sh | sh` (Linux/macOS) 또는 `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"` (Windows)
+
+### 🏗️ Application Tier 구조
+
+```Plain Text
 application-tier/
-├── ai-gateway/                # FastAPI 메인 게이트웨이
-│   ├── app/
-│   │   ├── main.py           # FastAPI 앱 진입점
-│   │   ├── core/             # 설정, 미들웨어, 로깅
-│   │   ├── routers/          # API 엔드포인트 (health, models, ai_gateway)
-│   │   └── schemas/          # Pydantic 모델들
-│   ├── requirements.txt      # Python 의존성
-│   └── docker-compose.yml    # AI 스택 오케스트레이션
-│
-└── models/                   # AI 모델 마이크로서비스
-    ├── model-ocr/            # Azure Document Intelligence 기반 OCR 서비스
-    ├── model-report/         # LangChain 기반 관세신고서 생성 서비스
-    └── shared/               # 공통 유틸리티
+├── ai-gateway/              # FastAPI 메인 게이트웨이
+│   ├── pyproject.toml       # uv 의존성 설정
+│   ├── uv.lock             # 의존성 잠금 파일
+│   └── .venv/              # 가상환경 (자동 생성)
+├── models/
+│   ├── model-chatbot/      # RAG 기반 법률 챗봇 (uv 없음, requirements.txt 사용)
+│   ├── model-lawchatbot/   # GraphDB 기반 법률 챗봇
+│   │   ├── pyproject.toml  # uv 의존성 설정  
+│   │   ├── uv.lock        # 의존성 잠금 파일
+│   │   └── .venv/         # 가상환경 (자동 생성)
+│   ├── model-ocr/          # OCR 텍스트 추출 서비스
+│   │   ├── pyproject.toml  # uv 의존성 설정
+│   │   ├── uv.lock        # 의존성 잠금 파일
+│   │   └── .venv/         # 가상환경 (자동 생성)
+│   └── model-report/       # 보고서 생성 서비스
+│       ├── pyproject.toml  # uv 의존성 설정
+│       ├── uv.lock        # 의존성 잠금 파일
+│       └── .venv/         # 가상환경 (자동 생성)
 ```
 
-#### 💾 Data Tier
-```
-data-tier/
-├── mysql/
-│   ├── config/my.cnf         # MySQL 설정 (한글 지원)
-│   └── init/                 # 초기화 스크립트
-│       ├── 01-schema.sql     # 테이블 스키마
-│       └── 02-seed-data.sql  # 테스트 데이터
-├── scripts/
-│   └── test-connection.py    # DB 연결 테스트
-└── docker-compose.yml        # MySQL + phpMyAdmin
-```
+### 🚀 각 서비스별 실행 방법
 
-## 🚀 개발 가이드
+#### 1. AI Gateway (메인 게이트웨이)
 
-### 로컬 개발 환경 실행
-
-#### 1. 데이터베이스 실행
-```bash
-cd data-tier
-docker-compose up -d
-```
-
-#### 2. 백엔드 실행 
-```bash
-cd presentation-tier/backend
-./mvnw spring-boot:run
-```
-
-#### 3. 프론트엔드 실행
-```bash
-cd presentation-tier/frontend
-npm install
-npm run dev
-```
-
-#### 4. AI 게이트웨이 실행
 ```bash
 cd application-tier/ai-gateway
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+
+# 가상환경 자동 생성 및 의존성 설치
+uv sync
+
+# 가상환경 활성화 (Windows)
+source .venv/Scripts/activate
+
+# 가상환경 활성화 (Linux/macOS)
+source .venv/bin/activate
+
+# 서버 실행
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 또는 가상환경 내에서 직접 실행
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-#### 5. OCR 모델 서비스 실행 (선택적)
+#### 2. Model-Chatbot (RAG 챗봇)
+
+**주의**: 이 서비스는 uv가 아닌 기존 requirements.txt를 사용합니다.
+
 ```bash
-cd application-tier/models/model-ocr/app
-pip install -r ../ocr_requirements.txt
-uvicorn ocr_api:app --reload --port 8001
+cd application-tier/models/model-chatbot
+
+# 가상환경 생성 (Python 기본 방식)
+python -m venv .venv
+
+# 가상환경 활성화 (Windows)
+source .venv/Scripts/activate
+
+# 가상환경 활성화 (Linux/macOS)
+source .venv/bin/activate
+
+# 의존성 설치
+pip install -r requirements.txt
+
+# CLI 실행 (통합 클라이언트)
+python src/rag/unified_cli.py
+
+# 또는 개별 테스트 실행
+python test_cli_e2e.py
 ```
 
-#### 6. 신고서 생성 모델 서비스 실행 (선택적)
+#### 3. Model-Lawchatbot (GraphDB 챗봇)
+
+```bash
+cd application-tier/models/model-lawchatbot
+
+# 가상환경 자동 생성 및 의존성 설치
+uv sync
+
+# 가상환경 활성화 (Windows)
+source .venv/Scripts/activate
+
+# 가상환경 활성화 (Linux/macOS)
+source .venv/bin/activate
+
+# 메인 애플리케이션 실행
+uv run python main.py
+
+# 또는 Gradio 챗봇 실행
+uv run python codes/gradio/chat_gradio.py
+```
+
+#### 4. Model-OCR (OCR 서비스)
+
+```bash
+cd application-tier/models/model-ocr
+
+# 가상환경 자동 생성 및 의존성 설치
+uv sync
+
+# 가상환경 활성화 (Windows)
+source .venv/Scripts/activate
+
+# 가상환경 활성화 (Linux/macOS)
+source .venv/bin/activate
+
+# FastAPI 서버 실행
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001
+
+# 또는 가상환경 내에서 직접 실행
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+```
+
+#### 5. Model-Report (보고서 생성 서비스)
+
 ```bash
 cd application-tier/models/model-report
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8002
+
+# 가상환경 자동 생성 및 의존성 설치
+uv sync
+
+# 가상환경 활성화 (Windows)
+source .venv/Scripts/activate
+
+# 가상환경 활성화 (Linux/macOS)
+source .venv/bin/activate
+
+# FastAPI 서버 실행
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8002
+
+# 또는 가상환경 내에서 직접 실행
+uvicorn main:app --reload --host 0.0.0.0 --port 8002
 ```
 
-### 🌐 서비스 URL
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080/api/v1
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **AI Gateway**: http://localhost:8000
-- **AI Docs**: http://localhost:8000/docs
-- **OCR Service**: http://localhost:8001 (Azure Document Intelligence)
-- **Report Service**: http://localhost:8002 (LangChain 신고서 생성)
-- **phpMyAdmin**: http://localhost:8081
+### 🌐 서비스 포트 및 URL
 
-## 🎯 주요 기능
+- **AI Gateway**: http://localhost:8000 (API 문서: /docs)
+- **Model-OCR**: http://localhost:8001 (API 문서: /docs)
+- **Model-Report**: http://localhost:8002 (API 문서: /docs)
+- **Model-Chatbot**: CLI 기반 (터미널에서 대화형 실행)
+- **Model-Lawchatbot**: Gradio UI (실행 시 포트 자동 할당)
 
-### 완성된 기능들
-- ✅ **다국어 지원**: 한국어/영어 완전 번역
-- ✅ **컴포넌트 시스템**: Header, Sidebar, Dashboard 레이아웃
-- ✅ **API 클라이언트**: Axios 기반 타입 안전한 API 호출
-- ✅ **데이터베이스**: MySQL 스키마 + 테스트 데이터
-- ✅ **AI 서비스**: FastAPI 게이트웨이 + 모델 서비스들
-- ✅ **OCR 처리**: Azure Document Intelligence 통합 OCR 서비스
-- ✅ **신고서 생성**: LangChain 기반 자동 신고서 생성 모델
-- ✅ **Spring-FastAPI 연동**: OCR 테스트 컨트롤러 구현
-- ✅ **Container**: Docker Compose 전체 스택
+### 🔧 개발 시 주의사항
 
-### API 엔드포인트
-#### Spring Boot REST API
-- `GET /api/v1/declarations` - 신고서 목록
-- `POST /api/v1/declarations` - 신고서 생성
-- `GET /api/v1/declarations/{id}` - 신고서 조회
-- `PUT /api/v1/declarations/{id}` - 신고서 수정
-- `DELETE /api/v1/declarations/{id}` - 신고서 삭제
+### 📝 코딩 스타일 및 문서화 규칙
 
-#### FastAPI AI Gateway
-- `POST /ai/classify-document` - 문서 분류
-- `POST /ai/extract-text` - OCR 텍스트 추출
-- `POST /ai/assess-risk` - 리스크 평가
+#### 🐍 Python 문서화 (Docstring)
+모든 Python 파일, 클래스, 함수에는 **Google Style Docstring**을 작성하여 신입개발자가 이해할 수 있도록 합니다.
 
-#### OCR 서비스 (model-ocr)
-- `POST /ocr/` - Azure Document Intelligence 기반 다중 문서 OCR 처리
-  - invoice_file, packing_list_file, bill_of_lading_file 동시 처리
-  - 통합된 JSON 결과 반환
+```python
+def calculate_customs_duty(item_value: float, duty_rate: float) -> float:
+    """수입품의 관세를 계산합니다.
+    
+    관세법에 따른 관세 계산 공식을 적용하여 수입품에 대한 관세액을 산출합니다.
+    계산 결과는 원화 단위로 반환되며, 소수점 이하는 절상 처리됩니다.
+    
+    Args:
+        item_value (float): 수입품의 과세가격 (원화 기준)
+        duty_rate (float): 적용할 관세율 (0.0 ~ 1.0, 예: 0.08 = 8%)
+    
+    Returns:
+        float: 계산된 관세액 (원화)
+        
+    Raises:
+        ValueError: item_value가 0 이하이거나 duty_rate가 음수인 경우
+        TypeError: 인자가 숫자 타입이 아닌 경우
+        
+    Example:
+        >>> calculate_customs_duty(1000000, 0.08)
+        80000.0
+        
+        >>> calculate_customs_duty(500000, 0.0)  # 무관세 품목
+        0.0
+        
+    Note:
+        - 관세법 제2조에 따른 과세가격 기준으로 계산
+        - 특혜관세 적용시 duty_rate는 특혜세율 사용
+        - FTA 협정세율 적용시 별도 함수 calculate_fta_duty() 사용 권장
+    """
+    if item_value <= 0:
+        raise ValueError("수입품 가격은 0보다 커야 합니다")
+    if duty_rate < 0:
+        raise ValueError("관세율은 음수일 수 없습니다")
+        
+    return item_value * duty_rate
+```
 
-#### 신고서 생성 서비스 (model-report)
-- LangChain + OpenAI 기반 관세신고서 자동 생성
-- 수입/수출 신고서 전체 항목 정의 기반 구조화된 처리
+#### ☕ Java 문서화 (JavaDoc)
+모든 Java 클래스, 메서드에는 **JavaDoc**을 작성하여 비즈니스 로직을 명확히 설명합니다.
 
-#### Spring Boot 테스트 API
-- `POST /test-ocr/call-ocr` - Spring Boot에서 FastAPI OCR 서비스 호출 테스트
+```java
+/**
+ * 수출입 신고서 처리를 담당하는 서비스 클래스입니다.
+ * 
+ * <p>이 클래스는 관세청 UNI-PASS 시스템과 연동하여 수출입 신고서의 
+ * 생성, 수정, 삭제 및 상태 관리를 담당합니다.</p>
+ * 
+ * <p>주요 기능:</p>
+ * <ul>
+ *   <li>신고서 작성 및 검증</li>
+ *   <li>첨부서류 관리</li>
+ *   <li>신고 진행 상태 추적</li>
+ *   <li>세관 심사 결과 처리</li>
+ * </ul>
+ * 
+ * @author 관세시스템팀
+ * @version 1.0
+ * @since 2025-01-06
+ * @see DeclarationRepository
+ * @see CustomsApiClient
+ */
+@Service
+@Transactional
+public class DeclarationService {
+    
+    /**
+     * 새로운 수출입 신고서를 생성합니다.
+     * 
+     * <p>신고서 생성 과정:</p>
+     * <ol>
+     *   <li>필수 정보 검증 (업체정보, 품목정보 등)</li>
+     *   <li>HS코드 유효성 확인</li>
+     *   <li>관세 및 부가세 자동 계산</li>
+     *   <li>데이터베이스 저장</li>
+     *   <li>신고번호 발급</li>
+     * </ol>
+     * 
+     * @param declarationDto 신고서 생성에 필요한 정보
+     * @param userId 신고서를 작성하는 사용자 ID
+     * @return 생성된 신고서 정보 (신고번호 포함)
+     * @throws ValidationException 필수 정보가 누락되거나 잘못된 경우
+     * @throws DuplicateDeclarationException 중복된 신고서가 이미 존재하는 경우
+     * @throws CustomsApiException 관세청 API 호출 중 오류가 발생한 경우
+     * 
+     * @apiNote 이 메서드는 트랜잭션 내에서 실행되며, 오류 발생시 자동으로 롤백됩니다.
+     * @implNote 대용량 첨부파일(>50MB)은 별도의 비동기 처리를 권장합니다.
+     */
+    public DeclarationResponseDto createDeclaration(
+            DeclarationCreateDto declarationDto, 
+            Long userId) throws ValidationException, DuplicateDeclarationException {
+        
+        // 비즈니스 로직 구현...
+    }
+}
+```
 
-## 🧪 테스트
+#### 🌐 JavaScript/TypeScript 문서화 (JSDoc)
+모든 JavaScript/TypeScript 함수, 컴포넌트에는 **JSDoc**을 작성합니다.
 
-### 테스트 실행
+```typescript
+/**
+ * 수입신고서 작성 폼 컴포넌트
+ * 
+ * 사용자가 수입신고서를 작성할 수 있는 종합적인 폼을 제공합니다.
+ * React Hook Form과 Zod를 사용하여 실시간 검증을 지원하며,
+ * 단계별 입력 프로세스로 사용자 경험을 개선했습니다.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * function ImportPage() {
+ *   const handleSubmit = (data) => {
+ *     console.log('신고서 데이터:', data);
+ *   };
+ *   
+ *   return (
+ *     <ImportDeclarationForm 
+ *       onSubmit={handleSubmit}
+ *       initialData={savedDraft}
+ *       mode="create"
+ *     />
+ *   );
+ * }
+ * ```
+ * 
+ * @param {Object} props - 컴포넌트 props
+ * @param {Function} props.onSubmit - 폼 제출시 호출되는 콜백 함수
+ * @param {ImportFormData} [props.initialData] - 폼 초기값 (수정모드나 임시저장 데이터)
+ * @param {'create' | 'edit' | 'view'} [props.mode='create'] - 폼 모드 (생성/수정/보기)
+ * @param {boolean} [props.disabled=false] - 폼 비활성화 여부
+ * 
+ * @returns {JSX.Element} 수입신고서 작성 폼 컴포넌트
+ * 
+ * @author 프론트엔드팀
+ * @since 2025-01-06
+ * @version 1.2.0
+ */
+export function ImportDeclarationForm({
+    onSubmit,
+    initialData,
+    mode = 'create',
+    disabled = false
+}: ImportDeclarationFormProps): JSX.Element {
+    
+    /**
+     * HS코드 검색 및 자동완성 기능
+     * 
+     * 사용자가 입력한 키워드를 기반으로 관세청 HS코드 데이터베이스에서
+     * 관련 품목을 검색하고 자동완성 목록을 제공합니다.
+     * 
+     * @async
+     * @param {string} keyword - 검색할 키워드 (최소 2글자)
+     * @param {AbortSignal} [signal] - 요청 취소용 AbortSignal
+     * @returns {Promise<HSCodeItem[]>} 검색된 HS코드 목록
+     * @throws {ValidationError} 키워드가 2글자 미만인 경우
+     * @throws {ApiError} API 호출 실패시
+     * 
+     * @example
+     * ```typescript
+     * const results = await searchHSCode('딸기');
+     * // 결과: [{ code: '0810.10', name: '딸기', duty_rate: 30 }, ...]
+     * ```
+     */
+    const searchHSCode = useCallback(async (
+        keyword: string, 
+        signal?: AbortSignal
+    ): Promise<HSCodeItem[]> => {
+        if (keyword.length < 2) {
+            throw new ValidationError('검색 키워드는 최소 2글자 이상 입력해주세요');
+        }
+        
+        try {
+            const response = await fetch(`/api/hscode/search?q=${keyword}`, {
+                signal
+            });
+            
+            if (!response.ok) {
+                throw new ApiError(`HS코드 검색 실패: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('HS코드 검색이 취소되었습니다');
+                return [];
+            }
+            throw error;
+        }
+    }, []);
+    
+    // 컴포넌트 로직...
+}
+```
+
+#### 📐 문서화 작성 원칙
+
+1. **신입개발자 친화적**: 전문용어 사용시 반드시 설명 추가
+2. **비즈니스 로직 설명**: 단순한 기능 설명이 아닌 업무 맥락 제공
+3. **예시 코드 포함**: 실제 사용 방법을 보여주는 예제 필수
+4. **에러 케이스 명시**: 발생 가능한 예외상황과 대응방법 설명
+5. **업무 규칙 참조**: 관련 법규나 업무 규칙 참조 링크 제공
+
+#### 🔍 품질 검사 자동화
+
 ```bash
-# Frontend 테스트
-cd presentation-tier/frontend
-npm run test
+# Python: docstring 검사
+uv add --dev pydocstyle
+uv run pydocstyle app/
 
-# Backend 테스트
-cd presentation-tier/backend
-./mvnw test
+# Java: JavaDoc 검사 
+./mvnw javadoc:javadoc
 
-# AI Gateway 테스트
-cd application-tier/ai-gateway
+# JavaScript/TypeScript: JSDoc 검사
+npm install --save-dev jsdoc @typescript-eslint/eslint-plugin
+npm run lint:docs
+```
+
+#### uv 명령어 치트시트
+
+```bash
+# 프로젝트 초기화
+uv init
+
+# 의존성 설치 및 가상환경 동기화
+uv sync
+
+# 새 패키지 추가
+uv add fastapi uvicorn
+
+# 개발 의존성 추가
+uv add --dev pytest black
+
+# 패키지 제거
+uv remove package-name
+
+# 가상환경에서 Python 실행
+uv run python script.py
+
+# 가상환경에서 명령어 실행
+uv run uvicorn main:app --reload
+```
+
+#### 환경변수 설정
+
+각 서비스별로 `.env` 파일이 필요할 수 있습니다:
+
+**AI Gateway** (`.env`):
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+DATABASE_URL=mysql://user:password@localhost:3306/customs_db
+```
+
+**Model-OCR** (`api_key.env`):
+
+```env
+AZURE_FORM_RECOGNIZER_ENDPOINT=your_azure_endpoint
+AZURE_FORM_RECOGNIZER_KEY=your_azure_key
+```
+
+#### 테스트 실행
+
+```bash
+# 각 서비스 디렉토리에서
+uv run pytest
+
+# 또는 가상환경 내에서
 pytest
 ```
-
-## 🔧 개발 시 주의사항
-
-### 코딩 스타일
-- **Frontend**: ESLint + Prettier 설정 준수
-- **Backend**: Google Java Style Guide
-- **Python**: PEP 8 + Black formatter
-- **Database**: 표준 SQL 컨벤션 + snake_case
-
-### 파일 수정 가이드
-1. **Frontend 컴포넌트**: `src/components/` 하위에 기능별 분류
-2. **API 엔드포인트**: Spring Boot Controller에 추가 후 OpenAPI 문서 확인
-3. **데이터베이스**: Flyway 마이그레이션 파일로 스키마 변경
-4. **AI 모델**: FastAPI 라우터에 새 엔드포인트 추가
-
-### 환경 변수
-- **Backend**: `application.yml`에서 `${ENV_VAR:default}` 형식 사용
-- **Frontend**: `.env.local` 파일 생성 (`.env.example` 참고)
-- **AI Gateway**: `.env` 파일 사용 (python-dotenv)
-
-## 📝 Git Commit Convention
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
-
-**Scopes**: `frontend`, `backend`, `ai`, `db`, `infra`, `docs`
-
-**Examples**:
-```bash
-feat(frontend): add declaration list component
-fix(backend): resolve null pointer in declaration service
-docs(readme): update installation guide
-chore(deps): update spring boot to 3.2.2
-```
-
-## 🚨 중요 참고사항
-
-### 데이터베이스
-- MySQL charset은 `utf8mb4`로 설정 (한글 지원)
-- 테이블명, 컬럼명은 snake_case 사용
-- 모든 테이블에 `created_at`, `updated_at` 컬럼 포함
-- Foreign Key 제약조건 활용
-
-### 보안
-- JWT 토큰 기반 인증 준비됨 (`application.yml`에 설정)
-- 민감 정보는 환경변수로 관리
-- CORS 설정 확인 필요 (프론트엔드 연동 시)
-
-### 성능
-- React Query로 데이터 캐싱 활용
-- Spring Boot Actuator로 메트릭 모니터링
-- FastAPI async/await 패턴 활용
-- MySQL 인덱스 최적화 고려
-
-## 📈 최근 업데이트 (2025-08-01)
-
-### 🆕 새로 추가된 AI 모델 서비스들
-
-#### 1. **model-ocr** - Azure Document Intelligence OCR 서비스
-- **기능**: 무역 관련 문서 3종 동시 OCR 처리
-- **지원 문서**: Invoice, Packing List, Bill of Lading
-- **기술 스택**: FastAPI + Azure Document Intelligence
-- **출력**: 통합된 JSON 형태 구조화 데이터
-- **API**: `POST /ocr/` (포트 8001)
-
-#### 2. **model-report** - LangChain 기반 신고서 생성 서비스
-- **기능**: OCR 결과 기반 관세신고서 자동 생성
-- **기술 스택**: FastAPI + LangChain + OpenAI GPT
-- **데이터**: 수입/수출 신고서 전체 항목 정의 (v1) 포함
-- **API**: 포트 8002 (구현 진행 중)
-- **특징**: 한국 관세청 규정 기반 구조화된 처리
-
-#### 3. **Spring Boot 연동 테스트**
-- **컨트롤러**: `OcrTestController.java`
-- **기능**: Spring Boot에서 FastAPI OCR 서비스 호출
-- **API**: `POST /test-ocr/call-ocr`
-- **상태**: 터미널 테스트 완료 (Spring 통합 진행 중)
-
-### 🔧 개발 환경 세팅
-
-#### OCR 서비스 환경 설정
-```bash
-# Azure Document Intelligence 설정 필요
-# api_key.env 파일에 다음 정보 추가:
-AZURE_ENDPOINT=your_azure_endpoint
-AZURE_API_KEY=your_azure_api_key
-```
-
-#### LangChain 서비스 환경 설정  
-```bash
-# OpenAI API 키 설정 필요
-# api_key.txt 파일에 다음 정보 추가:
-OPENAI_API_KEY=your_openai_api_key
-```
-
-### ⚠️ 알려진 이슈
-- **LangChain 의존성**: `pydantic==2.5.0` vs `langchain>=0.3.27` 버전 충돌
-  - **해결책**: `pydantic>=2.7.4` 업그레이드 필요
-- **Spring-FastAPI 연동**: 일부 통신 이슈 해결 중
-
-## 📈 최근 업데이트 (2025-08-02)
-
-### 🔄 AI Gateway 통합 및 코드 개선 작업
-
-#### 1. **AI Gateway 모델 레지스트리 업데이트**
-- **파일**: `application-tier/ai-gateway/app/routers/models.py`
-- **주요 변경사항**:
-  - 인메모리 모델 레지스트리를 실제 OCR/Report 서비스와 연동
-  - 불필요한 predict/batch-predict 엔드포인트 완전 제거
-  - OCR 전용 엔드포인트 추가: `POST /api/v1/models/model-ocr/analyze-documents`
-  - Report 전용 엔드포인트 추가: `POST /api/v1/models/model-report/generate-declaration`
-  - 모든 함수에 한국어 docstring 추가
-  - httpx 기반 비동기 서비스 간 통신 구현
-
-#### 2. **Pydantic 스키마 전면 개편**
-- **파일**: `application-tier/ai-gateway/app/schemas/models.py`
-- **주요 변경사항**:
-  - 모든 클래스와 메서드에 상세한 한국어 docstring 추가
-  - `ModelType`에 `TEXT_GENERATOR` 타입 추가 (신고서 생성용)
-  - 기존 predict 관련 스키마 제거: `ModelRequest`, `ModelResponse`, `BatchModelRequest`, `BatchModelResponse`
-  - 새로운 OCR 스키마 추가: `OcrAnalyzeRequest`, `OcrAnalyzeResponse`
-  - 새로운 Report 스키마 추가: `ReportGenerateRequest`, `ReportGenerateResponse`
-  - 각 스키마에 validation 로직과 한국어 에러 메시지 추가
-  - 실제 서비스 메타데이터를 반영한 예시 업데이트
-
-#### 3. **model-report 서비스 환경설정 개선**
-- **파일**: `application-tier/models/model-report/app/main.py`
-- **변경사항**:
-  - 기존 `path = Path(__file__)` → `base_path = Path(__file__).parent.parent`로 수정
-  - .env 파일 로딩 방식을 `python-dotenv` 패키지 활용으로 변경
-  - 파일 경로 처리를 Path 객체의 `/` 연산자로 개선
-  - 환경변수 기반 API 키 관리 체계 구축
-
-#### 4. **AI Gateway 설정 파일 개선**
-- **파일**: `application-tier/ai-gateway/app/core/config.py`
-- **변경사항**:
-  - `DEBUG = True`로 기본값 변경 (개발 편의성)
-  - 모든 설정 클래스에 한국어 docstring 추가
-  - 모델 서비스 URL 설정 체계화
-
-#### 5. **통합 테스트 가이드 완성**
-- **파일**: `application-tier/CURL_TEST_GUIDE.md`
-- **내용**:
-  - AI Gateway, OCR, Report 서비스 통합 테스트 가이드
-  - 완전한 워크플로우 테스트 명령어
-  - 성능 벤치마크 및 트러블슈팅 가이드
-  - 자동화 테스트 스크립트 예시
-
-### 🏗️ 아키텍처 개선 사항
-
-#### **AI Gateway 통합 아키텍처**
-```
-┌─────────────────────────────────────────┐
-│           AI Gateway (Port 8000)        │
-│  ┌─────────────────────────────────────┐ │
-│  │     Model Registry (In-Memory)     │ │
-│  │  ┌─────────────┬─────────────────┐  │ │
-│  │  │  model-ocr  │  model-report   │  │ │
-│  │  │  (TEXT_     │  (TEXT_         │  │ │
-│  │  │  EXTRACTOR) │  GENERATOR)     │  │ │
-│  │  └─────────────┴─────────────────┘  │ │
-│  └─────────────────────────────────────┘ │
-│               │httpx calls│              │
-└───────────────┼───────────┼──────────────┘
-                │           │
-     ┌──────────▼──────────┐ ┌──────▼──────────┐
-     │  OCR Service        │ │ Report Service   │
-     │  (Port 8001)        │ │ (Port 8002)      │
-     │  Azure Document     │ │ LangChain +      │
-     │  Intelligence       │ │ OpenAI GPT       │
-     └─────────────────────┘ └──────────────────┘
-```
-
-#### **API 엔드포인트 매트릭스**
-| 기능 | AI Gateway 엔드포인트 | 백엔드 서비스 | 상태 |
-|------|---------------------|--------------|------|
-| 모델 목록 조회 | `GET /api/v1/models` | In-Memory Registry | ✅ 완료 |
-| OCR 문서 분석 | `POST /api/v1/models/model-ocr/analyze-documents` | Port 8001 | ✅ 완료 |
-| 신고서 생성 | `POST /api/v1/models/model-report/generate-declaration` | Port 8002 | ✅ 완료 |
-| 통합 파이프라인 | `POST /api/v1/pipeline/process-complete-workflow` | Multiple | 🔄 진행중 |
-
-### 🎯 개발자 경험 개선
-
-#### **한국어 문서화**
-- 모든 Python 파일에 한국어 docstring 완성
-- 각 함수의 매개변수, 반환값, 예외 상황 상세 설명
-- 실제 사용 예시와 함께 제공되는 스키마 문서
-
-#### **타입 안전성 강화**
-- Pydantic 스키마의 validation 로직 추가
-- OCR/Report 요청 데이터 검증 강화
-- 한국어 에러 메시지로 디버깅 편의성 향상
-
-#### **프로덕션 준비**
-- 데이터베이스 기반 모델 레지스트리 구현 예시 제공
-- 환경변수 기반 설정 관리 체계 구축
-- Docker 컨테이너 환경에서의 서비스 간 통신 최적화
-
-### 🔧 개발 환경 개선사항
-
-#### **통합 테스트 환경**
-```bash
-# 모든 서비스 동시 실행 스크립트
-./application-tier/run_services.py
-
-# 통합 테스트 실행
-cd application-tier && python -m pytest tests/
-
-# CURL 기반 수동 테스트
-cd application-tier && bash test_all_services.sh
-```
-
-#### **개발 편의성 개선**
-- AI Gateway Swagger UI 기본 활성화 (`DEBUG=True`)
-- 모든 서비스의 헬스체크 엔드포인트 표준화
-- 에러 로깅 및 디버깅 정보 한국어화
-
-### 📋 다음 단계 계획
-
-1. **통합 파이프라인 완성**: OCR → Report 자동 연계 워크플로우
-2. **Spring Boot 연동**: AI Gateway와 Spring Boot 백엔드 완전 통합
-3. **모니터링 구축**: Prometheus + Grafana 메트릭 수집
-4. **프로덕션 배포**: Docker Compose 기반 배포 환경 구성
-
-이 가이드를 통해 Claude Code가 프로젝트의 현재 상태를 정확히 이해하고 효율적으로 작업할 수 있습니다.

@@ -94,6 +94,8 @@ customs:
       external-api:
         base-url: ${EXTERNAL_API_URL:http://localhost:9000}
         timeout: 10000
+    file:
+     upload-dir: uploads
         
 # ---
 # spring:

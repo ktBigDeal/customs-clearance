@@ -86,7 +86,7 @@ CREATE TABLE `messages` (
 
 CREATE TABLE `declarations` (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-  `declaration_number` VARCHAR(50) UNIQUE NOT NULL,
+  `declaration_number` VARCHAR(50) UNIQUE,
   `declaration_type` ENUM ('IMPORT', 'EXPORT') NOT NULL,
   `status` ENUM ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'PENDING_DOCUMENTS', 'APPROVED', 'REJECTED', 'CANCELLED', 'CLEARED') DEFAULT 'DRAFT',
   `declaration_details` TEXT,

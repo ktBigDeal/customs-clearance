@@ -56,4 +56,15 @@ public class Attachment extends BaseEntity {
     /** 파일을 업로드한 사용자 ID */
     @Column(name = "uploaded_by")
     private Long uploadedBy;
+
+    public Attachment(Long declarationId, String filename, String originalFilename, String filePath, Long fileSize, String contentType, Long uploadedBy) {
+        this.declarationId = declarationId;
+        this.filename = filename;
+        this.originalFilename = originalFilename;
+        this.filePath = filePath;
+        this.fileSize = fileSize;
+        this.contentType = contentType;
+        this.uploadedBy = uploadedBy;
+    }
+
 }

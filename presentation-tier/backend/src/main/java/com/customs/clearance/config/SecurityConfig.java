@@ -2,6 +2,7 @@ package com.customs.clearance.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -67,14 +68,21 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/public/**").permitAll()
-                .requestMatchers("/auth/**").permitAll() // 인증 관련 엔드포인트
-                .requestMatchers("/ocr/**").permitAll()
+                .requestMatchers("/auth/login/**", "/auth/register").permitAll() // 인증 관련 엔드포인트
+                .requestMatchers("/ai/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
-                         UsernamePasswordAuthenticationFilter.class);
+                         UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(exception -> exception
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\": \"접근 권한이 없습니다.\"}");
+                })
+            );
 
         
         return http.build();
