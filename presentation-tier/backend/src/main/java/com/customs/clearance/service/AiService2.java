@@ -10,8 +10,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
@@ -61,8 +59,7 @@ public class AiService2 {
 
         boolean allFilesEmpty = (invoiceFile == null || invoiceFile.isEmpty())
                             && (packingListFile == null || packingListFile.isEmpty())
-                            && (billOfLadingFile == null || billOfLadingFile.isEmpty())
-                            && (certificateOfOriginFile == null || certificateOfOriginFile.isEmpty());
+                            && (billOfLadingFile == null || billOfLadingFile.isEmpty());
 
         if (allFilesEmpty) {
             throw new IllegalArgumentException("파일 정보 누락");
@@ -120,10 +117,13 @@ public class AiService2 {
     }
 
     private String getExtension(MultipartFile file) {
+
         String name = file.getOriginalFilename();
+
         if (name != null && name.contains(".")) {
             return name.substring(name.lastIndexOf("."));
         }
+
         return "";
     }
 
@@ -198,17 +198,6 @@ public class AiService2 {
                 return file.getSize();
             }
         };
-    }
-
-    public Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null && authentication.isAuthenticated()) {
-            User user = (User) authentication.getPrincipal();
-            return user.getId();
-        }
-
-        return null;
     }
 
 }
