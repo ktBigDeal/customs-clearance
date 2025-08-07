@@ -27,6 +27,7 @@ class ModelType(str, Enum):
     """
     TEXT_EXTRACTOR = "text_extractor"  # OCR 텍스트 추출 모델
     TEXT_GENERATOR = "text_generator"  # 텍스트 생성 모델 (신고서 생성용)
+    CODE_CONVERTER = "code_converter"  # 코드 변환 모델 (HS Code 변환 등)
 
 
 class ModelStatus(str, Enum):
@@ -124,6 +125,58 @@ class OcrAnalyzeResponse(BaseModel):
     status: str = Field(..., description="처리 상태")
     message: str = Field(..., description="처리 결과 메시지")
     ocr_data: Dict[str, Any] = Field(..., description="OCR 추출 데이터")
+    processing_time: Optional[str] = Field(None, description="처리 소요 시간")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="추가 메타데이터")
+
+# HS Code 서비스 관련 스키마
+class HsCodeConvertRequest(BaseModel):
+    """
+    HS Code 변환 요청 스키마
+    
+    미국 HS Code를 한국 HS Code로 변환하기 위한 요청 스키마입니다.
+    제품 이름과 미국 HS Code를 입력받아 변환 결과를 반환합니다.
+    Attributes:
+        us_hs_code: 미국 HS Code
+        product_name: 제품 이름
+    """
+    us_hs_code: str = Field(..., description="미국 HS Code")
+    product_name: str = Field(..., description="제품 이름")
+
+    @validator('us_hs_code')
+    def validate_us_hs_code(cls, v):
+        """
+        미국 HS Code 검증
+        미국 HS Code가 비어있지 않은지 확인합니다.
+        """
+        if not v:
+            raise ValueError('미국 HS Code가 비어있습니다')
+        return v
+    @validator('product_name')
+    def validate_product_name(cls, v):
+        """
+        제품 이름 검증
+        
+        제품 이름이 비어있지 않은지 확인합니다.
+        """
+        if not v:
+            raise ValueError('제품 이름이 비어있습니다')
+        return v
+    
+class HsCodeConvertResponse(BaseModel):
+    """ HS Code 변환 응답 스키마
+    
+    HS Code 변환 서비스에서 반환되는 결과를 정의합니다.
+    변환된 한국 HS Code와 관련 정보를 포함합니다.
+    Attributes:
+        status: 처리 상태
+        message: 처리 결과 메시지
+        converted_hs_code: 변환된 한국 HS Code
+        processing_time: 처리 소요 시간
+        metadata: 추가 메타데이터 (정확도, 사용된 모델 등)
+    """
+    status: str = Field(..., description="처리 상태")
+    message: str = Field(..., description="처리 결과 메시지")
+    converted_hs_code: str = Field(..., description="변환된 한국 HS Code")
     processing_time: Optional[str] = Field(None, description="처리 소요 시간")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="추가 메타데이터")
 

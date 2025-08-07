@@ -30,25 +30,6 @@ app = FastAPI()
 
 base_path = Path(__file__).parent.parent
 
-# API 키 로드 함수
-def load_api_keys(filepath="api_key.txt"):
-    """
-    API 키 파일에서 환경 변수를 로드
-    
-    지정된 파일에서 API 키들을 읽어서 환경 변수로 설정합니다.
-    파일 형태: KEY=VALUE 형식의 한 줄씩 작성
-    
-    Args:
-        filepath (str): API 키 파일 경로
-    """
-    with open(filepath, "r") as f:
-        for line in f:
-            line = line.strip()
-            if line and "=" in line:
-                key, value = line.split("=", 1)
-                os.environ[key.strip()] = value.strip()
-
-# load_api_keys(path + 'api_key.txt')
 
 # 수입신고서 전체항목정의 처리
 def process_entry(항목명, 내용):
@@ -168,7 +149,7 @@ OCR 추출값 : {ocr_result}
 )
 
 item_prompt = PromptTemplate(
-    input_variables=["통관","item_key", "작성요령", "item_data", "hsk_code_predicted"],
+    input_variables=["통관","item_key", "작성요령", "item_data"],
     template="""
 너는 {통관}신고서 자동작성 AI야.
 다음 품목 정보와 작성요령을 참고해서 "{item_key}" 항목에 들어갈 값을 작성해줘.
@@ -178,9 +159,6 @@ item_prompt = PromptTemplate(
 
 ※ 품목 정보:
 {item_data}
-
-※ HSK 예측결과:
-{hsk_code_predicted}
 
 조건:
 - 작성요령을 반드시 지켜서 값의 형식, 단위 등을 지켜 작성
@@ -211,7 +189,7 @@ async def process_main_item(통관, 항목명, llm_chain, documents_to_search, s
     })
     return 항목명, 항목값.strip()
 
-async def process_item_detail(통관, item_key, item_llm_chain, documents_to_search, stat_code_documents, item_data, current_hsk_predicted):
+async def process_item_detail(통관, item_key, item_llm_chain, documents_to_search, stat_code_documents, item_data):
     retrieved_docs = get_documents_by_main_item_name(documents_to_search, item_key)
     retrieved_stat = []
     for docs in retrieved_docs:
@@ -224,12 +202,11 @@ async def process_item_detail(통관, item_key, item_llm_chain, documents_to_sea
         "통관": 통관,
         "item_key": item_key,
         "작성요령": 작성요령,
-        "item_data": json.dumps(item_data, ensure_ascii=False),
-        "hsk_code_predicted": json.dumps(current_hsk_predicted, ensure_ascii=False)
+        "item_data": json.dumps(item_data, ensure_ascii=False)
     })
     return item_key, item_value.strip()
 
-async def process_all_items(통관, items_list_data, 물품_list, item_llm_chain, documents_to_search, stat_code_documents, current_hsk_predicted):
+async def process_all_items(통관, items_list_data, 물품_list, item_llm_chain, documents_to_search, stat_code_documents):
     all_item_results = []
     for item_data in items_list_data:
         item_tasks = [
@@ -239,8 +216,7 @@ async def process_all_items(통관, items_list_data, 물품_list, item_llm_chain
                 item_llm_chain,
                 documents_to_search,
                 stat_code_documents,
-                item_data,
-                current_hsk_predicted
+                item_data
             ) for item_key in 물품_list
         ]
         item_details = await asyncio.gather(*item_tasks)
@@ -368,9 +344,6 @@ ocr_mapping = {
 class OcrData(BaseModel):
     ocr_data: Dict[str, Any]
 
-class HskData(BaseModel):
-    hsk_data: Dict[str, Any]
-
 class ItemResult(BaseModel):
     거래품명: str
     세번번호: str
@@ -398,7 +371,6 @@ class ExportItemResult(BaseModel):
 
 class DeclarationRequest(BaseModel):
     ocr_data: Dict[str, Any]
-    hsk_data: Dict[str, Any]
 
 class DeclarationResponse(BaseModel):
     신고구분: str
@@ -438,7 +410,6 @@ class ExportDeclarationResponse(BaseModel):
 @app.post("/generate-customs-declaration/import", response_model=DeclarationResponse)
 async def generate_declaration(request: DeclarationRequest):
     mapped_ocr_result = map_ocr_data(request.ocr_data, ocr_mapping)
-    hsk_code_predicted = request.hsk_data
 
     final_result = {}
     main_item_tasks = [
@@ -461,8 +432,7 @@ async def generate_declaration(request: DeclarationRequest):
         물품_list,
         item_llm_chain,
         filtered_documents,
-        stat_code_documents,
-        hsk_code_predicted
+        stat_code_documents
     )
     final_result["품목별 결과"] = llm_item_results
 
@@ -501,7 +471,6 @@ async def generate_declaration(request: DeclarationRequest):
 @app.post("/generate-customs-declaration/export", response_model=ExportDeclarationResponse)
 async def generate_export_declaration(request: DeclarationRequest):
     mapped_ocr_result = map_ocr_data(request.ocr_data, ocr_mapping)
-    hsk_code_predicted = request.hsk_data
     final_result = {}
 
     main_item_tasks = [
@@ -523,8 +492,7 @@ async def generate_export_declaration(request: DeclarationRequest):
         수출_물품_list,
         item_llm_chain,
         export_filtered_documents,
-        stat_code_documents,
-        hsk_code_predicted
+        stat_code_documents
     )
     final_result["품목별 결과"] = llm_item_results
     response_data = {

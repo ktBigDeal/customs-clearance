@@ -19,13 +19,11 @@ settings = get_settings()
 
 class PipelineRequest(BaseModel):
     declaration_type: str = "import"  # import or export
-    hsk_data: Optional[Dict[str, Any]] = None
 
 
 @router.post("/process-complete-workflow")
 async def process_complete_workflow(
     declaration_type: str = "import",
-    hsk_data: Optional[str] = None,
     invoice_file: UploadFile = File(...),
     packing_list_file: UploadFile = File(...),
     bill_of_lading_file: UploadFile = File(...)
@@ -61,17 +59,39 @@ async def process_complete_workflow(
         ocr_data = ocr_response.json()
         logger.info("Step 1 completed: OCR analysis successful")
         
-        # Step 2: Generate Declaration
-        logger.info("Step 2: Generating customs declaration")
+        # Step 2: HS Code Conversion
+        logger.info("Step 2: Converting HS Code")
+        items = ocr_data.get("items", None)
         
-        # Prepare HSK data
-        hsk_data_dict = {"hsk_code": "8541.10-0000", "description": "Electronic components"}
-        if hsk_data:
-            try:
-                import json
-                hsk_data_dict = json.loads(hsk_data)
-            except:
-                logger.warning("Invalid HSK data format, using default")
+        hsk_code_data = []
+        for item in items or []:
+            item_name = item.get("item_name", "")
+            hs_code = item.get("hs_code", "")
+            hs_code_fixed = hs_code.replace(".", "")
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                hs_code_response = await client.post(
+                    f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
+                    json={"us_hs_code": hs_code_fixed, "product_name": item_name}
+                )
+            if hs_code_response.status_code != 200:
+                logger.error(f"HS Code conversion failed for {item_name}: {hs_code_response.text}")
+                hsk_code_data.append("")
+                continue
+            
+            hs_code_data = hs_code_response.json()
+            hs_code_suggestions = hs_code_data.get("suggestions", [])
+            logger.info(f"HS Code suggestions for {item_name}: {hs_code_suggestions}")
+            hsk_code_data.append(hs_code_suggestions[0] if hs_code_suggestions else "" )
+
+        # Merge HS Code data with OCR results
+        for item, hsk_code in zip(ocr_data.get("items", []), hsk_code_data):
+            item["hsk_code_suggestions"] = hsk_code
+
+        logger.info("Step 2 completed: HS Code conversion successful")
+
+        # Step 3: Generate Declaration
+        logger.info("Step 3: Generating customs declaration")
         
         # Choose endpoint based on declaration type
         endpoint = "/generate-customs-declaration/import" if declaration_type == "import" else "/generate-customs-declaration/export"
@@ -80,8 +100,7 @@ async def process_complete_workflow(
             report_response = await client.post(
                 f"{settings.MODEL_REPORT_URL or 'http://localhost:8002'}{endpoint}",
                 json={
-                    "ocr_data": ocr_data,
-                    "hsk_data": hsk_data_dict
+                    "ocr_data": ocr_data
                 }
             )
         
@@ -92,7 +111,7 @@ async def process_complete_workflow(
             )
         
         declaration_data = report_response.json()
-        logger.info("Step 2 completed: Declaration generation successful")
+        logger.info("Step 3 completed: Declaration generation successful")
         
         # Return complete workflow result
         return JSONResponse(
@@ -107,7 +126,11 @@ async def process_complete_workflow(
                         "status": "completed",
                         "data": ocr_data
                     },
-                    "step_2_declaration": {
+                    "step_2_hscode_conversion": {
+                        "status": "completed",
+                        "data": hsk_code_data
+                    },
+                    "step_3_declaration": {
                         "status": "completed",
                         "data": declaration_data
                     }
@@ -166,12 +189,33 @@ async def check_all_services():
             "status": "healthy" if report_response.status_code == 200 else "unhealthy",
             "url": settings.MODEL_REPORT_URL or "http://localhost:8002"
         }
+        
     except Exception as e:
         services_status["model-report"] = {
             "status": "unreachable",
             "error": str(e),
             "url": settings.MODEL_REPORT_URL or "http://localhost:8002"
         }
+    
+    # Check HS Code service
+    try:    
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            hs_code_response = await client.get(
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/health"
+            )
+        
+        services_status["model-hscode"] = {
+            "status": hs_code_response.json().get("status", "unhealthy"),
+            "url": settings.MODEL_HSCODE_URL or "http://localhost:8003"
+        }
+    
+    except Exception as e:
+        services_status["model-hscode"] = {
+            "status": "unreachable",
+            "error": str(e),
+            "url": settings.MODEL_HSCODE_URL or "http://localhost:8003"
+        }
+        
     
     # Check overall status
     all_healthy = all(

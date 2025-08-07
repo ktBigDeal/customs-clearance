@@ -57,6 +57,24 @@ model_registry: Dict[str, ModelInfo] = {
             "processing_time": "3-8 seconds",
             "language": "Korean"
         }
+    ),
+    "model-hscode": ModelInfo(
+        id="model-hscode",
+        name="HS Code 변환 서비스",
+        type=ModelType.CODE_CONVERTER,
+        version="1.0.0",
+        status=ModelStatus.READY,
+        description="HS Code 변환 및 조회 서비스",
+        metadata={
+            "service_url": "http://localhost:8003",
+            "endpoints": {
+                "convert": "/convert",
+                "lookup": "/lookup"
+            },
+            "supported_countries": ["US", "KR", "EU"],
+            "max_conversion_time": "5 seconds",
+            "accuracy": 0.98
+        }
     )
 }
 
@@ -258,6 +276,57 @@ async def ocr_analyze_documents(
             detail="OCR document analysis failed"
         )
 
+# HS Code 전용 엔드포인트
+@router.post("/model-hscode/hscode-convert")
+async def convert_hs_code(
+    us_hs_code: str = Query(..., description="미국 HS Code"),
+    product_name: str = Query(..., description="제품 이름 (선택 사항)")
+):
+    """
+    미국 HS Code를 한국 HS Code로 변환
+    미국 HS Code와 선택적으로 제품 이름을 입력받아
+    한국 HS Code로 변환합니다.
+    Args:
+        us_hs_code (str): 미국 HS Code
+        product_name (Optional[str]): 제품 이름 (선택 사항)
+    Returns:
+        Dict: 변환된 HS Code 정보
+    """
+    model_info = model_registry.get("model-hscode")
+    if not model_info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="HS Code model not found"
+        )
+    try:
+        service_url = model_info.metadata.get("service_url")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{service_url}/convert",
+                json={
+                    "us_hs_code": us_hs_code,
+                    "product_name": product_name
+                }
+            )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"HS Code conversion error: {response.text}"
+            )
+    except httpx.RequestError as e:
+        logger.error(f"HS Code service connection error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="HS Code service is unavailable"
+        )
+    except Exception as e:
+        logger.error(f"Error in HS Code conversion: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="HS Code conversion failed"
+        )
 
 # Report 전용 엔드포인트
 @router.post("/model-report/generate-declaration")

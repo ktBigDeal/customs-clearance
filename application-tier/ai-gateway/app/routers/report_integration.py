@@ -20,9 +20,6 @@ settings = get_settings()
 
 class DeclarationRequest(BaseModel):
     ocr_data: Dict[str, Any]
-    hsk_data: Dict[str, Any]
-    declaration_type: str = "import"  # import or export
-
 
 async def get_report_client():
     """Get HTTP client for Report service"""
@@ -45,8 +42,7 @@ async def generate_import_declaration(request: DeclarationRequest):
             response = await client.post(
                 f"{settings.MODEL_REPORT_URL or 'http://localhost:8002'}/generate-customs-declaration/import",
                 json={
-                    "ocr_data": request.ocr_data,
-                    "hsk_data": request.hsk_data
+                    "ocr_data": request.ocr_data
                 }
             )
         
@@ -97,8 +93,7 @@ async def generate_export_declaration(request: DeclarationRequest):
             response = await client.post(
                 f"{settings.MODEL_REPORT_URL or 'http://localhost:8002'}/generate-customs-declaration/export",
                 json={
-                    "ocr_data": request.ocr_data,
-                    "hsk_data": request.hsk_data
+                    "ocr_data": request.ocr_data
                 }
             )
         
