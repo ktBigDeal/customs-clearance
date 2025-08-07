@@ -1,0 +1,234 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 데이터베이스 (대화기록 저장)
+  postgres:
+    image: postgres:15-alpine
+    container_name: chatbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-conversations}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ko_KR.UTF-8"
+    ports:
+      - "${DOCKER_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - chatbot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-conversations}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres -c log_statement=all
+               -c log_min_duration_statement=0
+               -c shared_preload_libraries=pg_stat_statements
+               -c max_connections=200
+               -c shared_buffers=256MB
+               -c effective_cache_size=1GB
+
+  # Redis 캐시 서버
+  redis:
+    image: redis:7-alpine
+    container_name: chatbot-redis
+    restart: unless-stopped
+    ports:
+      - "${DOCKER_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - chatbot-network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ChromaDB 벡터 데이터베이스 (기존 model-chatbot와 공유)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chatbot-chromadb
+    restart: unless-stopped
+    environment:
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.providers.ConfigFileAuthCredentialsProvider
+      - CHROMA_SERVER_AUTH_CONFIGURATION_FILE=/chroma/auth.yaml
+    ports:
+      - "${DOCKER_CHROMADB_PORT:-8011}:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+      - ./config/chroma-auth.yaml:/chroma/auth.yaml:ro
+    networks:
+      - chatbot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # FastAPI 챗봇 서비스
+  chatbot-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: chatbot-fastapi
+    restart: unless-stopped
+    environment:
+      # 데이터베이스 설정
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-conversations}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      
+      # Redis 설정
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      
+      # ChromaDB 설정
+      CHROMADB_MODE: docker
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: 8000
+      
+      # OpenAI 설정
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      
+      # 애플리케이션 설정
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DEBUG: ${DEBUG:-false}
+      
+      # 성능 설정
+      MAX_CONTEXT_MESSAGES: ${MAX_CONTEXT_MESSAGES:-20}
+      CONTEXT_CACHE_TTL: ${CONTEXT_CACHE_TTL:-3600}
+      SESSION_CACHE_TTL: ${SESSION_CACHE_TTL:-7200}
+      
+      # CORS 설정
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      
+    ports:
+      - "${DOCKER_FASTAPI_PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro  # 소스 코드 마운트 (읽기 전용)
+    networks:
+      - chatbot-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # Nginx 리버스 프록시 (선택적)
+  nginx:
+    image: nginx:alpine
+    container_name: chatbot-nginx
+    restart: unless-stopped
+    profiles: ["with-nginx"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - chatbot-network
+    depends_on:
+      - chatbot-api
+
+  # 모니터링 서비스들 (선택적)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chatbot-prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - chatbot-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chatbot-grafana
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana:/etc/grafana/provisioning
+    networks:
+      - chatbot-network
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+
+# 볼륨 정의
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  
+  chroma_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/chroma
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+# 네트워크 정의
+networks:
+  chatbot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

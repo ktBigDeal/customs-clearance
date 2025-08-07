@@ -1,0 +1,302 @@
+[project]
+name = "chatbot-fastapi"
+version = "1.0.0"
+description = "LangGraph 기반 관세법 전문 챗봇 FastAPI 서비스"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "관세 통관 시스템 개발팀", email = "dev@customs-clearance.com" }
+]
+maintainers = [
+    { name = "관세 통관 시스템 개발팀", email = "dev@customs-clearance.com" }
+]
+keywords = ["fastapi", "langchain", "langgraph", "chatbot", "customs", "rag"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+requires-python = ">=3.11"
+
+# 핵심 의존성
+dependencies = [
+    # FastAPI 및 웹 서버
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    
+    # 비동기 처리
+    "asyncio-mqtt>=0.13.0",
+    "aiofiles>=23.2.1",
+    "httpx>=0.25.2",
+    
+    # 데이터베이스
+    "asyncpg>=0.29.0",           # PostgreSQL 비동기 드라이버
+    "sqlalchemy[asyncio]>=2.0.23", # SQLAlchemy 2.0 with async support
+    "alembic>=1.12.1",           # 데이터베이스 마이그레이션
+    "redis[hiredis]>=5.0.1",     # Redis with hiredis for performance
+    
+    # AI/ML 라이브러리 (기존 model-chatbot와 동일)
+    "openai>=1.3.0",
+    "langchain-core>=0.1.0",
+    "langchain-openai>=0.0.2",
+    "langchain-chroma>=0.1.0",
+    "langgraph>=0.0.20",
+    "chromadb>=0.4.18",
+    
+    # 데이터 처리
+    "pandas>=2.1.3",
+    "numpy>=1.25.2",
+    "pyyaml>=6.0.1",
+    
+    # 환경 설정
+    "python-dotenv>=1.0.0",
+    
+    # 보안 및 인증
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    
+    # 유틸리티
+    "typing-extensions>=4.8.0",
+    "python-json-logger>=2.0.7",
+    
+    # PDF 및 문서 처리 (기존과 동일)
+    "PyPDF2>=3.0.1",
+    "pdfplumber>=0.10.3",
+    "tabula-py>=2.8.2",
+    "pytesseract>=0.3.10",
+    "Pillow>=10.1.0",
+    
+    # CSV 및 텍스트 처리
+    "chardet>=5.2.0",
+]
+
+# 선택적 의존성 그룹
+[project.optional-dependencies]
+# 개발 도구
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.1",
+    "pre-commit>=3.6.0",
+]
+
+# 테스트 도구  
+test = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.25.2",
+    "faker>=20.1.0",
+]
+
+# 프로덕션 도구
+production = [
+    "gunicorn>=21.2.0",
+    "prometheus-client>=0.19.0",
+    "sentry-sdk[fastapi]>=1.38.0",
+]
+
+# 모니터링 도구
+monitoring = [
+    "prometheus-client>=0.19.0",
+    "opentelemetry-api>=1.21.0",
+    "opentelemetry-sdk>=1.21.0",
+    "opentelemetry-instrumentation-fastapi>=0.42b0",
+    "opentelemetry-instrumentation-asyncpg>=0.42b0",
+    "opentelemetry-instrumentation-redis>=0.42b0",
+]
+
+# 모든 도구
+all = [
+    "chatbot-fastapi[dev,test,production,monitoring]"
+]
+
+[project.urls]
+Homepage = "https://github.com/customs-clearance/chatbot-fastapi"
+Documentation = "https://customs-clearance.github.io/chatbot-fastapi/"
+Repository = "https://github.com/customs-clearance/chatbot-fastapi"
+Issues = "https://github.com/customs-clearance/chatbot-fastapi/issues"
+Changelog = "https://github.com/customs-clearance/chatbot-fastapi/blob/main/CHANGELOG.md"
+
+[project.scripts]
+chatbot-server = "main:app"
+
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+# Hatch 설정
+[tool.hatch.version]
+path = "__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# 개발 도구 설정
+[tool.black]
+line-length = 120
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # 제외할 디렉토리
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "chromadb.*",
+    "langchain.*",
+    "langgraph.*",
+    "asyncpg.*"
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# 환경별 설정
+[tool.hatch.envs.default]
+dependencies = [
+    "chatbot-fastapi[dev,test]"
+]
+
+[tool.hatch.envs.default.scripts]
+# 개발 서버 실행
+dev = "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+
+# 프로덕션 서버 실행
+prod = "gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000"
+
+# 테스트 실행
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=app --cov-report=html --cov-report=term-missing tests/"
+
+# 코드 품질 검사
+lint = "flake8 app tests"
+format = "black app tests"
+format-check = "black --check app tests"
+type-check = "mypy app"
+sort-imports = "isort app tests"
+
+# 데이터베이스 관련
+db-upgrade = "alembic upgrade head"
+db-downgrade = "alembic downgrade -1"
+db-revision = "alembic revision --autogenerate -m {args}"
+
+# 전체 품질 검사
+check-all = [
+    "format-check",
+    "sort-imports --check-only",
+    "lint",
+    "type-check",
+    "test-cov",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+    "chatbot-fastapi[test]"
+]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args:tests}"
+run-cov = "pytest --cov=app --cov-report=html tests/"
+
+# 통합 테스트 환경
+[tool.hatch.envs.integration]
+dependencies = [
+    "chatbot-fastapi[test,production]"
+]
+
+[tool.hatch.envs.integration.scripts]
+run = "pytest -m integration {args:tests}"
+
+# 성능 테스트 환경
+[tool.hatch.envs.performance]
+dependencies = [
+    "chatbot-fastapi[test,production]",
+    "locust>=2.17.0",
+]
+
+[tool.hatch.envs.performance.scripts]
+load-test = "locust -f tests/performance/locustfile.py"
