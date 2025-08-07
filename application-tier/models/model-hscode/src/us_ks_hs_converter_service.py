@@ -17,6 +17,26 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+def convert_numpy_types(obj):
+    """NumPy 타입을 Python 네이티브 타입으로 재귀적으로 변환"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(item) for item in obj)
+    elif pd.isna(obj):
+        return None
+    else:
+        return obj
+
+
 @dataclass
 class ProductAnalysis:
     """LLM 분석 결과 구조체"""
@@ -562,21 +582,21 @@ class HSCodeConverterService:
             query_embedding = self.semantic_model.encode([search_query])
             candidate_embeddings = self.semantic_model.encode(candidate_texts)
             similarities = cosine_similarity(query_embedding, candidate_embeddings).flatten()
-            
-            # 후보에 유사도 점수 추가
+                
+                # 후보에 유사도 점수 추가
             for i, candidate in enumerate(candidates):
-                candidate['similarity_score'] = float(similarities[i])
-            
-            # 유사도 기준 정렬
+                candidate['similarity_score'] = float(similarities[i])  # NumPy float를 Python float로 변환
+                
+                # 유사도 기준 정렬
             ranked_candidates = sorted(candidates, key=lambda x: x['similarity_score'], reverse=True)
             return ranked_candidates
-            
+                
         except Exception as e:
             print(f"⚠️ 유사도 계산 실패: {e}")
             # 원본 순서 유지
             for candidate in candidates:
                 candidate['similarity_score'] = 0.5
-            return candidates
+            return candidates   
     
     # ===========================================
     # LLM 관련 새로운 메소드들
@@ -978,14 +998,14 @@ class HSCodeConverterService:
                 'name_kr': best_match['name_kr'],
                 'name_en': best_match.get('name_en', ''),
                 'data_source': best_match.get('data_source', ''),
-                'confidence': best_match.get('final_score', 0.5),
+                'confidence': float(best_match.get('final_score', 0.5)),  # float로 변환
                 'is_alternative_classification': best_match.get('is_alternative', False),
                 'source_hs6': best_match.get('source_hs6', hs6)
             },
             'hs_analysis': {
                 'hs6_match': True,
-                'hs_similarity': best_match.get('score_breakdown', {}).get('hs_structure', 0.5),
-                'semantic_similarity': best_match.get('score_breakdown', {}).get('semantic', 0.5),
+                'hs_similarity': float(best_match.get('score_breakdown', {}).get('hs_structure', 0.5)),  # float로 변환
+                'semantic_similarity': float(best_match.get('score_breakdown', {}).get('semantic', 0.5)),  # float로 변환
                 'total_candidates': len(all_candidates),
                 'us_hs6': hs6,
                 'korea_hs6': best_match['hs_code'][:6],
@@ -996,6 +1016,9 @@ class HSCodeConverterService:
             'explanation': explanation,
             'product_analysis': self._analysis_to_dict(product_analysis) if product_analysis else None
         }
+        
+        # NumPy 타입 변환 적용
+        result = convert_numpy_types(result)
         
         # 캐시 저장
         self.conversion_cache[cache_key] = result
@@ -1024,12 +1047,12 @@ class HSCodeConverterService:
             # 2. HS 구조적 유사도 (기존)
             hs_similarity = self.hs_analyzer.calculate_hs_similarity(us_hs_code, korea_code)
             
-            # 3. LLM 신뢰도
+             # 3. LLM 신뢰도
             llm_score = 0.5  # 기본값
             llm_reason = ""
             if korea_code in llm_scores:
                 llm_info = llm_scores[korea_code]
-                llm_score = llm_info['confidence']
+                llm_score = float(llm_info['confidence'])  # float로 변환
                 llm_reason = llm_info['reason']
                 # 순위가 높을수록 추가 보너스
                 rank_bonus = max(0, (4 - llm_info['rank']) * 0.1)
@@ -1047,16 +1070,17 @@ class HSCodeConverterService:
             if candidate.get('is_alternative', False):
                 final_score *= 0.9
             
-            candidate['final_score'] = final_score
+            candidate['final_score'] = float(final_score)  # float로 변환
             candidate['score_breakdown'] = {
-                'semantic': semantic_score,
-                'hs_structure': hs_similarity,
-                'llm_confidence': llm_score,
+                'semantic': float(semantic_score),  # float로 변환
+                'hs_structure': float(hs_similarity),  # float로 변환
+                'llm_confidence': float(llm_score),  # float로 변환
                 'llm_reason': llm_reason
             }
         
         # 최종 점수 기준으로 정렬
         return sorted(semantic_candidates, key=lambda x: x['final_score'], reverse=True)
+
     
     def _analysis_to_dict(self, analysis: Optional[ProductAnalysis]) -> Optional[Dict]:
         """ProductAnalysis를 딕셔너리로 변환"""
