@@ -23,10 +23,13 @@ import com.customs.clearance.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
 @Service
@@ -162,12 +165,10 @@ public class AiService2 {
         String fastApiUrl = "http://localhost:8000/api/v1/models/model-ocr/analyze-documents";
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        if (invoiceFile != null && !invoiceFile.isEmpty())
-            body.add("invoice_file", convertToResource(invoiceFile));
-        if (packingListFile != null && !packingListFile.isEmpty())
-            body.add("packing_list_file", convertToResource(packingListFile));
-        if (billOfLadingFile != null && !billOfLadingFile.isEmpty())
-            body.add("bill_of_lading_file", convertToResource(billOfLadingFile));
+
+        body.add("invoice_file", convertToResource(invoiceFile));
+        body.add("packing_list_file", convertToResource(packingListFile));
+        body.add("bill_of_lading_file", convertToResource(billOfLadingFile));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -190,10 +191,35 @@ public class AiService2 {
 
     // MultipartFile -> Resource 변환
     private Resource convertToResource(MultipartFile file) throws IOException {
+        // 빈 파일이면 empty.png 불러오기
+        if (file == null || file.isEmpty()) {
+            
+            File emptyFile = new File(uploadDir, "empty.png");
+            Path path = emptyFile.toPath();
+
+            if (!Files.exists(path)) {
+                throw new FileNotFoundException("empty.png 없음");
+            }
+
+            long fileSize = Files.size(path);
+
+            return new ByteArrayResource(Files.readAllBytes(emptyFile.toPath())) {
+                @Override public String getFilename() {
+                    return "empty.png";
+                }
+
+                @Override public long contentLength() {
+                    return fileSize;
+                }
+            };
+        }
+
+        // 원래 파일 처리
         return new ByteArrayResource(file.getBytes()) {
             @Override public String getFilename() {
                 return file.getOriginalFilename();
             }
+
             @Override public long contentLength() {
                 return file.getSize();
             }

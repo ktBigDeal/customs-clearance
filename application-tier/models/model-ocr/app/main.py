@@ -163,18 +163,26 @@ async def analyze_docs(
     bill_of_lading_file: Optional[UploadFile] = File(None),
 ):
     try:
-        # 파일이 없는 경우를 고려해서 기본값 처리
-        invoice_bytes = await invoice_file.read() if invoice_file else None
-        packing_bytes = await packing_list_file.read() if packing_list_file else None
-        bill_bytes = await bill_of_lading_file.read() if bill_of_lading_file else None
+        # 파일 이름이 empty.png인 경우는 모델 호출 생략
+        async def get_bytes_if_not_empty(file: Optional[UploadFile]) -> Optional[bytes]:
+            if file and file.filename != "empty.png":
+                return await file.read()
+            return None
+        
+        invoice_bytes = await get_bytes_if_not_empty(invoice_file)
+        packing_bytes = await get_bytes_if_not_empty(packing_list_file)
+        bill_bytes = await get_bytes_if_not_empty(bill_of_lading_file)
 
         loop = asyncio.get_event_loop()
 
         # 병렬 분석 실행 (없는 파일은 None 결과 처리)
         tasks = [
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-invoice", invoice_bytes) if invoice_bytes else None,
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-packing_list", packing_bytes) if packing_bytes else None,
-            loop.run_in_executor(executor, analyze_document_to_json, client, "model-bill_of_lading", bill_bytes) if bill_bytes else None
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-invoice", invoice_bytes)
+            if invoice_bytes else None,
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-packing_list", packing_bytes)
+            if packing_bytes else None,
+            loop.run_in_executor(executor, analyze_document_to_json, client, "model-bill_of_lading", bill_bytes)
+            if bill_bytes else None,
         ]
 
         # 실행된 태스크만 await
