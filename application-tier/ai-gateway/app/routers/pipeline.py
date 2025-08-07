@@ -81,7 +81,6 @@ async def process_complete_workflow(
             
             hs_code_data = hs_code_response.json()
             hs_code_suggestions = hs_code_data.get("suggestions", [])
-            logger.info(f"HS Code suggestions for {item_name}: {hs_code_suggestions}")
             hsk_code_data.append(hs_code_suggestions[0] if hs_code_suggestions else "" )
 
         # Merge HS Code data with OCR results
@@ -134,15 +133,8 @@ async def process_complete_workflow(
                         "status": "completed",
                         "data": declaration_data
                     }
-                },
-                "summary": {
-                    "invoice_number": ocr_data.get("invoice_number", "N/A"),
-                    "total_amount": ocr_data.get("total_amount", "N/A"),
-                    "shipper": ocr_data.get("shipper", "N/A"),
-                    "importer": ocr_data.get("importer", "N/A"),
-                    "items_count": len(ocr_data.get("items", [])),
-                    "declaration_type": declaration_type
                 }
+
             }
         )
         
