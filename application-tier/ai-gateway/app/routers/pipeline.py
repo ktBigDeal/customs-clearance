@@ -5,7 +5,7 @@ End-to-end pipeline for customs clearance document processing
 import asyncio
 from typing import Dict, Any, Optional
 import httpx
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Form, HTTPException, status, UploadFile, File
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -23,7 +23,7 @@ class PipelineRequest(BaseModel):
 
 @router.post("/process-complete-workflow")
 async def process_complete_workflow(
-    declaration_type: str = "import",
+    declaration_type: str = Form(...),
     invoice_file: UploadFile = File(...),
     packing_list_file: UploadFile = File(...),
     bill_of_lading_file: UploadFile = File(...)
@@ -64,29 +64,31 @@ async def process_complete_workflow(
         items = ocr_data.get("items", None)
         
         hsk_code_data = []
-        for item in items or []:
-            item_name = item.get("item_name", "")
-            hs_code = item.get("hs_code", "")
-            hs_code_fixed = hs_code.replace(".", "")
+        
+        if(declaration_type == "import"):
+            for item in items or []:
+                item_name = item.get("item_name", "")
+                hs_code = item.get("hs_code", "")
+                hs_code_fixed = hs_code.replace(".", "")
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                hs_code_response = await client.post(
-                    f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
-                    json={"us_hs_code": hs_code_fixed, "product_name": item_name}
-                )
-            if hs_code_response.status_code != 200:
-                logger.error(f"HS Code conversion failed for {item_name}: {hs_code_response.text}")
-                hsk_code_data.append("")
-                continue
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    hs_code_response = await client.post(
+                        f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
+                        json={"us_hs_code": hs_code_fixed, "product_name": item_name}
+                    )
+                if hs_code_response.status_code != 200:
+                    logger.error(f"HS Code conversion failed for {item_name}: {hs_code_response.text}")
+                    hsk_code_data.append("")
+                    continue
+                
+                hs_code_data = hs_code_response.json()
+                hs_code_suggestions = hs_code_data.get("suggestions", [])
+                hsk_code_data.append(hs_code_suggestions[0] if hs_code_suggestions else "" )
+
+            # Merge HS Code data with OCR results
+            for item, hsk_code in zip(ocr_data.get("items", []), hsk_code_data):
+                item["hsk_code_suggestions"] = hsk_code
             
-            hs_code_data = hs_code_response.json()
-            hs_code_suggestions = hs_code_data.get("suggestions", [])
-            hsk_code_data.append(hs_code_suggestions[0] if hs_code_suggestions else "" )
-
-        # Merge HS Code data with OCR results
-        for item, hsk_code in zip(ocr_data.get("items", []), hsk_code_data):
-            item["hsk_code_suggestions"] = hsk_code
-
         logger.info("Step 2 completed: HS Code conversion successful")
 
         # Step 3: Generate Declaration

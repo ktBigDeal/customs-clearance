@@ -78,7 +78,7 @@ public class AiService2 {
                         .map(User::getId)
                         .orElseThrow(() -> new RuntimeException("사용자 미확인"));
 
-        String jsonString = callAiPipeLine(invoiceFile, packingListFile, billOfLadingFile);
+        String jsonString = callAiPipeLine(declaration.getDeclarationType().toString(), invoiceFile, packingListFile, billOfLadingFile);
 
         declaration.setDeclarationDetails(jsonString);
         declaration.setStatus(DeclarationStatus.SUBMITTED);
@@ -157,15 +157,17 @@ public class AiService2 {
     }
 
     private String callAiPipeLine(
+        String declarationType,
         MultipartFile invoiceFile,
         MultipartFile packingListFile,
         MultipartFile billOfLadingFile
     ) throws IOException {
 
-        String fastApiUrl = "http://localhost:8000/api/v1/models/model-ocr/analyze-documents";
+        String fastApiUrl = "http://localhost:8000/api/v1/pipeline/process-complete-workflow";
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
+        body.add("declaration_type", declarationType.toLowerCase());
         body.add("invoice_file", convertToResource(invoiceFile));
         body.add("packing_list_file", convertToResource(packingListFile));
         body.add("bill_of_lading_file", convertToResource(billOfLadingFile));
