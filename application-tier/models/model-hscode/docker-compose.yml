@@ -1,0 +1,66 @@
+# HS 코드 추천 API 서비스 Docker Compose 설정
+version: '3.8'
+
+services:
+  hs-recommender-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hs-recommender-api
+    ports:
+      - "8003:8003"
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app:/app/src
+      - LOG_LEVEL=INFO
+    volumes:
+      # 캐시 데이터 영속화
+      - ./cache:/app/cache
+      # 로그 파일 영속화 (선택사항)
+      - ./logs:/app/logs
+      # OpenAI API 키 파일 (선택사항)
+      - ./docs/Aivle-api.txt:/app/docs/Aivle-api.txt:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - hs-recommender-network
+
+  # (선택사항) Redis 캐시 서버
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: hs-recommender-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - hs-recommender-network
+
+  # (선택사항) Nginx 리버스 프록시
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: hs-recommender-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - hs-recommender-api
+  #   restart: unless-stopped
+  #   networks:
+  #     - hs-recommender-network
+
+networks:
+  hs-recommender-network:
+    driver: bridge
+
+# volumes:
+#   redis_data:

@@ -9,7 +9,7 @@ import logging
 import re
 import os
 # 상대 경로로 import 수정
-from us_ks_hs_converter_service import HSCodeConverterService
+from us_ks_hs_converter_service import HSCodeConverterService, convert_numpy_types
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -176,13 +176,14 @@ class InitializeRequest(BaseModel):
 @app.get("/")
 async def root():
     """API 기본 정보"""
-    return {
+    result = {
         "service": "HS Code Converter API",
         "version": "1.0.0",
         "description": "미국→한국 HS 코드 변환 서비스 (LLM 강화)",
         "status": "running",
         "llm_available": converter_service.llm_available if converter_service else False
     }
+    return convert_numpy_types(result)
 
 @app.post("/initialize")
 async def initialize_system():
@@ -196,11 +197,12 @@ async def initialize_system():
             us_tariff_file=None     # 자동으로 기본 경로 사용
         )
 
-        return {
+        result = {
             "success": success,
             "message": message,
             "llm_available": converter_service.llm_available if converter_service else False
         }
+        return convert_numpy_types(result)
 
     except Exception as e:
         error_detail = f"초기화 실패: {str(e)}"
@@ -229,7 +231,7 @@ async def get_system_status():
         us_data_loaded=converter_service.us_data is not None,
         korea_data_loaded=converter_service.korea_data is not None,
         semantic_model_loaded=converter_service.semantic_model is not None,
-        statistics=stats
+        statistics=convert_numpy_types(stats)
     )
 
 @app.post("/convert", response_model=ConversionResponse)
@@ -252,6 +254,9 @@ async def convert_hs_code(request: ConversionRequest):
     try:
         # 변환 실행
         result = converter_service.convert_hs_code(us_hs_code, request.product_name)
+        
+        # numpy 타입 변환
+        result = convert_numpy_types(result)
         
         return ConversionResponse(**result)
         
@@ -284,6 +289,9 @@ async def lookup_us_hs_code(us_hs_code: str):
                 detail=f"미국 HS코드 '{us_hs_code}'를 찾을 수 없습니다."
             )
         
+        # numpy 타입 변환
+        us_info = convert_numpy_types(us_info)
+        
         return us_info
         
     except HTTPException:
@@ -300,10 +308,12 @@ async def clear_cache():
     
     try:
         cleared_count = converter_service.clear_cache()
-        return {
+        result = {
             "message": "캐시가 성공적으로 초기화되었습니다.",
             "cleared_items": cleared_count
         }
+        # numpy 타입 변환
+        return convert_numpy_types(result)
         
     except Exception as e:
         logger.error(f"캐시 초기화 중 오류 발생: {str(e)}")
@@ -327,10 +337,12 @@ async def get_hs6_description(hs6: str):
     
     try:
         description = converter_service.get_hs6_description(hs6)
-        return {
+        result = {
             "hs6": hs6,
             "description": description
         }
+        # numpy 타입 변환
+        return convert_numpy_types(result)
         
     except Exception as e:
         logger.error(f"HS6 설명 조회 중 오류 발생: {str(e)}")
@@ -340,11 +352,12 @@ async def get_hs6_description(hs6: str):
 @app.get("/health")
 async def health_check():
     """헬스 체크"""
-    return {
+    result = {
         "status": "healthy",
         "service": "HS Code Converter API",
         "initialized": converter_service.initialized if converter_service else False
     }
+    return convert_numpy_types(result)
 
 if __name__ == "__main__":
     import uvicorn

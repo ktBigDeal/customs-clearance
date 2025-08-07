@@ -12,14 +12,6 @@ uv sync
 ### 2. API 키 설정 (자동)
 OpenAI API 키가 `docs/Aivle-api.txt` 파일에서 자동으로 로드됩니다.
 
-### 3. UI 실행
-```bash
-# Gradio 웹 UI 실행
-uv run python ui_app.py
-
-# 또는 간단한 런처 사용
-uv run python run_ui.py
-```
 
 ### 4. 브라우저 접속
 브라우저에서 `http://localhost:7860` 접속
@@ -37,8 +29,6 @@ uv run python run_ui.py
 
 ```
 hs-code-recommender/
-├── ui_app.py              # Gradio 웹 UI
-├── run_ui.py              # UI 런처
 ├── main.py                # CLI 버전
 ├── config.py              # 설정 파일
 ├── src/                   # 소스 코드

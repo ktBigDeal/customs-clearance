@@ -1,0 +1,12 @@
+# 최소한의 FastAPI 실행을 위한 의존성
+
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+httpx==0.25.2
+
+# 기본 데이터 처리
+pandas==2.1.4
+numpy==1.24.3
