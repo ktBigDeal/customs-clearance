@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.customs.clearance.entity.Declaration;
-import com.customs.clearance.service.AiService2;
+import com.customs.clearance.service.DeclarationService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -12,13 +12,13 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/ai")
+@RequestMapping("/declaration")
 @RequiredArgsConstructor
-public class AiController2 {
+public class DeclarationController {
 
-    private final AiService2 aiService;
+    private final DeclarationService aiService;
 
-    @PostMapping("/insertDeclaration")
+    @PostMapping
     public Declaration insertDeclaration(
         @ModelAttribute Declaration declaration,
         @RequestPart(value = "invoice_file", required = false) MultipartFile invoiceFile,

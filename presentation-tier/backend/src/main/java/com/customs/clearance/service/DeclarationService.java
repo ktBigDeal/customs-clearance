@@ -34,7 +34,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class AiService2 {
+public class DeclarationService {
 
     private final DeclarationRepository declarationRepository;
     private final AttachmentRepository attachmentRepository;
