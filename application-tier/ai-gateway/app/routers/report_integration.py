@@ -137,7 +137,7 @@ async def generate_export_declaration(request: DeclarationRequest):
         )
 
 
-@router.get("/report/health")
+@router.get("/health")
 async def check_report_health():
     """Check Report service health"""
     

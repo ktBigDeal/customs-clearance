@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     # Model services configuration
     MODEL_OCR_URL: str = "http://localhost:8001"
     MODEL_REPORT_URL: str = "http://localhost:8002"
+    MODEL_HSCODE_URL: str = "http://localhost:8003"
     
     # AI Model settings
     MODEL_STORAGE_PATH: str = "./models"
