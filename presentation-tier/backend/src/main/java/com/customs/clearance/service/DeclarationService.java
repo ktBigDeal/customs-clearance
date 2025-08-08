@@ -24,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -67,7 +68,7 @@ public class DeclarationService {
         String jsonString = callAiPipeLine(declaration.getDeclarationType().toString(), invoiceFile, packingListFile, billOfLadingFile);
 
         declaration.setDeclarationDetails(jsonString);
-        declaration.setStatus(DeclarationStatus.SUBMITTED);
+        declaration.setStatus(DeclarationStatus.CLEARED);
         declaration.setCreatedBy(user.getId());
 
         declaration = declarationRepository.save(declaration);
@@ -183,9 +184,71 @@ public class DeclarationService {
 
         Declaration updatedDeclaration = DeclarationServiceUtils.convertMapToDeclaration(declarationMap, declaration);
         updatedDeclaration.setUpdatedBy(user.getId());
+        updatedDeclaration.setStatus(DeclarationStatus.UPDATED);
 
         declaration = declarationRepository.save(updatedDeclaration);
 
         return DeclarationServiceUtils.convertDeclarationToMap(declaration);
     }
+
+    public boolean deleteDeclaration(Long declarationId, String token){
+        
+        Declaration declaration = declarationRepository.findById(declarationId).orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
+
+        User user = getUserByToken(token);
+
+        if(user.getRole().equals("USER") && !user.getId().equals(declaration.getCreatedBy())){
+            throw new RuntimeException("다른 사용자의 신고서는 삭제할 수 없습니다.");
+        }
+
+        List<Attachment> attachments = attachmentRepository.findByDeclarationId(declarationId);
+
+        DeclarationServiceUtils.deleteFiles(attachments, uploadDir);
+
+        declarationRepository.delete(declaration);
+
+        return true;
+    }
+
+    public List<Declaration> getDeclarationList(Long userId, String status, String token) {
+        
+        User user = getUserByToken(token);
+
+        if(user.getRole().equals("USER") && user.getId() != userId){
+            throw new RuntimeException("다른 사용자의 신고서 목록은 조회할 수 없습니다.");
+        }
+
+        List<Declaration> list; 
+
+        if (user.getRole().equals("USER") && status == null) {
+            list = declarationRepository.findAllByCreatedBy(user.getId());
+        } else if (user.getRole().equals("USER") && status != null) {
+            
+            Declaration.DeclarationStatus enumStatus;
+
+            try {
+                enumStatus = Declaration.DeclarationStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("잘못된 상태 값입니다: " + status);
+            }
+
+            list = declarationRepository.findAllByCreatedByAndStatus(userId, enumStatus);
+        } else if(user.getRole().equals("ADMIN") && status == null){
+            list = declarationRepository.findAll();
+        } else {
+            
+            Declaration.DeclarationStatus enumStatus;
+
+            try {
+                enumStatus = Declaration.DeclarationStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("잘못된 상태 값입니다: " + status);
+            }
+
+            list = declarationRepository.findAllByStatus(enumStatus);
+        }
+
+        return list;
+    }
+
 }

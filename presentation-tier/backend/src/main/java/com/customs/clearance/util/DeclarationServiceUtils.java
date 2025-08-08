@@ -1,5 +1,6 @@
 package com.customs.clearance.util;
 
+import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 public class DeclarationServiceUtils {
@@ -87,6 +89,25 @@ public class DeclarationServiceUtils {
                 return file.getSize();
             }
         };
+    }
+
+    public static void deleteFiles(List<Attachment> attachments, String uploadDir) {
+        if (attachments == null || attachments.isEmpty()) {
+            return;
+        }
+
+        for (Attachment attachment : attachments) {
+            // 파일 경로는 상대 경로로 저장돼있으니 절대경로로 변환
+            File file = new File(uploadDir, new File(attachment.getFilePath()).getName());
+
+            if (file.exists()) {
+                boolean deleted = file.delete();
+                if (!deleted) {
+                    System.err.println("파일 삭제 실패: " + file.getAbsolutePath());
+                }
+            }
+
+        }
     }
 
     public static Map<String, Object> convertDeclarationToMap(Object declaration) {

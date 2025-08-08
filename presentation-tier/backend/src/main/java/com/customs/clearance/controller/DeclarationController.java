@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -74,6 +75,86 @@ public class DeclarationController {
         }
         
         return declarationService.putDeclaration(declarationId, declarationMap, token);
+    }
+
+    @DeleteMapping("/{declarationId}")
+    public boolean deleteDeclaration(
+        @PathVariable Long declarationId,
+        HttpServletRequest request
+    ) {
+
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+        
+        return declarationService.deleteDeclaration(declarationId, token);
+    }
+
+    @GetMapping("/user/{userId}")
+    public List<Declaration> getUserDeclarationList(
+        @PathVariable Long userId,
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDeclarationList(userId, null, token);
+    }
+
+    @GetMapping("/user/{userId}/{status}")
+    public List<Declaration> getUserDeclarationListByStatus(
+        @PathVariable Long userId,
+        @PathVariable String status,
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDeclarationList(userId, status, token);
+    }
+
+    @GetMapping("/admin")
+    public List<Declaration> getAdminDeclarationList(
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDeclarationList(null, null, token);
+    }
+
+    @GetMapping("/admin/{status}")
+    public List<Declaration> getAdminDeclarationListByStatus(
+        @PathVariable String status,
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDeclarationList(null, status, token);
     }
 
 }

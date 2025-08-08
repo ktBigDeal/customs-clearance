@@ -1,8 +1,11 @@
 package com.customs.clearance.repository;
 
 import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.entity.Declaration.DeclarationStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,4 +24,11 @@ public interface DeclarationRepository extends JpaRepository<Declaration, Long> 
      * @return 해당 신고번호에 대한 {@link Declaration}, 존재하지 않을 경우 빈 {@link Optional}
      */
     Optional<Declaration> findByDeclarationNumber(String declarationNumber);
+
+    List<Declaration> findAllByCreatedBy(Long createdBy);
+
+    List<Declaration> findAllByCreatedByAndStatus(Long createdBy, DeclarationStatus status);
+
+    List<Declaration> findAllByStatus(DeclarationStatus status);
+
 }

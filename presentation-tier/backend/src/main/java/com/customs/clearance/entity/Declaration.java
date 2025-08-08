@@ -33,7 +33,7 @@ public class Declaration extends BaseEntity {
     /** 신고 상태 */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private DeclarationStatus status = DeclarationStatus.DRAFT;
+    private DeclarationStatus status = DeclarationStatus.CLEARED;
 
     /** 신고 상세 내용 */
     @Column(name = "declaration_details", columnDefinition = "TEXT")
@@ -58,13 +58,8 @@ public class Declaration extends BaseEntity {
 
     /** 신고 상태 ENUM */
     public enum DeclarationStatus {
-        DRAFT,
-        SUBMITTED,
-        UNDER_REVIEW,
-        PENDING_DOCUMENTS,
-        APPROVED,
-        REJECTED,
-        CANCELLED,
-        CLEARED
+        CLEARED,
+        UPDATED,
+        CONVERTED
     }
 }
