@@ -1,6 +1,5 @@
 """
 LangChain Chroma Vector Store Module
-
 LangChain 표준 Chroma 벡터 스토어와 도메인 특화 기능을 결합
 """
 
