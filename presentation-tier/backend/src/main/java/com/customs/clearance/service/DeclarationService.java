@@ -1,16 +1,5 @@
 package com.customs.clearance.service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.*;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
 import com.customs.clearance.entity.Declaration.DeclarationStatus;
@@ -19,18 +8,23 @@ import com.customs.clearance.repository.AttachmentRepository;
 import com.customs.clearance.repository.DeclarationRepository;
 import com.customs.clearance.repository.UserRepository;
 import com.customs.clearance.security.JwtTokenProvider;
+import com.customs.clearance.util.DeclarationServiceUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Optional;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +41,7 @@ public class DeclarationService {
     @Value("${customs.clearance.file.upload-dir}")
     private String uploadDir;
 
-    public Declaration insertDeclaration(
+    public Declaration postDeclaration(
         Declaration declaration, 
         MultipartFile invoiceFile, 
         MultipartFile packingListFile, 
@@ -68,31 +62,34 @@ public class DeclarationService {
             throw new IllegalArgumentException("파일 정보 누락");
         }
 
-        // 토큰으로부터 username 추출
-        if (token == null || !jwtTokenProvider.validateToken(token)) {
-            throw new IllegalArgumentException("사용자 접근 거부");
-        }
-        
-        String username = jwtTokenProvider.getUsernameFromToken(token);
-        Long userId = userRepository.findByUsername(username)
-                        .map(User::getId)
-                        .orElseThrow(() -> new RuntimeException("사용자 미확인"));
+        User user = getUserByToken(token);
 
         String jsonString = callAiPipeLine(declaration.getDeclarationType().toString(), invoiceFile, packingListFile, billOfLadingFile);
 
         declaration.setDeclarationDetails(jsonString);
         declaration.setStatus(DeclarationStatus.SUBMITTED);
-        declaration.setCreatedBy(userId);
+        declaration.setCreatedBy(user.getId());
 
         declaration = declarationRepository.save(declaration);
 
-        saveAttachment(declaration, invoiceFile, "invoice", userId);
-        saveAttachment(declaration, packingListFile, "packing_list", userId);
-        saveAttachment(declaration, billOfLadingFile, "bill_of_lading", userId);
-        saveAttachment(declaration, certificateOfOriginFile, "certificate_of_origin", userId);
+        saveAttachment(declaration, invoiceFile, "invoice", user.getId());
+        saveAttachment(declaration, packingListFile, "packing_list", user.getId());
+        saveAttachment(declaration, billOfLadingFile, "bill_of_lading", user.getId());
+        saveAttachment(declaration, certificateOfOriginFile, "certificate_of_origin", user.getId());
 
         return declaration;
+    }
 
+    private User getUserByToken(String token){
+
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new IllegalArgumentException("사용자 접근 거부");
+        }
+        
+        String username = jwtTokenProvider.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("사용자 정보 없음"));
+
+        return user;
     }
 
     private void saveAttachment(
@@ -101,14 +98,16 @@ public class DeclarationService {
         String typeName,
         Long uploadedBy
     ) throws IOException {
+
         if (file != null && !file.isEmpty()) {
+
             String newName = declaration.getId() + "_" + typeName;
-            String filePath = saveFile(file, newName);
+            String filePath = DeclarationServiceUtils.saveFile(file, newName, uploadDir);
 
             Attachment attachment = new Attachment(
                 declaration.getId(),
-                newName + getExtension(file),   // filename
-                file.getOriginalFilename(),     // originalFilename
+                newName + DeclarationServiceUtils.getExtension(file),   // filename
+                file.getOriginalFilename(),                             // originalFilename
                 filePath,
                 file.getSize(),
                 file.getContentType(),
@@ -117,43 +116,6 @@ public class DeclarationService {
 
             attachmentRepository.save(attachment);
         }
-    }
-
-    private String getExtension(MultipartFile file) {
-
-        String name = file.getOriginalFilename();
-
-        if (name != null && name.contains(".")) {
-            return name.substring(name.lastIndexOf("."));
-        }
-
-        return "";
-    }
-
-    private String saveFile(MultipartFile file, String newFilename) throws IOException {
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        String originalExtension = Optional.ofNullable(file.getOriginalFilename())
-            .filter(f -> f.contains("."))
-            .map(f -> f.substring(f.lastIndexOf(".")))
-            .orElse("");
-
-        String finalFilename = newFilename + originalExtension;
-        File destination = new File(dir, finalFilename);
-
-        try (InputStream input = file.getInputStream();
-            OutputStream output = new FileOutputStream(destination)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = input.read(buffer)) != -1) {
-                output.write(buffer, 0, bytesRead);
-            }
-        }
-
-        return "uploads/" + finalFilename;
     }
 
     private String callAiPipeLine(
@@ -166,11 +128,10 @@ public class DeclarationService {
         String fastApiUrl = "http://localhost:8000/api/v1/pipeline/process-complete-workflow";
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-
         body.add("declaration_type", declarationType.toLowerCase());
-        body.add("invoice_file", convertToResource(invoiceFile));
-        body.add("packing_list_file", convertToResource(packingListFile));
-        body.add("bill_of_lading_file", convertToResource(billOfLadingFile));
+        body.add("invoice_file", DeclarationServiceUtils.convertToResource(invoiceFile, uploadDir));
+        body.add("packing_list_file", DeclarationServiceUtils.convertToResource(packingListFile, uploadDir));
+        body.add("bill_of_lading_file", DeclarationServiceUtils.convertToResource(billOfLadingFile, uploadDir));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -183,49 +144,48 @@ public class DeclarationService {
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new RuntimeException("Ai 호출 에러: " + response.getStatusCode());
             }
+            
+            ObjectMapper mapper = new ObjectMapper();
 
-            return response.getBody();
+            JsonNode root = mapper.readTree(response.getBody());
+
+            JsonNode step3Data = root.path("pipeline_results").path("step_3_declaration").path("data");
+
+            return mapper.writeValueAsString(step3Data);
 
         } catch (RestClientException e) {
             throw new RuntimeException("FastAPI 서버 통신 오류", e);
         }
     }
 
-    // MultipartFile -> Resource 변환
-    private Resource convertToResource(MultipartFile file) throws IOException {
-        // 빈 파일이면 empty.png 불러오기
-        if (file == null || file.isEmpty()) {
-            
-            File emptyFile = new File(uploadDir, "empty.png");
-            Path path = emptyFile.toPath();
+    public Map<String, Object> getDeclaration(Long declarationId, String token){
+        
+        Declaration declaration = declarationRepository.findById(declarationId).orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
 
-            if (!Files.exists(path)) {
-                throw new FileNotFoundException("empty.png 없음");
-            }
+        User user = getUserByToken(token);
 
-            long fileSize = Files.size(path);
-
-            return new ByteArrayResource(Files.readAllBytes(emptyFile.toPath())) {
-                @Override public String getFilename() {
-                    return "empty.png";
-                }
-
-                @Override public long contentLength() {
-                    return fileSize;
-                }
-            };
+        if(user.getRole().equals("USER") && !user.getId().equals(declaration.getCreatedBy())){
+            throw new RuntimeException("다른 사용자의 신고서는 조회할 수 없습니다.");
         }
 
-        // 원래 파일 처리
-        return new ByteArrayResource(file.getBytes()) {
-            @Override public String getFilename() {
-                return file.getOriginalFilename();
-            }
-
-            @Override public long contentLength() {
-                return file.getSize();
-            }
-        };
+        return DeclarationServiceUtils.convertDeclarationToMap(declaration);
     }
 
+    public Map<String, Object> putDeclaration(Long declarationId, Map<String, Object> declarationMap, String token){
+
+        Declaration declaration = declarationRepository.findById(declarationId).orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
+
+        User user = getUserByToken(token);
+
+        if(user.getRole().equals("USER") && !user.getId().equals(declaration.getCreatedBy())){
+            throw new RuntimeException("다른 사용자의 신고서는 수정할 수 없습니다.");
+        }
+
+        Declaration updatedDeclaration = DeclarationServiceUtils.convertMapToDeclaration(declarationMap, declaration);
+        updatedDeclaration.setUpdatedBy(user.getId());
+
+        declaration = declarationRepository.save(updatedDeclaration);
+
+        return DeclarationServiceUtils.convertDeclarationToMap(declaration);
+    }
 }
