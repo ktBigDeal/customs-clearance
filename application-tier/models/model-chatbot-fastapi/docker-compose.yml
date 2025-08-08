@@ -135,6 +135,28 @@ services:
       start_period: 60s
       retries: 3
 
+  # pgAdmin (PostgreSQL 웹 관리 도구)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: chatbot-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@customs-clearance.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "${DOCKER_PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - chatbot-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["with-pgadmin"]
+
   # Nginx 리버스 프록시 (선택적)
   nginx:
     image: nginx:alpine
@@ -153,40 +175,6 @@ services:
     depends_on:
       - chatbot-api
 
-  # 모니터링 서비스들 (선택적)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: chatbot-prometheus
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - chatbot-network
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: chatbot-grafana
-    restart: unless-stopped
-    profiles: ["monitoring"]
-    ports:
-      - "3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana:/etc/grafana/provisioning
-    networks:
-      - chatbot-network
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
 
 # 볼륨 정의
 volumes:
@@ -211,19 +199,13 @@ volumes:
       o: bind
       device: ./data/chroma
   
-  prometheus_data:
+  pgadmin_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./data/prometheus
+      device: ./data/pgadmin
   
-  grafana_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/grafana
 
 # 네트워크 정의
 networks:

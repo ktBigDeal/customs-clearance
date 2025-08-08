@@ -11,7 +11,7 @@ import uuid
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, DateTime, Boolean, Text, JSON, func, select
+from sqlalchemy import String, Integer, DateTime, Boolean, Text, JSON, func, select, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 
 from ..core.database import Base
@@ -44,10 +44,10 @@ class ConversationORM(Base):
     message_count: Mapped[int] = mapped_column(Integer, default=0)
     last_agent_used: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
+    extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     
-    # 관계 정의
-    messages: Mapped[List["MessageORM"]] = relationship("MessageORM", back_populates="conversation")
+    # 관계 정의 (대화가 삭제되면 메시지도 함께 삭제)
+    messages: Mapped[List["MessageORM"]] = relationship("MessageORM", back_populates="conversation", cascade="all, delete-orphan")
 
 
 class MessageORM(Base):
@@ -55,14 +55,14 @@ class MessageORM(Base):
     __tablename__ = "messages"
     
     id: Mapped[str] = mapped_column(String(50), primary_key=True)
-    conversation_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    conversation_id: Mapped[str] = mapped_column(String(50), ForeignKey("conversations.id"), nullable=False, index=True)
     role: Mapped[MessageRole] = mapped_column(String(20), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     agent_used: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     routing_info: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     references: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, default=list)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
+    extra_metadata: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
     
     # 관계 정의
     conversation: Mapped["ConversationORM"] = relationship("ConversationORM", back_populates="messages")
@@ -74,7 +74,7 @@ class MessageReference(BaseModel):
     source: str
     title: Optional[str] = None
     similarity: float
-    metadata: Dict[str, Any] = {}
+    extra_metadata: Dict[str, Any] = {}
 
 
 class RoutingInfo(BaseModel):
@@ -93,7 +93,7 @@ class MessageBase(BaseModel):
     agent_used: Optional[str] = None
     routing_info: Optional[RoutingInfo] = None
     references: List[MessageReference] = []
-    metadata: Dict[str, Any] = {}
+    extra_metadata: Dict[str, Any] = {}
 
 
 class MessageCreate(MessageBase):
@@ -114,7 +114,7 @@ class MessageResponse(MessageBase):
 class ConversationBase(BaseModel):
     """대화 세션 기본 정보"""
     title: str
-    metadata: Dict[str, Any] = {}
+    extra_metadata: Dict[str, Any] = {}
 
 
 class ConversationCreate(ConversationBase):
@@ -127,7 +127,7 @@ class ConversationUpdate(BaseModel):
     """대화 세션 업데이트 요청"""
     title: Optional[str] = None
     is_active: Optional[bool] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_metadata: Optional[Dict[str, Any]] = None
 
 
 class ConversationSummary(BaseModel):
@@ -144,7 +144,7 @@ class ConversationSummary(BaseModel):
 class ConversationDetail(ConversationSummary):
     """대화 세션 상세 정보"""
     user_id: int
-    metadata: Dict[str, Any]
+    extra_metadata: Dict[str, Any]
     recent_messages: List[MessageResponse] = []
     
     class Config:

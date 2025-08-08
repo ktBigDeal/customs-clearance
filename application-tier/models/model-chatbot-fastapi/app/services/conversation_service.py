@@ -79,7 +79,7 @@ class ConversationService:
                 updated_at=datetime.now(),
                 message_count=0,
                 is_active=True,
-                metadata={}
+                extra_metadata={}
             )
             
             session.add(conversation)
@@ -102,7 +102,7 @@ class ConversationService:
                 created_at=conversation.created_at,
                 updated_at=conversation.updated_at,
                 is_active=conversation.is_active,
-                metadata=conversation.metadata,
+                extra_metadata=conversation.extra_metadata,
                 recent_messages=[]
             )
     
@@ -182,7 +182,7 @@ class ConversationService:
                     role=MessageRole.ASSISTANT,
                     content=f"죄송합니다. 처리 중 오류가 발생했습니다: {str(e)}",
                     user_id=user_id,
-                    metadata={"error": True, "error_message": str(e)}
+                    extra_metadata={"error": True, "error_message": str(e)}
                 )
                 
                 return user_msg, error_msg
@@ -200,7 +200,7 @@ class ConversationService:
         agent_used: Optional[str] = None,
         routing_info: Optional[Dict] = None,
         references: Optional[List[Dict]] = None,
-        metadata: Optional[Dict] = None
+        extra_metadata: Optional[Dict] = None
     ) -> MessageResponse:
         """개별 메시지 추가"""
         
@@ -226,7 +226,7 @@ class ConversationService:
                 routing_info=routing_info or {},
                 references=references or [],
                 timestamp=datetime.now(),
-                metadata=metadata or {}
+                extra_metadata=extra_metadata or {}
             )
             
             session.add(message)
@@ -252,7 +252,7 @@ class ConversationService:
                 routing_info=RoutingInfo(**message.routing_info) if message.routing_info else None,
                 references=[MessageReference(**ref) for ref in message.references],
                 timestamp=message.timestamp,
-                metadata=message.metadata
+                extra_metadata=message.extra_metadata
             )
     
     async def get_conversation_history(
@@ -306,7 +306,7 @@ class ConversationService:
                     routing_info=RoutingInfo(**message.routing_info) if message.routing_info else None,
                     references=[MessageReference(**ref) for ref in message.references],
                     timestamp=message.timestamp,
-                    metadata=message.metadata
+                    extra_metadata=message.extra_metadata
                 )
                 response_messages.append(msg_response)
             
@@ -588,3 +588,42 @@ class ConversationService:
             keys = await self.redis.keys(pattern)
             if keys:
                 await self.redis.delete(*keys)
+    
+    async def add_user_message(
+        self, 
+        conversation_id: str, 
+        message: str, 
+        user_id: int
+    ) -> MessageResponse:
+        """사용자 메시지 추가"""
+        return await self.add_message(
+            conversation_id=conversation_id,
+            role=MessageRole.USER,
+            content=message,
+            user_id=user_id
+        )
+    
+    async def add_assistant_message(
+        self,
+        conversation_id: str,
+        message: str,
+        agent_used: str = "unknown",
+        extra_metadata: Optional[Dict] = None
+    ) -> MessageResponse:
+        """어시스턴트 메시지 추가"""
+        # 대화의 실제 소유자 ID를 찾아서 사용
+        async with self.db_manager.get_db_session() as session:
+            conversation = await session.get(ConversationORM, conversation_id)
+            if not conversation:
+                raise ValueError(f"Conversation {conversation_id} not found")
+            
+            actual_user_id = conversation.user_id
+        
+        return await self.add_message(
+            conversation_id=conversation_id,
+            role=MessageRole.ASSISTANT,
+            content=message,
+            user_id=actual_user_id,  # 실제 대화 소유자 ID 사용
+            agent_used=agent_used,
+            extra_metadata=extra_metadata
+        )

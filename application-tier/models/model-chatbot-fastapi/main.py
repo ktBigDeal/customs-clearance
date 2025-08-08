@@ -10,6 +10,10 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+# 환경 변수 로드 (.env 파일)
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -18,10 +22,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 
-# 기존 model-chatbot 모듈 경로 추가
+# 로컬 프로젝트 루트 설정
 current_dir = Path(__file__).parent
-model_chatbot_path = current_dir.parent / "model-chatbot"
-sys.path.insert(0, str(model_chatbot_path))
 
 # 내부 모듈 import
 from app.core.database import db_manager, create_tables
@@ -61,14 +63,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # 데이터베이스 연결 초기화
         await db_manager.initialize()
         
-        # 테이블 생성
-        await create_tables()
+        # 테이블 생성 (이미 존재하면 스킵)
+        try:
+            await create_tables()
+            logger.info("✅ Database tables created")
+        except Exception as e:
+            if "already exists" in str(e):
+                logger.info("ℹ️ Database tables already exist - skipping creation")
+            else:
+                logger.warning(f"⚠️ Table creation warning: {e}")
         
         logger.info("✅ Database initialization completed")
         
         # 기존 LangGraph 시스템 초기화 (필요시)
         try:
-            from src.rag.langgraph_factory import get_langgraph_factory
+            from app.rag.langgraph_factory import get_langgraph_factory
             langgraph_factory = get_langgraph_factory()
             logger.info("✅ LangGraph factory initialized")
         except Exception as e:
@@ -167,8 +176,9 @@ async def health_check():
         await redis_client.ping()
         
         # PostgreSQL 연결 확인 (간단한 쿼리)
+        from sqlalchemy import text
         async with db_manager.get_db_session() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         
         return {
             "status": "healthy",
@@ -207,8 +217,9 @@ async def detailed_health_check():
     
     # PostgreSQL 확인
     try:
+        from sqlalchemy import text
         async with db_manager.get_db_session() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         health_status["checks"]["postgresql"] = {"status": "up", "response_time": "< 50ms"}
     except Exception as e:
         health_status["checks"]["postgresql"] = {"status": "down", "error": str(e)}
@@ -225,7 +236,7 @@ async def detailed_health_check():
     
     # LangGraph 확인
     try:
-        from src.rag.langgraph_factory import get_langgraph_factory
+        from app.rag.langgraph_factory import get_langgraph_factory
         factory = get_langgraph_factory()
         health_status["checks"]["langgraph"] = {"status": "up", "agents": "3"}
     except Exception as e:
@@ -296,7 +307,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8004,
         reload=True,
         log_level="info",
         access_log=True

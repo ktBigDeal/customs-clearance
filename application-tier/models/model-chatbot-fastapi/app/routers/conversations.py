@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import logging
+from datetime import datetime
 
 from ..services.conversation_service import ConversationService
 from ..models.conversation import (
@@ -17,6 +18,7 @@ from ..models.conversation import (
     MessageListResponse, ConversationUpdate
 )
 from ..core.database import get_database_manager, DatabaseManager
+from ..core.langgraph_integration import get_langgraph_manager, LangGraphManager
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +58,11 @@ async def get_conversation_service(
     service = ConversationService(db_manager)
     await service.initialize()
     return service
+
+
+async def get_langgraph_service() -> LangGraphManager:
+    """LangGraph 매니저 의존성 주입"""
+    return await get_langgraph_manager()
 
 
 async def get_current_user_id(
@@ -123,6 +130,7 @@ async def create_conversation(
 async def chat_with_langgraph(
     request: ChatRequest,
     service: ConversationService = Depends(get_conversation_service),
+    langgraph_manager = Depends(get_langgraph_service),
     current_user: int = Depends(get_current_user_id)
 ):
     """
@@ -153,17 +161,42 @@ async def chat_with_langgraph(
             conversation_id = conversation.id
             is_new_conversation = True
         
-        # LangGraph 오케스트레이터 가져오기 (임시 - 실제로는 의존성 주입 필요)
-        from src.rag.langgraph_factory import create_orchestrated_system
-        langgraph_orchestrator = create_orchestrated_system()
-        
-        # 메시지 처리
-        user_msg, assistant_msg = await service.add_message_with_langgraph_integration(
-            conversation_id=conversation_id,
+        # LangGraph 매니저를 통한 메시지 처리
+        langgraph_result = await langgraph_manager.process_message(
             user_message=request.message,
-            user_id=request.user_id,
-            langgraph_orchestrator=langgraph_orchestrator,
-            include_history=request.include_history
+            conversation_history=[]  # TODO: 대화 기록 가져오기
+        )
+        
+        # 사용자 메시지 저장 (새 대화가 아닌 경우에만)
+        if is_new_conversation:
+            # 새 대화의 경우 create_conversation에서 이미 저장됨
+            user_msg = MessageResponse(
+                id="temp_user_msg",
+                conversation_id=conversation_id,
+                role="user",
+                content=request.message,
+                agent_used=None,
+                routing_info=None,
+                references=[],
+                timestamp=datetime.now(),
+                extra_metadata={}
+            )
+        else:
+            user_msg = await service.add_user_message(
+                conversation_id=conversation_id,
+                message=request.message,
+                user_id=request.user_id
+            )
+        
+        # AI 응답 메시지 저장
+        assistant_msg = await service.add_assistant_message(
+            conversation_id=conversation_id,
+            message=langgraph_result.get("response", "죄송합니다. 처리 중 오류가 발생했습니다."),
+            agent_used=langgraph_result.get("agent_used", "unknown"),
+            extra_metadata={
+                "routing_info": langgraph_result.get("routing_info", {}),
+                "references": langgraph_result.get("references", [])
+            }
         )
         
         return ChatResponse(

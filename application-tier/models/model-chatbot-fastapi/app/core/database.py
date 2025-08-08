@@ -11,7 +11,7 @@ import asyncpg
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, DateTime, Boolean, Text, JSON, func
+from sqlalchemy import String, Integer, DateTime, Boolean, Text, JSON, func, text
 import logging
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class DatabaseManager:
         """연결 상태 테스트"""
         # PostgreSQL 테스트
         async with self.pg_session_factory() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             assert result.scalar() == 1
         
         # Redis 테스트
@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT NOT NULL,
     agent_used VARCHAR(50),
     routing_info JSONB DEFAULT '{}'::jsonb,
-    references JSONB DEFAULT '[]'::jsonb,
+    "references" JSONB DEFAULT '[]'::jsonb,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     metadata JSONB DEFAULT '{}'::jsonb
 );
@@ -219,12 +219,11 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_time ON messages(conversati
 
 -- JSON 필드 인덱스
 CREATE INDEX IF NOT EXISTS idx_messages_agent_used ON messages(agent_used) WHERE agent_used IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_routing_info_agent ON messages USING GIN ((routing_info->>'selected_agent'));
 CREATE INDEX IF NOT EXISTS idx_routing_info_complexity ON messages USING BTREE (CAST(routing_info->>'complexity' AS FLOAT));
 
--- 전문검색 인덱스
-CREATE INDEX IF NOT EXISTS idx_messages_content_search ON messages 
-USING GIN (to_tsvector('korean', content));
+-- 전문검색 인덱스는 나중에 필요시 수동으로 생성
+-- CREATE INDEX IF NOT EXISTS idx_messages_content_search ON messages 
+-- USING GIN (to_tsvector('simple', content));
 
 -- 트리거: conversations 테이블 updated_at 자동 업데이트
 CREATE OR REPLACE FUNCTION update_conversation_timestamp()

@@ -16,21 +16,25 @@ LangGraph 기반 지능형 관세법 전문 챗봇 시스템입니다. 기존 CL
 ## ✨ 주요 기능
 
 ### 🧠 지능형 AI 라우팅
+
 - **LangGraph 오케스트레이터**: 사용자 질의를 분석하여 최적의 전문 에이전트로 자동 라우팅
 - **3개 전문 에이전트**: 관세법, 무역규제, 상담사례 각각의 전문 AI
 - **복잡도 분석**: 질의의 복잡도를 평가하여 적절한 처리 전략 수립
 
 ### 💬 대화 연속성 관리
+
 - **PostgreSQL 기반 저장**: 대화 세션 및 메시지 영구 저장
 - **컨텍스트 유지**: 이전 대화 내용을 활용한 연속적인 대화
 - **세션 관리**: 사용자별 독립적인 대화 세션 관리
 
 ### 🔍 고급 검색 기능
+
 - **전문검색**: PostgreSQL GIN 인덱스를 활용한 한국어 전문검색
 - **필터링**: 에이전트별, 기간별, 사용자별 필터링 지원
 - **실시간 검색**: 빠른 응답속도를 위한 최적화된 쿼리
 
 ### ⚡ 성능 최적화
+
 - **Redis 캐싱**: 세션, 메시지, 컨텍스트 데이터 캐싱
 - **비동기 처리**: FastAPI + asyncio 완전 비동기 구조
 - **연결 풀링**: PostgreSQL, Redis 연결 풀 최적화
@@ -110,7 +114,8 @@ uv sync --no-dev
 
 ```bash
 # PostgreSQL 및 Redis 실행 (Docker 사용)
-docker-compose up postgres redis chromadb -d
+docker compose up postgres redis chromadb -d
+docker compose up postgres redis -d
 
 # 데이터베이스 테이블 생성
 uv run python -c "import asyncio; from app.core.database import create_tables; asyncio.run(create_tables())"
@@ -123,7 +128,7 @@ uv run python -c "import asyncio; from app.core.database import create_tables; a
 # 개발 서버 실행 (핫 리로드)
 uv run dev
 # 또는
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8004
 ```
 
 #### 프로덕션 모드
@@ -176,6 +181,7 @@ POST /api/v1/conversations/chat
 ```
 
 **응답:**
+
 ```json
 {
   "conversation_id": "conv_abc123def456",
@@ -212,6 +218,7 @@ POST /api/v1/conversations/chat
 ## ⚡ 성능 최적화
 
 ### 🎯 성능 목표
+
 - **응답 시간**: < 2초 (평균 1초 이하)
 - **동시 사용자**: 1,000명 이상
 - **처리량**: 100 req/sec 이상
@@ -220,6 +227,7 @@ POST /api/v1/conversations/chat
 ### 🔧 최적화 전략
 
 #### 1. 데이터베이스 최적화
+
 ```sql
 -- PostgreSQL 인덱스 최적화
 CREATE INDEX CONCURRENTLY idx_messages_user_time 
@@ -236,6 +244,7 @@ WHERE is_active = true;
 ```
 
 #### 2. Redis 캐싱 전략
+
 ```python
 # 계층적 캐싱
 cache_strategies = {
@@ -255,6 +264,7 @@ cache_strategies = {
 ```
 
 #### 3. 비동기 처리 최적화
+
 ```python
 # 연결 풀 설정
 DATABASE_CONFIG = {
