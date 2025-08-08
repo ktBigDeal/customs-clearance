@@ -131,6 +131,7 @@ async def chat_with_legal_expert(
 @router.get("/conversations/{conversation_id}/messages", response_model=ConversationHistoryResponse)
 async def get_conversation_history(
     conversation_id: str,
+    user_id: int,
     limit: int = 50,
     offset: int = 0,
     service_url: str = Depends(get_chatbot_service_url)
@@ -155,12 +156,18 @@ async def get_conversation_history(
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(
                 f"{service_url}/api/v1/conversations/{conversation_id}/messages",
-                params={"limit": limit, "offset": offset}
+                params={"user_id": user_id, "limit": limit, "offset": offset}
             )
             
             if response.status_code == 200:
                 result = response.json()
-                return ConversationHistoryResponse(**result)
+                # model-chatbot-fastapi 응답 구조를 AI Gateway 형식으로 변환
+                return ConversationHistoryResponse(
+                    conversation_id=conversation_id,
+                    messages=result.get("messages", []),
+                    total_messages=result.get("total_count", 0),
+                    created_at=None  # 추후 구현
+                )
             
             elif response.status_code == 404:
                 raise HTTPException(
@@ -224,18 +231,27 @@ async def get_user_conversations(
         logger.info(f"Fetching conversations for user: {user_id}, page={page}, limit={limit}")
         
         async with httpx.AsyncClient(timeout=15.0) as client:
+            # page → offset 변환 (model-chatbot-fastapi는 offset 파라미터 사용)
+            offset = (page - 1) * limit
+            
             response = await client.get(
                 f"{service_url}/api/v1/conversations/",
                 params={
                     "user_id": user_id,
-                    "page": page,
-                    "limit": limit
+                    "limit": limit,
+                    "offset": offset
                 }
             )
             
             if response.status_code == 200:
                 result = response.json()
-                return ConversationListResponse(**result)
+                # model-chatbot-fastapi 응답 구조를 AI Gateway 형식으로 변환
+                return ConversationListResponse(
+                    conversations=result.get("conversations", []),
+                    total_conversations=result.get("total_count", 0),
+                    page=page,  # 원본 page 값 사용
+                    limit=limit  # 원본 limit 값 사용
+                )
             
             else:
                 error_detail = response.text if response.text else "Unknown error"
