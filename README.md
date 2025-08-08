@@ -472,17 +472,11 @@ style(frontend): improve button component styling
 
 ## 📞 지원 및 문의
 
-- **📧 이메일**: <customs-dev@customs.go.kr>
 - **📱 이슈 트래킹**: [GitHub Issues](https://github.com/your-org/customs-clearance/issues)
 - **📖 위키**: [프로젝트 위키](https://github.com/your-org/customs-clearance/wiki)
-
+  
 ---
 
-## 📄 라이선스
-
-이 프로젝트는 [MIT License](LICENSE) 하에 배포됩니다.
-
----
 
 ## 🙏 감사의 글
 
