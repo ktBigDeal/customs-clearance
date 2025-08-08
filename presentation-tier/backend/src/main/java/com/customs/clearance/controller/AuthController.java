@@ -1,4 +1,3 @@
-// src/main/java/com/customs/clearance/controller/AuthController.java
 package com.customs.clearance.controller;
 
 import com.customs.clearance.dto.RegisterRequest;
@@ -26,21 +25,21 @@ import org.springframework.web.bind.annotation.*;
  * <p>
  * 주요 기능:
  * <ul>
- *  <li>사용자 등록 (회원가입)</li>
- *  <li>역할별 로그인 엔드포인트</li>
- *  <li>전체 사용자 목록 조회 (관리자 전용)</li>
- *  <li>사용자 프로필 조회 (본인만)</li>
- *  <li>사용자 정보 수정 (본인만)</li>
- *  <li>사용자 활성화 상태 변경 (관리자 전용)</li>
- *  <li>사용자 삭제 (본인 또는 관리자)</li>
+ * <li>사용자 등록 (회원가입)</li>
+ * <li>역할별 로그인 엔드포인트</li>
+ * <li>전체 사용자 목록 조회 (관리자 전용)</li>
+ * <li>사용자 프로필 조회 (본인만)</li>
+ * <li>사용자 정보 수정 (본인 또는 관리자)</li>
+ * <li>사용자 활성화 상태 변경 (관리자 전용)</li>
+ * <li>사용자 삭제 (본인 또는 관리자)</li>
  * </ul>
  * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
  * 토큰에서 추출한 사용자명과 역할에 따라 접근 권한이 결정됩니다.
  * <p>
  * 각 엔드포인트는 다음과 같은 역할 기반 접근 제어를 적용합니다:
  * <ul>
- *  <li>ADMIN: 전체 사용자 목록 조회, 사용자 활성화 상태 변경, 사용자 삭제</li>
- *  <li>USER: 자신의 프로필 조회 및 수정, 사용자 삭제</li>
+ * <li>ADMIN: 전체 사용자 목록 조회, 사용자 활성화 상태 변경, 사용자 삭제</li>
+ * <li>USER: 자신의 프로필 조회 및 수정, 사용자 삭제</li>
  * </ul>
  * @author Customs Clearance Team
  * @version 1.0
@@ -96,6 +95,10 @@ public class AuthController {
         if (userRole == null || !userRole.equalsIgnoreCase(role)) {
             throw new org.springframework.security.access.AccessDeniedException("해당 역할로 로그인할 수 없습니다.");
         }
+        
+        // 로그인 성공시 마지막 로그인 시간 업데이트
+        userService.updateLastLogin(username);
+        
         // 역할이 일치하면 역할 포함 JWT 발급
         return tokenProvider.generateToken(username, role);
     }
@@ -130,7 +133,9 @@ public class AuthController {
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
-                user.isEnabled()
+                user.isEnabled(),
+                user.getCompany(),
+                user.getLastLogin()
             ))
             .collect(Collectors.toList());
     }
@@ -139,8 +144,7 @@ public class AuthController {
      * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
      * 토큰에서 추출한 사용자명과 경로 변수의 사용자명이 일치해야 합니다.
      * 비밀번호 정보는 해싱된 상태로 저장되기 때문에 반환하지 않습니다.
-     * 
-     * @param username 경로 변수로 전달된 사용자명
+     * * @param username 경로 변수로 전달된 사용자명
      * @return 사용자 프로필 정보
      * @throws AccessDeniedException 본인 정보가 아닌 경우
      */
@@ -152,7 +156,7 @@ public class AuthController {
         }
 
         User user = userService.findByUsername(username);
-        return new UserResponseDto(user.getId(), user.getUsername(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled());
+        return new UserResponseDto(user.getId(), user.getUsername(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled(), user.getCompany(), user.getLastLogin());
     }
 
     /**
@@ -177,27 +181,28 @@ public class AuthController {
     }
 
     /**
-     * 본인이 자신의 정보를 수정하는 엔드포인트입니다.
-     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
-     * 토큰에서 추출한 사용자명과 경로 변수의 사용자 ID가 일치해야 합니다.
-     * 
-     * @param userId 경로 변수로 전달된 사용자 ID
+     * 사용자 정보를 수정하는 엔드포인트입니다.
+     * 관리자 권한을 가진 사용자는 모든 사용자를 수정할 수 있고,
+     * 일반 사용자는 본인 정보만 수정할 수 있습니다.
+     * * @param userId 경로 변수로 전달된 사용자 ID
      * @param dto 수정할 사용자 정보 DTO
-     * @throws AccessDeniedException 본인 정보가 아닌 경우
+     * @throws AccessDeniedException 본인 또는 관리자 권한이 아닌 경우
      */
     @PutMapping("/{userId}")
-    public void updateMyInfo(@PathVariable Long userId, @RequestBody UpdateUserRequest dto) {
-        // 기본 인증
+    public void updateUserInfo(@PathVariable Long userId, @RequestBody UpdateUserRequest dto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.findById(userId);
 
-        if (!auth.getName().equals(user.getUsername())) {
-            throw new AccessDeniedException("본인만 수정할 수 있습니다.");
-        }
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
+        if (!auth.getName().equals(user.getUsername()) && !isAdmin) {
+            throw new AccessDeniedException("본인 또는 관리자만 수정 가능");
+        }
 
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
+        user.setCompany(dto.getCompany());
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             user.setPassword(dto.getPassword());
             userService.updatePassword(user);
@@ -215,7 +220,6 @@ public class AuthController {
      * @param userId 경로 변수로 전달된 사용자 ID
      * @throws AccessDeniedException 관리자 권한이 없는 경우
      */
-
     @DeleteMapping("/{userId}")
     public void deleteUser(@PathVariable Long userId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -230,8 +234,4 @@ public class AuthController {
 
         userService.deleteById(userId);
     }
-
-
-
-
 }

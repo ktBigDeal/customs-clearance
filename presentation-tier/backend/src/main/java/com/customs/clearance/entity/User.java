@@ -3,6 +3,7 @@ package com.customs.clearance.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 /**
  * 사용자 정보를 나타내는 JPA 엔티티입니다.
  * <p>
@@ -41,4 +42,12 @@ public class User extends BaseEntity {
 
     @Column(name = "enabled")
     private boolean enabled = true; // 사용자 활성화 상태 (기본값: true)
+
+    /** 회사명 */
+    @Column(name = "company")
+    private String company;
+
+    /** 마지막 로그인 시간 */
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 }

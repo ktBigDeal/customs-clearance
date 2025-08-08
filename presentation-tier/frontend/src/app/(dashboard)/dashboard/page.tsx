@@ -140,7 +140,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <ProtectedRoute requiredRole="user">
+    <ProtectedRoute requiredRole="USER">
       <DashboardLayout>
         <div className="space-y-6">
         {/* Page Header */}

@@ -2,23 +2,27 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { authService, type AuthUser } from '@/services/auth.service';
 
-type UserRole = 'admin' | 'user';
+type UserRole = 'ADMIN' | 'USER';
 
 interface User {
-  id: string;
+  username: string;
   name: string;
   email: string;
   role: UserRole;
+  token: string;
   company?: string;
+  lastLogin?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string, role: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   isAdmin: boolean;
+  updateUser: (userData: { name: string; email: string; password?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,26 +30,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 interface AuthProviderProps {
   children: ReactNode;
 }
-
-// Mock 사용자 데이터 (실제 환경에서는 API에서 가져옴)
-const mockUsers = [
-  {
-    id: '1',
-    email: 'admin@customs.go.kr',
-    password: 'admin123',
-    name: '관리자',
-    role: 'admin' as UserRole,
-    company: '한국관세청'
-  },
-  {
-    id: '2',
-    email: 'user@company.com',
-    password: 'user123',
-    name: '홍길동',
-    role: 'user' as UserRole,
-    company: '(주)무역회사'
-  }
-];
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -57,77 +41,110 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkStoredAuth();
   }, []);
 
-  const checkStoredAuth = () => {
+  const checkStoredAuth = async () => {
     try {
-      const storedUser = localStorage.getItem('auth_user');
-      const storedToken = localStorage.getItem('auth_token');
-      
-      if (storedUser && storedToken) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+      if (authService.isAuthenticated()) {
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser) {
+          setUser({
+            username: currentUser.username,
+            name: currentUser.name,
+            email: currentUser.email,
+            role: currentUser.role as UserRole,
+            token: currentUser.token,
+            company: currentUser.company,
+            lastLogin: currentUser.lastLogin
+          });
+        }
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      // 잘못된 데이터가 있으면 클리어
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
+      authService.logout();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string, role: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Mock 인증 (실제 환경에서는 API 호출)
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
+      console.log('🚀 로그인 시작:', { username, role });
       
-      if (foundUser) {
+      // 백엔드 로그인 API 호출
+      const token = await authService.login(username, password, role);
+      console.log('✅ 토큰 받음:', token ? '토큰 존재' : '토큰 없음');
+      
+      // 토큰 저장
+      authService.setToken(token);
+      
+      // 사용자 정보 가져오기
+      console.log('🔍 사용자 정보 조회 중...');
+      const currentUser = await authService.getCurrentUser();
+      console.log('👤 사용자 정보:', currentUser);
+      
+      if (currentUser) {
         const userData: User = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          role: foundUser.role,
-          company: foundUser.company
+          username: currentUser.username,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role as UserRole,
+          token: currentUser.token,
+          company: currentUser.company,
+          lastLogin: currentUser.lastLogin
         };
 
-        // 사용자 정보와 토큰 저장
-        localStorage.setItem('auth_user', JSON.stringify(userData));
-        localStorage.setItem('auth_token', 'mock_jwt_token_' + foundUser.id);
-        
         setUser(userData);
+        console.log('💾 사용자 상태 저장 완료');
         
-        // 짧은 지연 후 리다이렉션 (상태 업데이트 완료 후)
+        // 짧은 지연 후 리다이렉션
         setTimeout(() => {
-          // 역할별 리다이렉션
-          if (foundUser.role === 'admin') {
-            console.log('Redirecting to admin dashboard...');
+          if (currentUser.role === 'ADMIN') {
+            console.log('🔄 관리자 대시보드로 리다이렉션...');
             router.push('/admin/dashboard');
           } else {
-            console.log('Redirecting to user dashboard...');
+            console.log('🔄 사용자 대시보드로 리다이렉션...');
             router.push('/dashboard');
           }
         }, 100);
         
         return true;
-      } else {
-        return false;
       }
+      
+      console.log('❌ 사용자 정보 없음');
+      return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ 로그인 오류:', error);
       return false;
     } finally {
       setIsLoading(false);
+      console.log('🏁 로그인 프로세스 완료');
+    }
+  };
+
+  const updateUser = async (userData: { name: string; email: string; password?: string }): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const updatedUser = await authService.updateUser(user.username, userData);
+      
+      // 사용자 정보 업데이트
+      setUser(prev => prev ? {
+        ...prev,
+        name: updatedUser.name,
+        email: updatedUser.email
+      } : null);
+      
+      return true;
+    } catch (error) {
+      console.error('Update user error:', error);
+      return false;
     }
   };
 
   const logout = () => {
     try {
-      // 저장된 데이터 제거
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
-      
+      authService.logout();
       setUser(null);
       router.push('/login');
     } catch (error) {
@@ -135,7 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <AuthContext.Provider value={{
@@ -143,7 +160,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
       isLoading,
-      isAdmin
+      isAdmin,
+      updateUser
     }}>
       {children}
     </AuthContext.Provider>

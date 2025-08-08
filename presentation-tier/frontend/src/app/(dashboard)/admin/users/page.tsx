@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Edit, Trash2, Shield, ShieldCheck } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
@@ -9,68 +9,75 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal';
 import { UserFormModal } from '@/components/admin/UserFormModal';
+import { authService } from '@/services/auth.service';
 
 interface User {
   id: string;
+  username: string;
   name: string;
   email: string;
-  company: string;
-  role: 'admin' | 'user';
-  status: 'active' | 'inactive';
-  lastLogin: string;
+  role: 'ADMIN' | 'USER';
+  enabled: boolean;
+  company?: string;
+  lastLogin?: string;
 }
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: '김철수',
-    email: 'kim@company-a.com',
-    company: '(주)무역회사A',
-    role: 'admin',
-    status: 'active',
-    lastLogin: '2024-01-15 14:30'
-  },
-  {
-    id: '2',
-    name: '이영희',
-    email: 'lee@company-b.com',
-    company: '글로벌무역B',
-    role: 'user',
-    status: 'active',
-    lastLogin: '2024-01-15 09:15'
-  },
-  {
-    id: '3',
-    name: '박민수',
-    email: 'park@company-c.com',
-    company: '한국트레이딩C',
-    role: 'user',
-    status: 'inactive',
-    lastLogin: '2024-01-10 16:45'
-  }
-];
 
 export default function UsersPage() {
   const { t } = useLanguage();
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [userFormModal, setUserFormModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 실제 사용자 목록 가져오기
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:8080/api/v1/user/users', {
+        headers: {
+          'Authorization': `Bearer ${authService.getToken()}`,
+        },
+      });
+      
+      if (response.ok) {
+        const usersData = await response.json();
+        // 백엔드 데이터 타입을 프론트엔드 User 인터페이스에 맞게 변환
+        const typedUsers = usersData.map((user: any) => ({
+          ...user,
+          id: String(user.id), // ID를 문자열로 변환
+          role: user.role.toUpperCase() as 'ADMIN' | 'USER', // 역할을 대문자로 변환
+        }));
+        setUsers(typedUsers);
+      } else {
+        console.error('사용자 목록을 불러오는데 실패했습니다');
+      }
+    } catch (error) {
+      console.error('API 호출 오류:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const [isSaving, setIsSaving] = useState(false);
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.company.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.company && user.company.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status: string) => {
     return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
-  const getRoleIcon = (role: string) => {
-    return role === 'admin' ? ShieldCheck : Shield;
+  const getRoleIcon = (role: 'ADMIN' | 'USER') => {
+    return role === 'ADMIN' ? ShieldCheck : Shield;
   };
 
   const handleAddUser = () => {
@@ -89,29 +96,43 @@ export default function UsersPage() {
   const handleUserFormSave = async (userData: any) => {
     setIsSaving(true);
     
-    // 시뮬레이션 지연
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (userFormModal.user) {
-      // 수정 모드
-      setUsers(prev => prev.map(user => 
-        user.id === userFormModal.user!.id 
-          ? { ...user, ...userData, lastLogin: user.lastLogin }
-          : user
-      ));
-    } else {
-      // 추가 모드
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...userData,
-        lastLogin: '방금 전'
-      };
-      setUsers(prev => [...prev, newUser]);
+    try {
+      let response;
+      if (userFormModal.user) {
+        // 수정 모드: PUT 요청
+        const userId = parseInt(userFormModal.user.id, 10);
+        response = await fetch(`http://localhost:8080/api/v1/user/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authService.getToken()}`,
+          },
+          body: JSON.stringify(userData),
+        });
+      } else {
+        // 추가 모드: POST 요청
+        response = await fetch('http://localhost:8080/api/v1/user/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authService.getToken()}`,
+          },
+          body: JSON.stringify(userData),
+        });
+      }
+
+      if (response.ok) {
+        // 성공적으로 저장/업데이트 후 사용자 목록 새로고침
+        await loadUsers();
+        setUserFormModal({ isOpen: false, user: null });
+      } else {
+        console.error('사용자 정보 저장에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('API 호출 오류:', error);
+    } finally {
+      setIsSaving(false);
     }
-    
-    setIsSaving(false);
-    setUserFormModal({ isOpen: false, user: null });
-    // TODO: API 호출로 서버에 저장/업데이트
   };
 
   const handleDeleteClick = (user: User) => {
@@ -123,13 +144,27 @@ export default function UsersPage() {
     
     setIsDeleting(true);
     
-    // 시뮬레이션 지연
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setUsers(prev => prev.filter(u => u.id !== deleteModal.user!.id));
-    setDeleteModal({ isOpen: false, user: null });
-    setIsDeleting(false);
-    // TODO: API 호출로 서버에서 삭제
+    try {
+      const userId = parseInt(deleteModal.user.id, 10);
+      const response = await fetch(`http://localhost:8080/api/v1/user/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authService.getToken()}`,
+        },
+      });
+
+      if (response.ok) {
+        // 성공적으로 삭제 후 사용자 목록 새로고침
+        await loadUsers();
+        setDeleteModal({ isOpen: false, user: null });
+      } else {
+        console.error('사용자 삭제에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('API 호출 오류:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleDeleteCancel = () => {
@@ -138,7 +173,7 @@ export default function UsersPage() {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="ADMIN">
       <DashboardLayout isAdmin={true}>
         <div className="space-y-6">
         {/* Page Header */}
@@ -226,23 +261,23 @@ export default function UsersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.company}</div>
+                        <div className="text-sm text-gray-900">{user.company || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <RoleIcon className="w-4 h-4 mr-2 text-gray-600" />
                           <span className="text-sm text-gray-900 capitalize">
-                            {user.role === 'admin' ? '관리자' : '사용자'}
+                            {user.role === 'ADMIN' ? '관리자' : '사용자'}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
-                          {user.status === 'active' ? '활성' : '비활성'}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.enabled ? 'active' : 'inactive')}`}>
+                          {user.enabled ? '활성' : '비활성'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.lastLogin}
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString('ko-KR') : '접속 기록 없음'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">

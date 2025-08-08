@@ -131,7 +131,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="ADMIN">
       <DashboardLayout isAdmin={true}>
         <div className="space-y-6">
           {/* Page Header */}

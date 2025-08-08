@@ -7,6 +7,7 @@ import com.customs.clearance.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +53,7 @@ public class UserService {
         user.setName(registerRequest.getName());
         user.setEmail(registerRequest.getEmail());
         user.setRole(registerRequest.getRole());
+        user.setCompany(registerRequest.getCompany());
         return userRepository.save(user);
     }
 
@@ -105,6 +107,18 @@ public class UserService {
     public User updatePassword(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
+    }
+
+    /**
+     * 사용자의 마지막 로그인 시간을 업데이트합니다.
+     *
+     * @param username 로그인한 사용자명
+     */
+    @Transactional
+    public void updateLastLogin(String username) {
+        User user = findByUsername(username);
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     /**

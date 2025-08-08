@@ -22,6 +22,10 @@ interface HSCodeRecommendation {
   llm_analysis?: {
     reasoning: string;
     confidence: number;
+    llm_rerank?: {
+      score: number;
+      reason: string;
+    };
   };
 }
 

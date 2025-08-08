@@ -9,18 +9,18 @@ interface User {
   id: string;
   name: string;
   email: string;
-  company: string;
-  role: 'admin' | 'user';
-  status: 'active' | 'inactive';
-  lastLogin: string;
+  company?: string;
+  role: 'ADMIN' | 'USER';
+  enabled: boolean;
+  lastLogin?: string;
 }
 
 interface UserFormData {
   name: string;
   email: string;
-  company: string;
-  role: 'admin' | 'user';
-  status: 'active' | 'inactive';
+  company?: string;
+  role: 'ADMIN' | 'USER';
+  enabled: boolean;
   password?: string;
 }
 
@@ -43,8 +43,8 @@ export function UserFormModal({
     name: '',
     email: '',
     company: '',
-    role: 'user',
-    status: 'active',
+    role: 'USER',
+    enabled: true,
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -59,9 +59,9 @@ export function UserFormModal({
         setFormData({
           name: user.name,
           email: user.email,
-          company: user.company,
+          company: user.company || '',
           role: user.role,
-          status: user.status,
+          enabled: user.enabled,
           password: ''
         });
       } else {
@@ -70,8 +70,8 @@ export function UserFormModal({
           name: '',
           email: '',
           company: '',
-          role: 'user',
-          status: 'active',
+          role: 'USER',
+          enabled: true,
           password: ''
         });
       }
@@ -92,9 +92,7 @@ export function UserFormModal({
       newErrors.email = '올바른 이메일 형식을 입력해주세요';
     }
 
-    if (!formData.company.trim()) {
-      newErrors.company = '회사명을 입력해주세요';
-    }
+    // Company is optional, no validation needed
 
     if (!isEditMode && !formData.password?.trim()) {
       newErrors.password = '비밀번호를 입력해주세요';
@@ -121,7 +119,7 @@ export function UserFormModal({
     }
   };
 
-  const handleChange = (field: keyof UserFormData, value: string) => {
+  const handleChange = (field: keyof UserFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // 에러 메시지 즉시 제거
     if (errors[field]) {
@@ -213,7 +211,7 @@ export function UserFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building className="w-4 h-4 inline mr-1" />
-              회사명 *
+              회사명
             </label>
             <input
               type="text"
@@ -272,8 +270,8 @@ export function UserFormModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isLoading}
             >
-              <option value="user">사용자</option>
-              <option value="admin">관리자</option>
+              <option value="USER">사용자</option>
+              <option value="ADMIN">관리자</option>
             </select>
           </div>
 
@@ -283,8 +281,8 @@ export function UserFormModal({
               상태
             </label>
             <select
-              value={formData.status}
-              onChange={(e) => handleChange('status', e.target.value)}
+              value={formData.enabled ? 'active' : 'inactive'}
+              onChange={(e) => handleChange('enabled', e.target.value === 'active')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isLoading}
             >

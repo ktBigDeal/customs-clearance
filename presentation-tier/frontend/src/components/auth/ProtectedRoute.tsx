@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'user';
+  requiredRole?: 'ADMIN' | 'USER';
   fallbackPath?: string;
 }
 
@@ -31,7 +31,7 @@ export function ProtectedRoute({
       if (requiredRole && user.role !== requiredRole) {
         // 권한이 부족한 사용자
         console.log(`User role ${user.role} doesn't match required role ${requiredRole}`);
-        if (user.role === 'admin') {
+        if (user.role === 'ADMIN') {
           router.replace('/admin/dashboard');
         } else {
           router.replace('/dashboard');

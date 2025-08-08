@@ -2,6 +2,7 @@ package com.customs.clearance.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 /** * 사용자 정보를 응답하기 위한 DTO 클래스입니다.
  * <p>
@@ -19,4 +20,6 @@ public class UserResponseDto {
     private String email;
     private String role;
     private Boolean enabled;
+    private String company;
+    private LocalDateTime lastLogin;
 }

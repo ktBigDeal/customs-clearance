@@ -5,38 +5,40 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { RegisterModal } from '@/components/auth/RegisterModal';
 
-type UserType = 'user' | 'admin';
+type UserType = 'USER' | 'ADMIN';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading } = useAuth();
   
-  const [userType, setUserType] = useState<UserType>('user');
-  const [email, setEmail] = useState('');
+  const [userType, setUserType] = useState<UserType>('USER');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showRegister, setShowRegister] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email.trim() || !password.trim()) {
-      setError('이메일과 비밀번호를 모두 입력해주세요.');
+    if (!username.trim() || !password.trim()) {
+      setError('아이디와 비밀번호를 모두 입력해주세요.');
       return;
     }
 
     setError('');
 
     try {
-      const success = await login(email, password);
+      const success = await login(username, password, userType);
       
       if (!success) {
-        setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+        setError('로그인에 실패했습니다. 아이디, 비밀번호, 역할을 확인해주세요.');
       }
       // 성공시 AuthContext에서 자동으로 리다이렉션됨
       
-    } catch (error) {
-      setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } catch (error: any) {
+      setError(error.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       console.error('Login error:', error);
     }
   };
@@ -44,6 +46,11 @@ export default function LoginPage() {
   const handleUserTypeChange = (type: UserType) => {
     setUserType(type);
     setError('');
+  };
+
+  const handleRegisterSuccess = () => {
+    setError('');
+    alert('회원가입이 완료되었습니다. 로그인해주세요.');
   };
 
   return (
@@ -69,9 +76,9 @@ export default function LoginPage() {
           <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
             <button
               type="button"
-              onClick={() => handleUserTypeChange('user')}
+              onClick={() => handleUserTypeChange('USER')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
-                userType === 'user'
+                userType === 'USER'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
@@ -80,9 +87,9 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleUserTypeChange('admin')}
+              onClick={() => handleUserTypeChange('ADMIN')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
-                userType === 'admin'
+                userType === 'ADMIN'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
@@ -97,7 +104,7 @@ export default function LoginPage() {
               로그인
             </h1>
             <p className="text-gray-600">
-              {userType === 'admin' 
+              {userType === 'ADMIN' 
                 ? '관리자 계정으로 로그인하세요'
                 : '계정에 로그인하세요'
               }
@@ -115,14 +122,14 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                이메일
+                아이디
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                placeholder="이메일을 입력하세요"
+                placeholder="아이디를 입력하세요"
                 disabled={isLoading}
                 required
               />
@@ -146,7 +153,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || !email.trim() || !password.trim()}
+              disabled={isLoading || !username.trim() || !password.trim()}
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
@@ -162,9 +169,22 @@ export default function LoginPage() {
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm font-medium text-blue-800 mb-2">테스트 계정:</p>
               <div className="text-xs text-blue-600 space-y-1">
-                <div>관리자: admin@customs.go.kr / admin123</div>
-                <div>사용자: user@company.com / user123</div>
+                <div>관리자: admin2 / admin1234</div>
+                <div>사용자: user2 / qwer1234</div>
               </div>
+            </div>
+
+            {/* Register Button */}
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowRegister(true)}
+                disabled={isLoading}
+              >
+                회원가입
+              </Button>
             </div>
           </form>
 
@@ -180,6 +200,13 @@ export default function LoginPage() {
           </div>
         </Card>
       </div>
+
+      {/* Register Modal */}
+      <RegisterModal 
+        isOpen={showRegister}
+        onClose={() => setShowRegister(false)}
+        onSuccess={handleRegisterSuccess}
+      />
     </div>
   );
 }

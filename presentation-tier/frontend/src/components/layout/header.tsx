@@ -37,9 +37,12 @@
 
 'use client';
 
+import { useState } from 'react';
 import { Bell, ChevronDown, Globe, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ProfileModal } from '@/components/profile/ProfileModal';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -85,22 +88,17 @@ export function Header({ onMenuToggle }: HeaderProps) {
   /** Next.js 라우터 인스턴스 */
   const router = useRouter();
   
+  /** 인증 컨텍스트 */
+  const { user, logout } = useAuth();
+
   /** 언어 컨텍스트 */
   const { language, setLanguage, t } = useLanguage();
 
+  /** 프로필 모달 상태 */
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
   /**
    * 언어 변경 핸들러
-   * 
-   * 사용자가 언어를 선택했을 때 호출되는 함수입니다.
-   * 언어 컨텍스트를 통해 전역 언어 상태를 업데이트합니다.
-   * 
-   * @param {string} locale - 변경할 언어 코드 ('ko' | 'en')
-   * 
-   * @example
-   * ```tsx
-   * handleLanguageChange('en'); // 영어로 변경
-   * handleLanguageChange('ko'); // 한국어로 변경
-   * ```
    */
   const handleLanguageChange = (locale: 'ko' | 'en') => {
     setLanguage(locale);
@@ -112,30 +110,13 @@ export function Header({ onMenuToggle }: HeaderProps) {
    * 
    * 사용자가 로그아웃을 선택했을 때 호출되는 함수입니다.
    * 인증 토큰을 제거하고 로그인 페이지로 리다이렉트합니다.
-   * 
-   * @example
-   * ```tsx
-   * handleLogout(); // 로그아웃 실행
-   * ```
    */
   const handleLogout = () => {
     try {
-      // localStorage에서 인증 관련 데이터 제거
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_type');
-        localStorage.removeItem('user_email');
-      }
-      
-      // TODO: 서버 사이드 로그아웃 API 호출 구현
-      // await apiClient.post('/auth/logout');
-      
+      logout();
       console.log('Logout successful');
-      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // 오류가 발생해도 로그인 페이지로 이동
-      router.push('/login');
     }
   };
 
@@ -210,7 +191,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   <User className="h-4 w-4 text-customs-600" />
                 </div>
                 <span className="hidden sm:inline text-sm font-medium">
-                  홍길동
+                  {user?.name || '사용자'}
                 </span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -218,30 +199,39 @@ export function Header({ onMenuToggle }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">홍길동</p>
+                  <p className="text-sm font-medium">{user?.name || '사용자'}</p>
                   <p className="text-xs text-muted-foreground">
-                    hong.gildong@customs.go.kr
+                    {user?.email || 'user@example.com'}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => alert('프로필 페이지는 개발 중입니다.')}>
+              <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
                 <User className="mr-2 h-4 w-4" />
-                {t('header.profile')}
+                프로필
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => alert('설정 페이지는 개발 중입니다.')}>
                 <Settings className="mr-2 h-4 w-4" />
-                {t('header.settings')}
+                설정
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
-                {t('header.logout')}
+                로그아웃
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </header>
   );
 }
