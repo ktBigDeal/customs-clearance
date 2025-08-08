@@ -704,29 +704,91 @@ pytest
 
 ---
 
-## 🚨 현재 해결 필요한 이슈 (2025-08-08)
+## 🎉 최근 해결된 이슈 (2025-08-08)
 
-### RAG 문서 검색 실패 문제
+### ✅ Docker ChromaDB 연결 및 HTTP 응답 오류 완전 해결
 
-**현상**: 
-- TradeRegulationAgent가 ChromaDB에서 문서를 찾지 못함
-- 로그: `✅ 0개 결과 반환 (요청된 top_k: 12)`
-- 응답: "해당 품목(딸기)에 대한 동식물허용금지지역 및 수입규제DB에 관련 정보가 제공되지 않았습니다"
+#### 🔍 해결된 문제들
 
-**확인된 상태**:
-- ✅ ChromaDB Docker 컨테이너 정상 실행 중 (8011 포트)
-- ✅ FastAPI 챗봇 시스템 정상 작동 (8004 포트)
-- ✅ LangGraph 오케스트레이션 및 에이전트 라우팅 성공
-- ✅ 벡터스토어 설정이 Docker 모드로 올바르게 구성됨
+**1. Docker ChromaDB 연결 문제**
+- **문제**: `ChromaVectorStore`가 Docker 연결을 지원하지 않아 로컬 모드로만 동작
+- **해결**: `LangChainVectorStore` 사용으로 Docker/로컬 모드 자동 전환 구현
+- **결과**: Docker ChromaDB (8011 포트) 완전 연결 성공
 
-**추정 원인**:
-1. **컬렉션명 불일치**: `trade_info_collection` vs 실제 데이터 컬렉션
-2. **데이터 매칭 실패**: 검색 쿼리와 저장된 데이터 간 임베딩 불일치  
-3. **필터링 조건**: 메타데이터 필터가 너무 제한적일 가능성
-4. **ChromaDB 연결**: Docker 네트워크 설정 또는 포트 매핑 이슈
+**2. HTTP 400 Bad Request 오류**  
+- **문제**: RAG 시스템은 정상이지만 FastAPI 응답에서 JSON 직렬화 실패
+- **해결**: Pydantic 모델에 `json_encoders` 추가로 datetime 객체 자동 변환
+- **결과**: 400 Bad Request → 200 OK 정상 응답
 
-**다음 세션 작업**:
-- [ ] ChromaDB 컬렉션 목록 및 데이터 확인
-- [ ] 벡터 검색 쿼리 디버깅
-- [ ] 임베딩 모델 호환성 검증  
-- [ ] 테스트 데이터로 수동 검색 테스트
+**3. RAG 문서 검색 성공**
+- **이전 문제**: TradeRegulationAgent가 0개 결과 반환
+- **현재 상태**: ChromaDB에서 12개 문서 성공적으로 검색
+- **응답 품질**: "딸기 수입할 때 주의사항" 질의에 전문적인 답변 제공
+
+#### 🛠️ 주요 코드 변경사항
+
+**langgraph_factory.py** (115-130라인):
+```python
+# Before: ChromaVectorStore (Docker 미지원)
+self.law_vector_store = ChromaVectorStore(collection_name="customs_law_collection", db_path="data/chroma_db")
+
+# After: LangChainVectorStore (Docker 지원)  
+law_config = get_law_chromadb_config()
+self.law_vector_store = LangChainVectorStore(collection_name=law_config["collection_name"], config=law_config)
+```
+
+**conversation.py** (110-114라인):
+```python
+class MessageResponse(MessageBase):
+    timestamp: datetime
+    class Config:
+        from_attributes = True
+        json_encoders = { datetime: lambda dt: dt.isoformat() }  # 추가
+```
+
+**vector_store.py** (85-133라인):
+```python
+def _init_docker_connection(self):
+    """Docker ChromaDB 서버 연결"""
+    client = chromadb.HttpClient(host=host, port=port)
+    self.vectorstore = Chroma(client=client, ...)
+
+def _init_local_connection(self, db_path):
+    """로컬 파일 기반 ChromaDB 연결"""  
+    self.vectorstore = Chroma(persist_directory=str(db_path), ...)
+```
+
+#### 🎯 테스트 결과
+
+**✅ 완전한 시스템 동작 확인**:
+```log
+# Docker ChromaDB 연결 성공
+ChromaDB Docker mode: localhost:8011
+LangChain Vector Store initialized: trade_info_collection at http://localhost:8011
+
+# RAG 검색 성공  
+📊 벡터 검색 결과: 12개
+✅ 12개 결과 반환 (요청된 top_k: 12)
+
+# OpenAI API 정상
+HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+
+# FastAPI 응답 정상
+POST /api/v1/conversations/chat HTTP/1.1 200 OK
+```
+
+#### 🚀 현재 시스템 상태
+
+**완전 동작하는 FastAPI 챗봇**:
+1. **사용자 질의** → LangGraph 라우팅 → 적절한 전문 에이전트 선택
+2. **ChromaDB 검색** → Docker 모드에서 12개 관련 문서 검색
+3. **OpenAI API 처리** → GPT-4.1-mini로 전문적인 답변 생성  
+4. **FastAPI 응답** → 정상적인 JSON 응답으로 프론트엔드 전달
+
+**환경 설정**:
+```bash
+# Docker ChromaDB 연결 활성화
+CHROMADB_MODE=docker
+CHROMADB_HOST=localhost
+CHROMADB_PORT=8011
+```
