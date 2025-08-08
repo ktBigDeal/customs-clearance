@@ -109,6 +109,9 @@ class MessageResponse(MessageBase):
     
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
+        }
 
 
 class ConversationBase(BaseModel):
@@ -139,6 +142,12 @@ class ConversationSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_active: bool
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
+        }
 
 
 class ConversationDetail(ConversationSummary):

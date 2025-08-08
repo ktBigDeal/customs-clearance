@@ -53,6 +53,42 @@ class LangChainVectorStore:
         else:
             self.embedding_function = embedding_function
         
+        # 연결 모드에 따른 초기화
+        if self.config.get("mode") == "docker":
+            self._init_docker_connection()
+        else:
+            self._init_local_connection(db_path)
+        
+        logger.info(f"LangChain Vector Store initialized: {collection_name} at {self.db_path}")
+    
+    def _init_docker_connection(self):
+        """Docker 모드 ChromaDB 연결 초기화"""
+        try:
+            # Docker ChromaDB 서버 연결 설정
+            host = self.config.get("host", "localhost")
+            port = self.config.get("port", 8011)
+            
+            if HAS_CHROMADB_CLIENT:
+                # ChromaDB 클라이언트로 연결
+                client = chromadb.HttpClient(host=host, port=port)
+                self.vectorstore = Chroma(
+                    collection_name=self.collection_name,
+                    embedding_function=self.embedding_function,
+                    client=client
+                )
+                self.db_path = Path(f"http://{host}:{port}")
+                logger.info(f"Connected to Docker ChromaDB: {host}:{port}")
+            else:
+                logger.warning("chromadb package not available, falling back to local mode")
+                self._init_local_connection(None)
+                
+        except Exception as e:
+            logger.error(f"Failed to connect to Docker ChromaDB: {e}")
+            logger.info("Falling back to local mode")
+            self._init_local_connection(None)
+    
+    def _init_local_connection(self, db_path: Optional[str]):
+        """로컬 모드 ChromaDB 연결 초기화"""
         # 로컬 파일 기반 초기화
         if db_path:
             self.db_path = Path(db_path)
@@ -69,12 +105,11 @@ class LangChainVectorStore:
         
         # LangChain Chroma 벡터스토어 초기화
         self.vectorstore = Chroma(
-            collection_name=collection_name,
+            collection_name=self.collection_name,
             embedding_function=self.embedding_function,
             persist_directory=str(self.db_path)
         )
-        
-        logger.info(f"LangChain Vector Store initialized: {collection_name} at {self.db_path}")
+        logger.info(f"Initialized local ChromaDB at: {self.db_path}")
     
     def similarity_search(self, 
                          query: str, 
@@ -262,7 +297,3 @@ class ChromaVectorStore:
             "db_path": str(self.db_path),
             "embedding_model": "text-embedding-3-small"
         }
-
-
-# 기존 코드와의 호환성을 위한 별칭
-LangChainVectorStore = ChromaVectorStore

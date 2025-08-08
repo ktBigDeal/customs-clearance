@@ -110,19 +110,22 @@ class LangGraphAgentFactory:
                 self.query_normalizer = LawQueryNormalizer()
                 logger.info("  - Query Normalizer initialized")
             
-            # 벡터 저장소들
+            # 벡터 저장소들 (Docker 연결 지원)
             if not self.law_vector_store:
-                self.law_vector_store = ChromaVectorStore(
-                    collection_name="customs_law_collection",
-                    db_path="data/chroma_db"
+                from ..utils.config import get_law_chromadb_config
+                law_config = get_law_chromadb_config()
+                self.law_vector_store = LangChainVectorStore(
+                    collection_name=law_config["collection_name"],
+                    config=law_config
                 )
                 logger.info("  - Law Vector Store initialized")
             
             if not self.trade_vector_store:
-                trade_config = get_trade_agent_config()
-                self.trade_vector_store = ChromaVectorStore(
+                from ..utils.config import get_chromadb_config
+                trade_config = get_chromadb_config()
+                self.trade_vector_store = LangChainVectorStore(
                     collection_name=trade_config["collection_name"],
-                    db_path="data/chroma_db"
+                    config=trade_config
                 )
                 logger.info("  - Trade Vector Store initialized")
             

@@ -701,3 +701,94 @@ uv run pytest
 # 또는 가상환경 내에서
 pytest
 ```
+
+---
+
+## 🎉 최근 해결된 이슈 (2025-08-08)
+
+### ✅ Docker ChromaDB 연결 및 HTTP 응답 오류 완전 해결
+
+#### 🔍 해결된 문제들
+
+**1. Docker ChromaDB 연결 문제**
+- **문제**: `ChromaVectorStore`가 Docker 연결을 지원하지 않아 로컬 모드로만 동작
+- **해결**: `LangChainVectorStore` 사용으로 Docker/로컬 모드 자동 전환 구현
+- **결과**: Docker ChromaDB (8011 포트) 완전 연결 성공
+
+**2. HTTP 400 Bad Request 오류**  
+- **문제**: RAG 시스템은 정상이지만 FastAPI 응답에서 JSON 직렬화 실패
+- **해결**: Pydantic 모델에 `json_encoders` 추가로 datetime 객체 자동 변환
+- **결과**: 400 Bad Request → 200 OK 정상 응답
+
+**3. RAG 문서 검색 성공**
+- **이전 문제**: TradeRegulationAgent가 0개 결과 반환
+- **현재 상태**: ChromaDB에서 12개 문서 성공적으로 검색
+- **응답 품질**: "딸기 수입할 때 주의사항" 질의에 전문적인 답변 제공
+
+#### 🛠️ 주요 코드 변경사항
+
+**langgraph_factory.py** (115-130라인):
+```python
+# Before: ChromaVectorStore (Docker 미지원)
+self.law_vector_store = ChromaVectorStore(collection_name="customs_law_collection", db_path="data/chroma_db")
+
+# After: LangChainVectorStore (Docker 지원)  
+law_config = get_law_chromadb_config()
+self.law_vector_store = LangChainVectorStore(collection_name=law_config["collection_name"], config=law_config)
+```
+
+**conversation.py** (110-114라인):
+```python
+class MessageResponse(MessageBase):
+    timestamp: datetime
+    class Config:
+        from_attributes = True
+        json_encoders = { datetime: lambda dt: dt.isoformat() }  # 추가
+```
+
+**vector_store.py** (85-133라인):
+```python
+def _init_docker_connection(self):
+    """Docker ChromaDB 서버 연결"""
+    client = chromadb.HttpClient(host=host, port=port)
+    self.vectorstore = Chroma(client=client, ...)
+
+def _init_local_connection(self, db_path):
+    """로컬 파일 기반 ChromaDB 연결"""  
+    self.vectorstore = Chroma(persist_directory=str(db_path), ...)
+```
+
+#### 🎯 테스트 결과
+
+**✅ 완전한 시스템 동작 확인**:
+```log
+# Docker ChromaDB 연결 성공
+ChromaDB Docker mode: localhost:8011
+LangChain Vector Store initialized: trade_info_collection at http://localhost:8011
+
+# RAG 검색 성공  
+📊 벡터 검색 결과: 12개
+✅ 12개 결과 반환 (요청된 top_k: 12)
+
+# OpenAI API 정상
+HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+
+# FastAPI 응답 정상
+POST /api/v1/conversations/chat HTTP/1.1 200 OK
+```
+
+#### 🚀 현재 시스템 상태
+
+**완전 동작하는 FastAPI 챗봇**:
+1. **사용자 질의** → LangGraph 라우팅 → 적절한 전문 에이전트 선택
+2. **ChromaDB 검색** → Docker 모드에서 12개 관련 문서 검색
+3. **OpenAI API 처리** → GPT-4.1-mini로 전문적인 답변 생성  
+4. **FastAPI 응답** → 정상적인 JSON 응답으로 프론트엔드 전달
+
+**환경 설정**:
+```bash
+# Docker ChromaDB 연결 활성화
+CHROMADB_MODE=docker
+CHROMADB_HOST=localhost
+CHROMADB_PORT=8011
+```
