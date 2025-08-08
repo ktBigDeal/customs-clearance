@@ -41,7 +41,7 @@
 ---|---|---|---|---
 Next.js 14.2 | Spring Boot 3.2 | FastAPI 0.110 | MySQL 8.0 | Docker
 React 18 | Java 17 | Python 3.11 | Redis | Kubernetes
-TypeScript | Spring Security | TensorFlow | MongoDB | nginx
+TypeScript | Spring Security | TensorFlow | Postgrsql | nginx
 Tailwind CSS | Spring Data JPA | scikit-learn | Elasticsearch | Prometheus
 
 ---
