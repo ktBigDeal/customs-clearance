@@ -124,6 +124,7 @@ uv run python -c "import asyncio; from app.core.database import create_tables; a
 ### 4. 서비스 실행
 
 #### 개발 모드
+
 ```bash
 # 개발 서버 실행 (핫 리로드)
 uv run dev
@@ -132,6 +133,7 @@ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8004
 ```
 
 #### 프로덕션 모드
+
 ```bash
 # Docker Compose로 전체 스택 실행
 docker-compose up -d

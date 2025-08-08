@@ -209,7 +209,7 @@ def get_chromadb_config() -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: ChromaDB 연결 설정
     """
-    mode = os.getenv("CHROMADB_MODE", "docker").lower()
+    mode = os.getenv("CHROMADB_MODE", "local").lower()
     
     config = {
         "collection_name": "trade_info_collection"
@@ -223,10 +223,9 @@ def get_chromadb_config() -> Dict[str, Any]:
         })
         logger.info(f"ChromaDB Docker mode: {config['host']}:{config['port']}")
     else:
-        chroma_path = get_data_path("chroma_db")
         config.update({
             "mode": "local",
-            "persist_directory": str(chroma_path)
+            "persist_directory": str("chroma_db")
         })
         logger.info(f"ChromaDB local mode: {config['persist_directory']}")
     
