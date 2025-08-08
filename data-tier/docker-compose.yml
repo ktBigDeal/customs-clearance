@@ -50,8 +50,82 @@ services:
     networks:
       - customs-network
 
+  # 챗봇 전용 PostgreSQL (대화기록 저장소)
+  chatbot-postgres:
+    image: postgres:15-alpine
+    container_name: customs-chatbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: conversations
+      POSTGRES_USER: chatbot_user
+      POSTGRES_PASSWORD: chatbot_pass123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ko_KR.UTF-8"
+    ports:
+      - "5433:5432"
+    volumes:
+      - chatbot_postgres_data:/var/lib/postgresql/data
+      - ./chatbot/postgres/init:/docker-entrypoint-initdb.d
+    command: >
+      postgres -c log_statement=all
+               -c log_min_duration_statement=0
+               -c shared_preload_libraries=pg_stat_statements
+               -c max_connections=200
+               -c shared_buffers=256MB
+               -c effective_cache_size=512MB
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatbot_user -d conversations"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 챗봇 전용 Redis (캐시 및 세션 저장소)
+  chatbot-redis:
+    image: redis:7-alpine
+    container_name: customs-chatbot-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - chatbot_redis_data:/data
+      - ./chatbot/redis/config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # pgAdmin (PostgreSQL 웹 관리 도구)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: customs-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@customs-clearance.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      - mysql
+      - chatbot-postgres
+    networks:
+      - customs-network
+    profiles: ["with-pgadmin"]
+
 volumes:
   mysql_data:
+  chatbot_postgres_data:
+  chatbot_redis_data:
+  pgadmin_data:
 
 networks:
   customs-network:

@@ -68,6 +68,52 @@ services:
     networks:
       - customs-network
 
+  # RAG 기반 관세법 전문 챗봇 서비스
+  model-chatbot-fastapi:
+    build:
+      context: ../models/model-chatbot-fastapi
+      dockerfile: Dockerfile
+    container_name: ai-gateway-chatbot-fastapi
+    ports:
+      - "8004:8004"
+    environment:
+      # OpenAI 설정
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4.1-mini
+      
+      # data-tier PostgreSQL 연결
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5433
+      - POSTGRES_DB=conversations
+      - POSTGRES_USER=chatbot_user
+      - POSTGRES_PASSWORD=chatbot_pass123
+      
+      # data-tier Redis 연결
+      - REDIS_HOST=host.docker.internal
+      - REDIS_PORT=6380
+      - REDIS_DB=0
+      
+      # data-tier ChromaDB 연결
+      - CHROMADB_MODE=docker
+      - CHROMADB_HOST=host.docker.internal
+      - CHROMADB_PORT=8011
+      
+      # 애플리케이션 설정
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - customs-network
+    # data-tier 의존성은 외부에서 관리됨
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+
 volumes:
   postgres_data:
   redis_data:

@@ -1,3 +1,4 @@
+
 """
 AI 게이트웨이 애플리케이션을 위한 설정 관리 모듈
 
@@ -57,6 +58,7 @@ class Settings(BaseSettings):
     MODEL_OCR_URL: str = "http://localhost:8001"
     MODEL_REPORT_URL: str = "http://localhost:8002"
     MODEL_HSCODE_URL: str = "http://localhost:8003"
+    MODEL_CHATBOT_URL: str = "http://localhost:8004"
     
     # AI Model settings
     MODEL_STORAGE_PATH: str = "./models"

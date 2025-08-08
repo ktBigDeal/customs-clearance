@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Customs Clearance - Main MySQL",
+      "Group": "customs-clearance",
+      "Host": "mysql",
+      "Port": 3306,
+      "MaintenanceDB": "customs_clearance",
+      "Username": "customs_user",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "관세 통관 시스템 메인 MySQL 데이터베이스"
+    },
+    "2": {
+      "Name": "Customs Clearance - Chatbot PostgreSQL",
+      "Group": "customs-clearance",
+      "Host": "chatbot-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "conversations",
+      "Username": "chatbot_user",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "관세 통관 챗봇 대화기록 PostgreSQL 데이터베이스"
+    }
+  }
+}

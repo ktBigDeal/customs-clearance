@@ -95,8 +95,8 @@ graph TB
 ### 데이터 흐름
 
 1. **사용자 요청** → Next.js Frontend
-2. **인증 확인** → Spring Boot Backend (JWT)
-3. **채팅 요청** → FastAPI Chatbot Service
+2. **인증 확인** → Spring Boot Backend
+3. **채팅 요청** → FastAPI Chatbot Service (user_id와 함께)
 4. **컨텍스트 로드** → Redis Cache / PostgreSQL
 5. **AI 처리** → LangGraph Orchestrator → 전문 에이전트들
 6. **벡터 검색** → ChromaDB
@@ -333,7 +333,7 @@ echo "Prometheus: http://localhost:9090"
 
 ### 보안 설정
 
-- **JWT 토큰**: presentation-tier/backend와 토큰 공유
+- **사용자 인증**: presentation-tier/backend에서 처리 (AI 모델은 user_id만 받음)
 - **CORS 정책**: 허용된 도메인만 접근 가능
 - **Rate Limiting**: IP당 요청 수 제한
 - **SQL Injection 방지**: ORM 사용 및 파라미터 바인딩

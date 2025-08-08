@@ -1,30 +1,26 @@
-# Data Tier - Database Layer
+# 📊 Data Tier - 통합 데이터 관리 계층
 
-관세청 통관시스템의 데이터 계층입니다. MySQL과 Neo4j를 함께 사용하는 폴리글랏 퍼시스턴스 아키텍처를 구현합니다.
+관세 통관 시스템의 모든 데이터베이스 서비스를 중앙 집중식으로 관리하는 계층입니다. MySQL, PostgreSQL, Redis, ChromaDB를 통합 관리합니다.
 
 ## 구조
 
 ```
 data-tier/
-├── docker-compose.yml          # MySQL & Neo4j 컨테이너 설정
+├── docker-compose.yml          # 통합 데이터베이스 스택 설정
 ├── mysql/                      # MySQL 관계형 데이터베이스
-│   ├── config/
-│   │   └── my.cnf             # MySQL 설정 (한글 지원)
-│   └── init/
-│       ├── 01-schema.sql      # 데이터베이스 스키마
-│       └── 02-seed-data.sql   # 초기 테스트 데이터
-├── neo4j/                      # Neo4j 그래프 데이터베이스
-│   ├── conf/
-│   │   └── neo4j.conf         # Neo4j 설정
-│   ├── import/
-│   │   └── init.cypher        # 초기 그래프 데이터
-│   ├── data/                  # 데이터 저장소 (바인드 마운트)
-│   ├── logs/                  # 로그 저장소 (바인드 마운트)
-│   └── plugins/               # GDS 플러그인 저장소 (바인드 마운트)
-├── scripts/
-│   ├── test-connection.py     # MySQL 연결 테스트
-│   └── neo4j-setup.sh         # Neo4j 관리 스크립트
-└── README.md
+│   ├── config/my.cnf          # MySQL 설정 (한글 지원)
+│   └── init/                  # 초기화 스크립트
+├── chatbot/                    # 챗봇 전용 데이터베이스들 🆕
+│   ├── postgres/              # PostgreSQL (대화기록)
+│   │   └── init/              # 초기화 스크립트
+│   └── redis/                 # Redis (캐시)
+│       └── config/            # Redis 설정
+├── chromadb/                   # ChromaDB 벡터 데이터베이스
+│   ├── data/                  # 벡터 데이터
+│   └── scripts/               # 관리 스크립트
+├── pgadmin/                    # PostgreSQL 관리 도구 🆕
+│   └── servers.json           # 서버 설정
+└── scripts/                    # 유틸리티 스크립트
 ```
 
 ## 설치 및 실행
@@ -39,52 +35,75 @@ docker-compose up -d
 ### 2. 개별 서비스 실행
 
 ```bash
-# MySQL만 실행
+# 메인 데이터베이스만 (MySQL)
 docker-compose up -d mysql phpmyadmin
 
-# Neo4j만 실행
-docker-compose up -d neo4j
+# 챗봇 데이터베이스들만 (PostgreSQL, Redis)
+docker-compose up -d chatbot-postgres chatbot-redis
+
+# 벡터 데이터베이스만 (ChromaDB)
+docker-compose up -d chromadb
+
+# 관리도구 포함 전체 실행
+docker-compose --profile with-pgadmin up -d
 ```
 
 ### 3. 서비스 확인
 
-#### MySQL 관계형 데이터베이스
-- **MySQL**: http://localhost:3306
-- **phpMyAdmin**: http://localhost:8081
+#### 🗄️ 데이터베이스 서비스들
 
-#### Neo4j 그래프 데이터베이스
-- **Neo4j Browser**: http://localhost:7474
-- **Bolt Protocol**: bolt://localhost:7687
+| 서비스 | 포트 | 용도 | 관리 URL |
+|--------|------|------|----------|
+| MySQL 8.0 | 3306 | 메인 시스템 데이터 | [phpMyAdmin](http://localhost:8081) |
+| PostgreSQL 15 | 5433 | 챗봇 대화기록 | [pgAdmin](http://localhost:5050) |
+| Redis 7 | 6380 | 챗봇 캐시 | CLI 연결 |
+| ChromaDB | 8011 | RAG 벡터 저장 | API 엔드포인트 |
 
-### 4. 연결 정보
+#### 🔗 연결 정보
 
-#### MySQL
-- **Host**: localhost
-- **Port**: 3306
-- **Database**: customs_clearance
-- **Username**: customs_user
-- **Password**: customs_pass
+**MySQL (메인 데이터베이스)**
+- Host: localhost, Port: 3306
+- Database: customs_clearance
+- User: customs_user / customs_pass
 
-#### Neo4j
-- **Host**: localhost
-- **HTTP Port**: 7474
-- **Bolt Port**: 7687
-- **Username**: neo4j
-- **Password**: neo4j123
+**PostgreSQL (챗봇 대화기록)**
+- Host: localhost, Port: 5433
+- Database: conversations
+- User: chatbot_user / chatbot_pass123
+
+**Redis (챗봇 캐시)**
+- Host: localhost, Port: 6380
+- Database: 0 (기본값)
+
+**ChromaDB (벡터 데이터베이스)**
+- Host: localhost, Port: 8011
+- API: http://localhost:8011/api/v1
 
 ## 데이터베이스 아키텍처
 
-### 폴리글랏 퍼시스턴스 설계
+### 🏗️ 다중 데이터베이스 아키텍처
 
-이 시스템은 각 데이터베이스의 강점을 활용하는 폴리글랏 퍼시스턴스 패턴을 사용합니다:
+각 데이터베이스의 강점을 활용하는 폴리글랏 퍼시스턴스 패턴:
 
-#### MySQL (관계형 데이터)
+#### 🗃️ MySQL 8.0 (메인 관계형 데이터)
 - **용도**: 트랜잭션 데이터, 구조화된 비즈니스 데이터
-- **데이터**: 사용자, 신고서, 첨부파일, 감사 로그
+- **데이터**: 사용자, 신고서, 첨부파일, 감사 로그, 시스템 설정
+- **특징**: ACID 트랜잭션, 복잡한 조인, 리포팅
 
-#### Neo4j (그래프 데이터)
-- **용도**: 관계 분석, 네트워크 분석, 복잡한 쿼리
-- **데이터**: 무역 관계, 공급망 분석, 리스크 분석, 관세 규칙
+#### 💬 PostgreSQL 15 (챗봇 대화기록)
+- **용도**: AI 챗봇 대화 세션 및 메시지 저장
+- **데이터**: 대화 세션, 메시지 히스토리, 사용자 인터랙션
+- **특징**: JSON 필드, 텍스트 검색, 트리거 기반 자동 업데이트
+
+#### ⚡ Redis 7 (고성능 캐시)
+- **용도**: 세션 캐시, 대화 컨텍스트, 임시 데이터 저장
+- **데이터**: 사용자 세션, LangGraph 상태, 검색 결과 캐시
+- **특징**: 인메모리 저장, TTL 자동 만료, LRU 정책
+
+#### 🔍 ChromaDB (벡터 검색)
+- **용도**: RAG 시스템용 임베딩 벡터 저장 및 의미 검색
+- **데이터**: 관세법 문서 임베딩, 무역 규제 정보 벡터
+- **특징**: 의미 기반 검색, 유사도 계산, AI/ML 최적화
 
 ### MySQL 스키마
 
@@ -370,6 +389,122 @@ ORDER BY clusterSize DESC;
 
 // 7. 그래프 정리
 CALL gds.graph.drop('customs-trade-network') YIELD graphName;
+```
+
+## 🤖 챗봇 데이터베이스 사용 예시
+
+### PostgreSQL 대화기록 조회
+
+```sql
+-- 최근 대화 세션 목록
+SELECT id, user_id, title, message_count, last_agent_used, created_at
+FROM conversations 
+WHERE is_active = true 
+ORDER BY updated_at DESC 
+LIMIT 10;
+
+-- 특정 사용자의 메시지 내역
+SELECT m.role, m.content, m.agent_used, m.timestamp
+FROM messages m
+JOIN conversations c ON m.conversation_id = c.id
+WHERE c.user_id = 1
+ORDER BY m.timestamp DESC
+LIMIT 20;
+
+-- 에이전트별 사용 통계
+SELECT agent_used, 
+       COUNT(*) as message_count,
+       COUNT(DISTINCT conversation_id) as conversation_count
+FROM messages 
+WHERE agent_used IS NOT NULL
+GROUP BY agent_used
+ORDER BY message_count DESC;
+```
+
+### Redis 캐시 관리
+
+```bash
+# 세션 캐시 확인
+redis-cli -h localhost -p 6380 KEYS "session:*"
+
+# 컨텍스트 캐시 확인
+redis-cli -h localhost -p 6380 KEYS "context:*"
+
+# TTL 확인
+redis-cli -h localhost -p 6380 TTL "session:1:conv_123"
+
+# 메모리 사용량 확인
+redis-cli -h localhost -p 6380 INFO memory
+```
+
+### ChromaDB 벡터 검색 테스트
+
+```bash
+# 헬스 체크
+curl http://localhost:8011/api/v1/heartbeat
+
+# 컬렉션 목록
+curl http://localhost:8011/api/v1/collections
+
+# 특정 컬렉션 정보
+curl http://localhost:8011/api/v1/collections/customs_law_collection
+```
+
+## 🔧 통합 헬스 체크
+
+모든 데이터베이스 서비스 상태를 한 번에 확인:
+
+```bash
+#!/bin/bash
+echo "=== Data Tier Health Check ==="
+
+# MySQL
+echo -n "MySQL: "
+docker exec customs-mysql mysqladmin ping -u customs_user -pcustoms_pass 2>/dev/null && echo "✅ OK" || echo "❌ FAIL"
+
+# PostgreSQL
+echo -n "PostgreSQL: "
+docker exec customs-chatbot-postgres pg_isready -U chatbot_user -d conversations 2>/dev/null && echo "✅ OK" || echo "❌ FAIL"
+
+# Redis
+echo -n "Redis: "
+docker exec customs-chatbot-redis redis-cli ping 2>/dev/null && echo "✅ OK" || echo "❌ FAIL"
+
+# ChromaDB
+echo -n "ChromaDB: "
+curl -s http://localhost:8011/api/v1/heartbeat | grep -q "OK" && echo "✅ OK" || echo "❌ FAIL"
+
+echo "=========================="
+```
+
+## 📊 통합 모니터링
+
+### 데이터베이스 리소스 사용량
+
+```bash
+# 컨테이너 리소스 사용량
+docker stats --no-stream customs-mysql customs-chatbot-postgres customs-chatbot-redis customs-chromadb
+
+# 디스크 사용량
+docker system df
+```
+
+### 백업 스크립트
+
+```bash
+#!/bin/bash
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# MySQL 백업
+docker exec customs-mysql mysqldump -u customs_user -pcustoms_pass customs_clearance > "backups/mysql_${DATE}.sql"
+
+# PostgreSQL 백업
+docker exec customs-chatbot-postgres pg_dump -U chatbot_user conversations > "backups/postgres_${DATE}.sql"
+
+# Redis 백업
+docker exec customs-chatbot-redis redis-cli BGSAVE
+
+echo "Backup completed: ${DATE}"
 ```
 
 ### 기본 Cypher 분석 쿼리

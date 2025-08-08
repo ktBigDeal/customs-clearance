@@ -37,42 +37,23 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { chatbotApiClient } from '@/lib/chatbot-api';
+import type { ChatbotResponse, ChatbotMessage } from '@/lib/chatbot-api';
 
 /**
- * 채팅 메시지 데이터 구조 정의 (TypeScript 인터페이스)
+ * 채팅 메시지 데이터 구조 정의 (UI용 확장 인터페이스)
  * 
- * **신입 개발자 설명**:
- * - 인터페이스는 객체의 구조를 정의하는 TypeScript 기능
- * - 모든 메시지 객체는 이 구조를 반드시 따라야 함
- * - 컴파일 시점에 타입 검사로 오류 방지
- * 
- * **각 속성의 역할**:
- * - id: 메시지를 구분하는 고유 식별자 (React key로도 사용)
- * - type: 메시지 발송자 구분 (사용자/AI)
- * - content: 실제 메시지 텍스트 내용
- * - timestamp: 메시지 생성 시간 (시간 표시용)
- * - sources: AI 답변 시 참고한 문서 목록 (선택적)
- * - isTyping: AI가 타이핑 중인지 표시 (선택적)
+ * ChatbotMessage 타입을 UI에 맞게 확장한 인터페이스입니다.
+ * 실제 API 응답 데이터와 UI에 필요한 추가 속성을 모두 포함합니다.
  * 
  * @interface Message
  */
 interface Message {
-  /** 
-   * 메시지 고유 식별자
-   * @type {string} 유닉스 타임스탬프나 UUID 사용 권장
-   */
+  /** 메시지 고유 식별자 */
   id: string;
-  
-  /** 
-   * 메시지 발송자 타입
-   * @type {'user' | 'assistant'} 사용자 또는 AI 어시스턴트
-   */
+  /** 메시지 발송자 타입 (user/assistant) */
   type: 'user' | 'assistant';
-  
-  /** 
-   * 메시지 텍스트 내용
-   * @type {string} 실제 채팅 메시지 (Markdown 지원 가능)
-   */
+  /** 메시지 텍스트 내용 */
   content: string;
   /** 메시지 생성 시간 */
   timestamp: Date;
@@ -80,6 +61,16 @@ interface Message {
   sources?: string[];
   /** 타이핑 중 상태 (AI 응답 대기 시) */
   isTyping?: boolean;
+  /** 대화 세션 ID */
+  conversation_id?: string;
+  /** 사용된 AI 에이전트 */
+  agent_used?: string;
+  /** 라우팅 정보 */
+  routing_info?: {
+    selected_agent: string;
+    complexity: number;
+    reasoning: string;
+  };
 }
 
 /**
@@ -117,30 +108,33 @@ export default function ChatPage() {
   /** AI 응답 로딩 상태 */
   const [isLoading, setIsLoading] = useState(false);
   
+  /** 현재 대화 세션 ID */
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  
+  /** 사용자 ID (실제로는 인증 시스템에서 가져와야 함) */
+  const [userId] = useState<number>(1); // TODO: 실제 인증된 사용자 ID로 교체
+  
   /** 메시지 목록 하단 참조 (자동 스크롤용) */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   /** 텍스트 입력 필드 참조 */
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  /** 
-   * AI 샘플 응답 데이터
-   * 실제 환경에서는 API 호출로 대체됩니다.
+  /**
+   * ChatbotMessage를 UI Message로 변환하는 유틸리티 함수
    */
-  const sampleResponses = [
-    {
-      content: 'HS코드는 전 세계적으로 통용되는 상품분류체계로, 수출입 신고 시 반드시 필요합니다. 정확한 HS코드 분류를 위해서는 상품의 재질, 용도, 가공정도 등을 고려해야 합니다.\n\n일반적인 HS코드 확인 방법:\n1. 관세청 수출입 통합정보망(UNI-PASS) 활용\n2. 관세율표 검색 서비스 이용\n3. 전문 무역업체 또는 관세사 상담\n\n정확한 HS코드 분류는 관세 부과와 직결되므로 신중하게 결정하시기 바랍니다.',
-      sources: ['수출입통합정보망 가이드.pdf', 'HS코드 분류 매뉴얼.pdf', '관세법 시행령.pdf']
-    },
-    {
-      content: '수입신고서 작성 시 필수 구비서류는 다음과 같습니다:\n\n1. 상업송장(Commercial Invoice)\n2. 포장명세서(Packing List)\n3. 선하증권 또는 항공화물운송장(B/L, AWB)\n4. 원산지증명서(필요시)\n5. 기타 법정서류(품목에 따라 상이)\n\n서류 준비 시 주의사항:\n- 모든 서류는 원본 또는 공증된 사본이어야 함\n- 서류 간 내용 불일치가 없도록 확인\n- 필수 기재사항 누락 방지',
-      sources: ['수입신고 가이드북.pdf', '통관서류 체크리스트.xlsx', '관세법 실무매뉴얼.pdf']
-    },
-    {
-      content: '원산지증명서는 상품의 생산국가를 증명하는 공식 문서입니다. FTA 특혜관세 적용을 위해서는 반드시 필요합니다.\n\n원산지증명서 종류:\n1. 일반원산지증명서\n2. FTA원산지증명서\n3. 자율증명(승인수출업체)\n\n발급 절차:\n1. 해당국 상공회의소 또는 공인기관 신청\n2. 생산 관련 서류 제출\n3. 검토 및 발급\n\n주의: 허위 원산지증명서 사용 시 법적 처벌을 받을 수 있습니다.',
-      sources: ['FTA 활용 가이드.pdf', '원산지 규정 해설서.pdf', '자유무역협정 실무.pdf']
-    }
-  ];
+  const convertChatbotMessageToMessage = (chatbotMsg: ChatbotMessage): Message => {
+    return {
+      id: chatbotMsg.id,
+      type: chatbotMsg.role,
+      content: chatbotMsg.content,
+      timestamp: new Date(chatbotMsg.timestamp),
+      sources: chatbotMsg.references?.map(ref => ref.title) || [],
+      conversation_id: chatbotMsg.conversation_id,
+      agent_used: chatbotMsg.agent_used,
+      routing_info: chatbotMsg.routing_info,
+    };
+  };
 
   /**
    * 메시지 목록 하단으로 자동 스크롤
@@ -157,8 +151,8 @@ export default function ChatPage() {
   /**
    * 메시지 전송 핸들러
    * 
-   * 사용자 메시지를 추가하고 AI 응답을 시뮬레이션합니다.
-   * 실제 환경에서는 AI API 호출로 대체됩니다.
+   * 사용자 메시지를 AI Gateway를 통해 model-chatbot-fastapi로 전송하고
+   * AI 응답을 받아 화면에 표시합니다.
    * 
    * @param {React.FormEvent} e - 폼 제출 이벤트
    */
@@ -166,15 +160,7 @@ export default function ChatPage() {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    // 사용자 메시지 추가
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: inputValue.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputValue.trim();
     setInputValue('');
     setIsLoading(true);
 
@@ -188,34 +174,63 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, typingMessage]);
 
-    // AI 응답 시뮬레이션 (실제 환경에서는 API 호출)
     try {
-      // TODO: 실제 AI API 호출 구현
-      // const response = await apiClient.post('/ai/chat', {
-      //   message: inputValue.trim(),
-      //   context: messages
-      // });
-      
-      setTimeout(() => {
-        const randomResponse = sampleResponses[Math.floor(Math.random() * sampleResponses.length)] || {
-          content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해 주세요.',
-          sources: []
-        };
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: randomResponse.content,
-          timestamp: new Date(),
-          sources: randomResponse.sources,
-        };
+      // AI Gateway를 통한 실제 API 호출
+      const response: ChatbotResponse = await chatbotApiClient.sendMessage({
+        message: messageContent,
+        user_id: userId,
+        conversation_id: conversationId || undefined,
+        include_history: true,
+      });
 
-        setMessages(prev => prev.filter(msg => msg.id !== 'typing').concat(assistantMessage));
-        setIsLoading(false);
-      }, 2000);
+      // 대화 세션 ID 업데이트 (새 대화인 경우)
+      if (response.is_new_conversation && response.conversation_id) {
+        setConversationId(response.conversation_id);
+      }
+
+      // 사용자 메시지와 AI 응답 메시지를 UI 형식으로 변환
+      const userMessage = convertChatbotMessageToMessage(response.user_message);
+      const assistantMessage = convertChatbotMessageToMessage(response.assistant_message);
+
+      // 타이핑 인디케이터 제거하고 실제 메시지들 추가
+      setMessages(prev => [
+        ...prev.filter(msg => msg.id !== 'typing'),
+        userMessage,
+        assistantMessage
+      ]);
+
+      console.log('[Chat] AI 응답 완료:', {
+        conversation_id: response.conversation_id,
+        agent_used: response.assistant_message.agent_used,
+        processing_time: response.processing_time,
+        is_new_conversation: response.is_new_conversation
+      });
       
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('[Chat] API 호출 실패:', error);
+      
+      // 타이핑 인디케이터 제거
       setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      
+      // 사용자 메시지는 보여주고 에러 메시지도 추가
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: messageContent,
+        timestamp: new Date(),
+      };
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: `죄송합니다. 일시적인 오류가 발생했습니다.\n\n오류 내용: ${error instanceof Error ? error.message : '알 수 없는 오류'}\n\n잠시 후 다시 시도해 주세요.`,
+        timestamp: new Date(),
+        sources: [],
+      };
+      
+      setMessages(prev => [...prev, userMessage, errorMessage]);
+      
+    } finally {
       setIsLoading(false);
     }
   };
@@ -306,15 +321,31 @@ export default function ChatPage() {
                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                             </svg>
                           </div>
-                          <span className="text-sm font-medium text-gray-700">
-                            {t('chat.aiConsultant')}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {message.timestamp.toLocaleTimeString('ko-KR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
+                          <div className="flex flex-col">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-gray-700">
+                                {t('chat.aiConsultant')}
+                              </span>
+                              {message.agent_used && (
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                                  {message.agent_used.replace('_agent', '').replace('_', ' ')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-500">
+                                {message.timestamp.toLocaleTimeString('ko-KR', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                              {message.routing_info?.complexity && (
+                                <span className="text-xs text-gray-400">
+                                  • 복잡도: {Math.round(message.routing_info.complexity * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                       

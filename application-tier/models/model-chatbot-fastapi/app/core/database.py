@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     message_count INTEGER DEFAULT 0,
     last_agent_used VARCHAR(50),
     is_active BOOLEAN DEFAULT true,
-    metadata JSONB DEFAULT '{}'::jsonb
+    extra_metadata JSONB DEFAULT '{}'::jsonb
 );
 
 -- 메시지 테이블
@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS messages (
     routing_info JSONB DEFAULT '{}'::jsonb,
     "references" JSONB DEFAULT '[]'::jsonb,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    metadata JSONB DEFAULT '{}'::jsonb
+    extra_metadata JSONB DEFAULT '{}'::jsonb
 );
 
 -- 인덱스 생성

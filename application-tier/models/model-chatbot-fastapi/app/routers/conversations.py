@@ -5,7 +5,6 @@ RESTful API를 통한 대화 세션 및 메시지 관리
 
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import logging
 from datetime import datetime
@@ -23,7 +22,6 @@ from ..core.langgraph_integration import get_langgraph_manager, LangGraphManager
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
-security = HTTPBearer(auto_error=False)
 
 
 # Request/Response 모델들
@@ -65,36 +63,15 @@ async def get_langgraph_service() -> LangGraphManager:
     return await get_langgraph_manager()
 
 
-async def get_current_user_id(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-) -> int:
-    """
-    현재 사용자 ID 추출 
-    실제 구현에서는 presentation-tier/backend와 JWT 토큰 검증 연동 필요
-    """
-    # TODO: presentation-tier/backend의 JWT 토큰 검증 로직과 연동
-    # 현재는 테스트용으로 하드코딩
-    if not credentials:
-        # 개발/테스트 모드: 기본 사용자
-        return 1
-    
-    try:
-        # JWT 토큰에서 사용자 ID 추출하는 로직 구현 필요
-        # 예: jwt.decode(credentials.credentials, secret_key, algorithms=["HS256"])
-        return 1  # 임시
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
+# 사용자 인증은 presentation-tier/backend에서 처리하고, 
+# AI 모델은 검증된 user_id만 받아서 처리합니다.
 
 
 # 메인 API 엔드포인트들
 @router.post("/", response_model=ConversationDetail, status_code=status.HTTP_201_CREATED)
 async def create_conversation(
     request: ConversationCreateRequest,
-    service: ConversationService = Depends(get_conversation_service),
-    current_user: int = Depends(get_current_user_id)
+    service: ConversationService = Depends(get_conversation_service)
 ):
     """
     새 대화 세션 생성
@@ -104,12 +81,7 @@ async def create_conversation(
     - **initial_message**: 첫 메시지 (선택적)
     """
     try:
-        # 권한 확인 (자신의 대화만 생성 가능)
-        if request.user_id != current_user:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Can only create conversations for yourself"
-            )
+        # 사용자 인증은 presentation-tier/backend에서 처리됨
         
         conversation = await service.create_conversation(
             user_id=request.user_id,
@@ -130,8 +102,7 @@ async def create_conversation(
 async def chat_with_langgraph(
     request: ChatRequest,
     service: ConversationService = Depends(get_conversation_service),
-    langgraph_manager = Depends(get_langgraph_service),
-    current_user: int = Depends(get_current_user_id)
+    langgraph_manager = Depends(get_langgraph_service)
 ):
     """
     LangGraph 오케스트레이터와 통합된 채팅
@@ -142,12 +113,7 @@ async def chat_with_langgraph(
     - **user_id**: 사용자 ID
     """
     try:
-        # 권한 확인
-        if request.user_id != current_user:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Can only chat as yourself"
-            )
+        # 사용자 인증은 presentation-tier/backend에서 처리됨
         
         is_new_conversation = False
         conversation_id = request.conversation_id
@@ -221,9 +187,9 @@ async def chat_with_langgraph(
 
 @router.get("/", response_model=ConversationListResponse)
 async def get_user_conversations(
+    user_id: int = Query(..., description="사용자 ID"),
     limit: int = Query(20, ge=1, le=100, description="페이지 크기"),
     offset: int = Query(0, ge=0, description="페이지 오프셋"),
-    current_user: int = Depends(get_current_user_id),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -234,7 +200,7 @@ async def get_user_conversations(
     """
     try:
         return await service.get_user_conversations(
-            user_id=current_user,
+            user_id=user_id,
             limit=limit,
             offset=offset
         )
@@ -249,7 +215,7 @@ async def get_user_conversations(
 @router.get("/{conversation_id}", response_model=ConversationDetail)
 async def get_conversation(
     conversation_id: str = Path(..., description="대화 세션 ID"),
-    current_user: int = Depends(get_current_user_id),
+    user_id: int = Query(..., description="사용자 ID"),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -259,14 +225,14 @@ async def get_conversation(
     """
     try:
         # TODO: 실제 구현에서는 service.get_conversation_detail 메서드 필요
-        conversations = await service.get_user_conversations(user_id=current_user, limit=1000)
+        conversations = await service.get_user_conversations(user_id=user_id, limit=1000)
         
         for conv in conversations.conversations:
             if conv.id == conversation_id:
                 # 상세 정보 구성 (임시)
                 return ConversationDetail(
                     id=conv.id,
-                    user_id=current_user,
+                    user_id=user_id,
                     title=conv.title,
                     message_count=conv.message_count,
                     last_agent_used=conv.last_agent_used,
@@ -295,9 +261,9 @@ async def get_conversation(
 @router.get("/{conversation_id}/messages", response_model=MessageListResponse)
 async def get_conversation_messages(
     conversation_id: str = Path(..., description="대화 세션 ID"),
+    user_id: int = Query(..., description="사용자 ID"),
     limit: int = Query(50, ge=1, le=200, description="메시지 수"),
     offset: int = Query(0, ge=0, description="오프셋"),
-    current_user: int = Depends(get_current_user_id),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -310,7 +276,7 @@ async def get_conversation_messages(
     try:
         messages = await service.get_conversation_history(
             conversation_id=conversation_id,
-            user_id=current_user,
+            user_id=user_id,
             limit=limit,
             offset=offset
         )
@@ -342,7 +308,6 @@ async def get_conversation_messages(
 @router.post("/search", response_model=ConversationSearchResponse)
 async def search_conversations(
     request: ConversationSearchRequest,
-    current_user: int = Depends(get_current_user_id),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -356,8 +321,7 @@ async def search_conversations(
     - **offset**: 페이지 오프셋
     """
     try:
-        # 현재 사용자로 검색 제한
-        request.user_id = current_user
+        # 사용자 인증은 presentation-tier/backend에서 처리됨
         
         return await service.search_conversations(request)
         
@@ -373,7 +337,7 @@ async def search_conversations(
 async def update_conversation(
     conversation_id: str = Path(..., description="대화 세션 ID"),
     update_data: ConversationUpdate = ...,
-    current_user: int = Depends(get_current_user_id),
+    user_id: int = Query(..., description="사용자 ID"),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -404,7 +368,7 @@ async def update_conversation(
 @router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_conversation(
     conversation_id: str = Path(..., description="대화 세션 ID"),
-    current_user: int = Depends(get_current_user_id),
+    user_id: int = Query(..., description="사용자 ID"),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -433,7 +397,7 @@ async def delete_conversation(
 @router.get("/{conversation_id}/stats")
 async def get_conversation_stats(
     conversation_id: str = Path(..., description="대화 세션 ID"),
-    current_user: int = Depends(get_current_user_id),
+    user_id: int = Query(..., description="사용자 ID"),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """
@@ -463,7 +427,7 @@ async def get_conversation_stats(
 async def export_conversation(
     conversation_id: str = Path(..., description="대화 세션 ID"),
     format: str = Query("json", regex="^(json|txt|pdf)$", description="내보내기 형식"),
-    current_user: int = Depends(get_current_user_id),
+    user_id: int = Query(..., description="사용자 ID"),
     service: ConversationService = Depends(get_conversation_service)
 ):
     """

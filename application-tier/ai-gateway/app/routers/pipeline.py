@@ -26,9 +26,10 @@ async def process_complete_workflow(
     declaration_type: str = Form(...),
     invoice_file: UploadFile = File(...),
     packing_list_file: UploadFile = File(...),
-    bill_of_lading_file: UploadFile = File(...)
+    bill_of_lading_file: UploadFile = File(...),
+    consultation_query: Optional[str] = Form(None)
 ):
-    """Complete workflow: OCR → Report Generation"""
+    """Complete workflow: OCR → HS Code → Report Generation → Legal Consultation (optional)"""
     
     workflow_id = f"workflow_{asyncio.get_event_loop().time()}"
     
@@ -114,6 +115,42 @@ async def process_complete_workflow(
         declaration_data = report_response.json()
         logger.info("Step 3 completed: Declaration generation successful")
         
+        # Step 4: Legal Consultation (선택적)
+        consultation_result = None
+        if consultation_query:
+            logger.info("Step 4: Processing legal consultation")
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    consultation_response = await client.post(
+                        f"{settings.MODEL_CHATBOT_URL or 'http://localhost:8004'}/api/v1/conversations/chat",
+                        json={
+                            "message": f"신고서 관련 법률 문의: {consultation_query}",
+                            "user_id": 1,  # Pipeline 사용자 기본 ID
+                            "conversation_id": None,  # 새 대화 시작
+                            "include_history": False  # 독립적인 상담
+                        }
+                    )
+                
+                if consultation_response.status_code == 200:
+                    consultation_result = consultation_response.json()
+                    logger.info("Step 4 completed: Legal consultation successful")
+                else:
+                    logger.warning(f"Legal consultation failed: {consultation_response.status_code}")
+                    consultation_result = {
+                        "error": "법률 상담 서비스 오류",
+                        "status_code": consultation_response.status_code
+                    }
+                    
+            except Exception as consultation_error:
+                logger.error(f"Legal consultation error: {consultation_error}")
+                consultation_result = {
+                    "error": "법률 상담 서비스 연결 실패",
+                    "details": str(consultation_error)
+                }
+        else:
+            logger.info("Step 4 skipped: No legal consultation requested")
+        
         # Return complete workflow result
         return JSONResponse(
             status_code=200,
@@ -134,6 +171,13 @@ async def process_complete_workflow(
                     "step_3_declaration": {
                         "status": "completed",
                         "data": declaration_data
+                    },
+                    "step_4_legal_consultation": {
+                        "status": "completed" if consultation_result and "error" not in consultation_result else (
+                            "failed" if consultation_result and "error" in consultation_result else "skipped"
+                        ),
+                        "data": consultation_result,
+                        "requested": consultation_query is not None
                     }
                 }
 
@@ -208,6 +252,24 @@ async def check_all_services():
             "status": "unreachable",
             "error": str(e),
             "url": settings.MODEL_HSCODE_URL or "http://localhost:8003"
+        }
+    
+    # Check Chatbot service
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            chatbot_response = await client.get(
+                f"{settings.MODEL_CHATBOT_URL or 'http://localhost:8004'}/health"
+            )
+        services_status["model-chatbot-fastapi"] = {
+            "status": "healthy" if chatbot_response.status_code == 200 else "unhealthy",
+            "url": settings.MODEL_CHATBOT_URL or "http://localhost:8004",
+            "service_info": chatbot_response.json() if chatbot_response.status_code == 200 else None
+        }
+    except Exception as e:
+        services_status["model-chatbot-fastapi"] = {
+            "status": "unreachable",
+            "error": str(e),
+            "url": settings.MODEL_CHATBOT_URL or "http://localhost:8004"
         }
         
     

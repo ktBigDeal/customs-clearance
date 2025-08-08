@@ -121,7 +121,7 @@ app = FastAPI(
     - **Frontend**: Next.js 14.2 + TypeScript
     - **Backend**: FastAPI + LangGraph + PostgreSQL + Redis
     - **AI**: OpenAI GPT + ChromaDB 벡터 저장소
-    - **Authentication**: presentation-tier/backend와 연동
+    - **Authentication**: presentation-tier/backend에서 처리 (AI 모델은 user_id만 받음)
 
     ### 사용 방법
     1. **대화 시작**: `POST /api/v1/conversations/chat` 
@@ -306,8 +306,8 @@ if __name__ == "__main__":
     # 개발 서버 실행
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8004,
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8004")),
         reload=True,
         log_level="info",
         access_log=True
