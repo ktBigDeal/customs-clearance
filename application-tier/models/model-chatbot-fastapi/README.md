@@ -2,6 +2,26 @@
 
 LangGraph 기반 지능형 관세법 전문 챗봇 시스템입니다. 기존 CLI 기반 시스템을 FastAPI로 확장하여 웹 API를 제공하며, PostgreSQL 기반 대화기록 연속성 기능을 제공합니다.
 
+## 🔥 최신 업데이트 (2025-08-08)
+
+### ✅ Docker ChromaDB 연결 완전 지원
+
+- **LangChainVectorStore**: Docker/로컬 모드 자동 전환
+- **환경변수 설정**: `CHROMADB_MODE=docker` 지원
+- **자동 Fallback**: Docker 연결 실패시 로컬 모드로 안전 전환
+
+### ✅ HTTP 응답 오류 해결
+
+- **JSON 직렬화**: Pydantic datetime 객체 완전 지원
+- **400 Bad Request**: FastAPI 응답 오류 완전 해결
+- **타입 안전성**: 모든 API 응답 모델 검증 완료
+
+### ✅ 시스템 상태
+
+- **RAG 검색**: ChromaDB에서 12개 문서 정상 검색
+- **AI 처리**: OpenAI API 연동 및 LangGraph 오케스트레이션 정상
+- **API 응답**: 200 OK 정상 응답 및 JSON 직렬화 완료
+
 ## 📋 목차
 
 - [주요 기능](#주요-기능)
@@ -284,6 +304,7 @@ REDIS_CONFIG = {
 ```
 
 #### 4. 메모리 관리
+
 - **컨텍스트 제한**: 최대 20개 메시지로 제한
 - **LRU 캐시**: 자주 사용되는 데이터 우선 캐싱
 - **가비지 컬렉션**: 주기적인 메모리 정리
@@ -291,12 +312,14 @@ REDIS_CONFIG = {
 ### 📊 성능 모니터링
 
 #### 핵심 메트릭스
+
 - **응답 시간**: P50, P95, P99 추적
 - **처리량**: RPS (Requests Per Second)
 - **오류율**: 4xx, 5xx 에러 비율
 - **리소스 사용량**: CPU, 메모리, 디스크 I/O
 
 #### 모니터링 도구
+
 ```bash
 # Prometheus + Grafana 모니터링 스택 실행
 docker-compose --profile monitoring up -d
@@ -309,12 +332,14 @@ echo "Prometheus: http://localhost:9090"
 ## 🔒 보안 및 백업
 
 ### 보안 설정
+
 - **JWT 토큰**: presentation-tier/backend와 토큰 공유
 - **CORS 정책**: 허용된 도메인만 접근 가능
 - **Rate Limiting**: IP당 요청 수 제한
 - **SQL Injection 방지**: ORM 사용 및 파라미터 바인딩
 
 ### 백업 전략
+
 ```bash
 # 데이터베이스 백업 (일일)
 docker exec chatbot-postgres pg_dump -U postgres conversations > backup_$(date +%Y%m%d).sql
@@ -327,6 +352,7 @@ docker exec chatbot-chromadb tar -czf /backup/chroma_$(date +%Y%m%d).tar.gz /chr
 ```
 
 ### 복구 프로세스
+
 ```bash
 # PostgreSQL 복구
 docker exec -i chatbot-postgres psql -U postgres conversations < backup_20250106.sql
@@ -387,17 +413,20 @@ spec:
 ### 환경별 설정
 
 #### 개발 환경
+
 - **디버그 모드**: 활성화
 - **로그 레벨**: DEBUG
 - **캐시 TTL**: 짧게 설정
 - **자동 리로드**: 활성화
 
 #### 스테이징 환경
+
 - **프로덕션과 동일한 설정**
 - **테스트 데이터 사용**
 - **모니터링 활성화**
 
 #### 프로덕션 환경
+
 - **성능 최적화**: 모든 최적화 옵션 활성화
 - **보안 강화**: 모든 보안 기능 활성화
 - **모니터링**: 완전한 관측 가능성
@@ -450,47 +479,6 @@ uv run type-check
 uv run lint
 ```
 
-### 기여 가이드
-
-1. **Fork & Clone**: 저장소를 포크하고 클론
-2. **브랜치 생성**: `git checkout -b feature/amazing-feature`
-3. **개발**: 기능 개발 및 테스트 작성
-4. **테스트**: `uv run check-all`로 품질 검사
-5. **커밋**: Conventional Commits 형식 사용
-6. **Pull Request**: 상세한 설명과 함께 PR 생성
-
-### 커밋 메시지 형식
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**예시:**
-```
-feat(api): add conversation search endpoint
-
-- Implement PostgreSQL full-text search
-- Add filtering by agent type and date range
-- Include pagination support
-
-Closes #123
-```
-
-## 📞 지원 및 문의
-
-- **이슈 리포트**: [GitHub Issues](https://github.com/customs-clearance/model-chatbot-fastapi/issues)
-- **기능 요청**: [GitHub Discussions](https://github.com/customs-clearance/model-chatbot-fastapi/discussions)
-- **보안 문제**: security@customs-clearance.com
-- **일반 문의**: support@customs-clearance.com
-
-## 📄 라이선스
+### 📄 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
-
----
-
-**Made with ❤️ by 관세 통관 시스템 개발팀**
