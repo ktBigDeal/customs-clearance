@@ -19,10 +19,29 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 인증과 관련된 REST 엔드포인트를 제공하는 컨트롤러입니다.
+ * 사용자 인증 및 관리 관련 API를 제공하는 컨트롤러 클래스입니다.
  * <p>
- * 회원가입과 로그인 기능을 담당하며, 로그인 성공 시 JWT 토큰을 발급하여 반환합니다.
- *
+ * 이 클래스는 사용자 등록, 로그인, 사용자 정보 조회, 수정, 삭제 등의 기능을 제공합니다.
+ * 사용자 인증은 JWT 토큰을 사용하며, 역할 기반 접근 제어를 지원합니다.
+ * <p>
+ * 주요 기능:
+ * <ul>
+ *  <li>사용자 등록 (회원가입)</li>
+ *  <li>역할별 로그인 엔드포인트</li>
+ *  <li>전체 사용자 목록 조회 (관리자 전용)</li>
+ *  <li>사용자 프로필 조회 (본인만)</li>
+ *  <li>사용자 정보 수정 (본인만)</li>
+ *  <li>사용자 활성화 상태 변경 (관리자 전용)</li>
+ *  <li>사용자 삭제 (본인 또는 관리자)</li>
+ * </ul>
+ * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+ * 토큰에서 추출한 사용자명과 역할에 따라 접근 권한이 결정됩니다.
+ * <p>
+ * 각 엔드포인트는 다음과 같은 역할 기반 접근 제어를 적용합니다:
+ * <ul>
+ *  <li>ADMIN: 전체 사용자 목록 조회, 사용자 활성화 상태 변경, 사용자 삭제</li>
+ *  <li>USER: 자신의 프로필 조회 및 수정, 사용자 삭제</li>
+ * </ul>
  * @author Customs Clearance Team
  * @version 1.0
  */
