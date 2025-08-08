@@ -39,10 +39,10 @@ export default function Error({
           죄송합니다. 예상치 못한 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.
         </p>
         <div className="space-x-4">
-          <Button onClick={() => reset()} variant="default">
+          <Button onClick={() => reset()}>
             다시 시도
           </Button>
-          <Button onClick={() => window.location.href = '/dashboard'} variant="outline">
+          <Button onClick={() => window.location.href = '/dashboard'}>
             대시보드로 이동
           </Button>
         </div>

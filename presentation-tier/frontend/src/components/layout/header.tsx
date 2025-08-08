@@ -39,7 +39,7 @@
 
 import { Bell, ChevronDown, Globe, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -85,14 +85,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
   /** Next.js 라우터 인스턴스 */
   const router = useRouter();
   
-  /** 현재 선택된 언어 (기본값: 한국어) */
-  const [currentLocale, setCurrentLocale] = useState('ko');
+  /** 언어 컨텍스트 */
+  const { language, setLanguage, t } = useLanguage();
 
   /**
    * 언어 변경 핸들러
    * 
    * 사용자가 언어를 선택했을 때 호출되는 함수입니다.
-   * 현재는 상태만 업데이트하며, 실제 언어 전환 로직은 추후 구현 예정입니다.
+   * 언어 컨텍스트를 통해 전역 언어 상태를 업데이트합니다.
    * 
    * @param {string} locale - 변경할 언어 코드 ('ko' | 'en')
    * 
@@ -102,11 +102,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
    * handleLanguageChange('ko'); // 한국어로 변경
    * ```
    */
-  const handleLanguageChange = (locale: string) => {
-    setCurrentLocale(locale);
-    // TODO: 실제 언어 전환 로직 구현 필요
-    // 예: i18n 라우터를 사용한 언어 변경, 쿠키 저장 등
-    console.log('Switching to locale:', locale);
+  const handleLanguageChange = (locale: 'ko' | 'en') => {
+    setLanguage(locale);
+    console.log('Language switched to:', locale);
   };
 
   /**
@@ -142,8 +140,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+    <header className="z-30 w-full border-b bg-background shrink-0">
+      <div className="flex h-16 items-center px-4 lg:px-6">
         {/* Logo and Title */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -152,10 +150,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </div>
             <div className="hidden md:block">
               <h1 className="text-lg font-semibold text-foreground">
-                관세청 통관시스템
+                {t('header.title')}
               </h1>
               <p className="text-xs text-muted-foreground">
-                Korea Customs Service
+                {t('header.subtitle')}
               </p>
             </div>
           </div>
@@ -172,27 +170,27 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <Button variant="ghost" size="sm" className="gap-2">
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">
-                  {currentLocale === 'ko' ? '한국어' : 'English'}
+                  {language === 'ko' ? t('header.korean') : t('header.english')}
                 </span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>언어 설정</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('header.language')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => handleLanguageChange('ko')}
-                className={currentLocale === 'ko' ? 'bg-accent' : ''}
+                className={language === 'ko' ? 'bg-accent' : ''}
               >
                 <span className="mr-2">🇰🇷</span>
-                한국어
+                {t('header.korean')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleLanguageChange('en')}
-                className={currentLocale === 'en' ? 'bg-accent' : ''}
+                className={language === 'en' ? 'bg-accent' : ''}
               >
                 <span className="mr-2">🇺🇸</span>
-                English
+                {t('header.english')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -201,7 +199,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-4 w-4" />
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 text-xs"></span>
-            <span className="sr-only">Notifications</span>
+            <span className="sr-only">{t('header.notifications')}</span>
           </Button>
 
           {/* User Menu */}
@@ -229,16 +227,16 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => alert('프로필 페이지는 개발 중입니다.')}>
                 <User className="mr-2 h-4 w-4" />
-                프로필
+                {t('header.profile')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => alert('설정 페이지는 개발 중입니다.')}>
                 <Settings className="mr-2 h-4 w-4" />
-                설정
+                {t('header.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
-                로그아웃
+                {t('header.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

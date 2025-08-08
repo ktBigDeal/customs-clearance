@@ -14,12 +14,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
+  
   // Mock data for dashboard
   const stats = [
     {
-      title: '총 신고서',
+      title: t('dashboard.stats.totalDeclarations'),
       value: '1,234',
       change: '+12%',
       trend: 'up',
@@ -28,7 +32,7 @@ export default function DashboardPage() {
       bgColor: 'bg-blue-50',
     },
     {
-      title: '대기 중인 신고서',
+      title: t('dashboard.stats.pendingDeclarations'),
       value: '23',
       change: '-5%',
       trend: 'down',
@@ -37,7 +41,7 @@ export default function DashboardPage() {
       bgColor: 'bg-orange-50',
     },
     {
-      title: '승인된 신고서',
+      title: t('dashboard.stats.approvedDeclarations'),
       value: '1,156',
       change: '+8%',
       trend: 'up',
@@ -46,7 +50,7 @@ export default function DashboardPage() {
       bgColor: 'bg-green-50',
     },
     {
-      title: '거부된 신고서',
+      title: t('dashboard.stats.rejectedDeclarations'),
       value: '55',
       change: '+2%',
       trend: 'up',
@@ -110,15 +114,15 @@ export default function DashboardPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return '승인됨';
+        return t('dashboard.status.approved');
       case 'CLEARED':
-        return '통관완료';
+        return t('dashboard.status.cleared');
       case 'UNDER_REVIEW':
-        return '검토중';
+        return t('dashboard.status.underReview');
       case 'PENDING_DOCUMENTS':
-        return '서류대기';
+        return t('dashboard.status.pendingDocuments');
       case 'REJECTED':
-        return '거부됨';
+        return t('dashboard.status.rejected');
       default:
         return status;
     }
@@ -127,24 +131,25 @@ export default function DashboardPage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case 'IMPORT':
-        return '수입';
+        return t('dashboard.type.import');
       case 'EXPORT':
-        return '수출';
+        return t('dashboard.type.export');
       default:
         return type;
     }
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <ProtectedRoute requiredRole="user">
+      <DashboardLayout>
+        <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-foreground">
-            대시보드
+            {t('dashboard.title')}
           </h1>
           <p className="text-muted-foreground">
-            관세 통관 시스템에 오신 것을 환영합니다
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
@@ -188,11 +193,11 @@ export default function DashboardPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">
-                  최근 신고서
+                  {t('dashboard.recentDeclarations')}
                 </h2>
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4 mr-2" />
-                  전체 신고서 보기
+                  {t('dashboard.viewAllDeclarations')}
                 </Button>
               </div>
               <div className="space-y-4">
@@ -237,20 +242,20 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">
-                빠른 작업
+                {t('dashboard.quickActions')}
               </h2>
               <div className="space-y-3">
                 <Button className="w-full justify-start" variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
-                  새 신고서 작성
+                  {t('dashboard.newDeclaration')}
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <FileText className="h-4 w-4 mr-2" />
-                  신고서 조회
+                  {t('dashboard.viewDeclarations')}
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  월간 리포트
+                  {t('dashboard.monthlyReport')}
                 </Button>
               </div>
             </Card>
@@ -260,19 +265,19 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold">
-                  평균 처리 시간
+                  {t('dashboard.avgProcessingTime')}
                 </h2>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
-                    이번 달
+                    {t('dashboard.thisMonth')}
                   </span>
                   <span className="font-semibold">2.3일</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
-                    지난 달
+                    {t('dashboard.lastMonth')}
                   </span>
                   <span className="font-semibold text-muted-foreground">
                     2.8일
@@ -282,7 +287,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-green-500"></div>
                     <span className="text-sm text-green-600 font-medium">
-                      18% 개선
+                      18% {t('dashboard.improvement')}
                     </span>
                   </div>
                 </div>
@@ -290,7 +295,8 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
