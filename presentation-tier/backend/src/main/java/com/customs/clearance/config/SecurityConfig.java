@@ -68,7 +68,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/public/**").permitAll()
-                .requestMatchers("/auth/login/**", "/auth/register").permitAll() // 인증 관련 엔드포인트
+                .requestMatchers("/user/login/**", "/user/register").permitAll() // 인증 관련 엔드포인트
                 .requestMatchers("/ai/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()

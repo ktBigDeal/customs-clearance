@@ -4,16 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 
 type UserType = 'user' | 'admin';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, isLoading } = useAuth();
   
   const [userType, setUserType] = useState<UserType>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -24,24 +25,18 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
     setError('');
 
     try {
-      // 임시 로그인 로직 (개발용)
-      setTimeout(() => {
-        // localStorage에 임시 인증 정보 저장
-        localStorage.setItem('auth_token', 'temp_token_' + Date.now());
-        localStorage.setItem('user_type', userType);
-        localStorage.setItem('user_email', email);
-        
-        setIsLoading(false);
-        router.push('/dashboard');
-      }, 1500);
+      const success = await login(email, password);
+      
+      if (!success) {
+        setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      }
+      // 성공시 AuthContext에서 자동으로 리다이렉션됨
       
     } catch (error) {
-      setIsLoading(false);
-      setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       console.error('Login error:', error);
     }
   };
@@ -162,6 +157,15 @@ export default function LoginPage() {
                 '로그인'
               )}
             </Button>
+
+            {/* Demo Credentials */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-medium text-blue-800 mb-2">테스트 계정:</p>
+              <div className="text-xs text-blue-600 space-y-1">
+                <div>관리자: admin@customs.go.kr / admin123</div>
+                <div>사용자: user@company.com / user123</div>
+              </div>
+            </div>
           </form>
 
           {/* Forgot Password Link */}

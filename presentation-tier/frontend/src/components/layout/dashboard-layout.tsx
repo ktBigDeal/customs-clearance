@@ -11,9 +11,10 @@ import { cn } from '@/lib/utils';
 interface DashboardLayoutProps {
   children: React.ReactNode;
   className?: string;
+  isAdmin?: boolean;
 }
 
-export function DashboardLayout({ children, className }: DashboardLayoutProps) {
+export function DashboardLayout({ children, className, isAdmin = false }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -25,7 +26,7 @@ export function DashboardLayout({ children, className }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex bg-background overflow-hidden">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -40,17 +41,17 @@ export function DashboardLayout({ children, className }: DashboardLayoutProps) {
       </div>
 
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} isAdmin={isAdmin} />
 
       {/* Main Content Area */}
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col lg:ml-64 min-w-0">
         {/* Header */}
         <Header onMenuToggle={toggleSidebar} />
 
         {/* Page Content */}
         <main
           className={cn(
-            'flex-1 px-4 py-6 lg:px-6 lg:py-8',
+            'flex-1 px-4 py-6 lg:px-6 lg:py-8 overflow-auto',
             className
           )}
           role="main"

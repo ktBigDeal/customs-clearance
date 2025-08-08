@@ -5,14 +5,17 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MainNav } from './main-nav';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   className?: string;
+  isAdmin?: boolean;
 }
 
-export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
+export function Sidebar({ isOpen = true, onClose, className, isAdmin = false }: SidebarProps) {
+  const { t } = useLanguage();
 
   return (
     <>
@@ -28,7 +31,7 @@ export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full w-64 transform border-r bg-background transition-transform duration-300 ease-in-out lg:static lg:translate-x-0',
+          'fixed left-0 top-0 z-40 h-screen w-64 transform border-r bg-background transition-transform duration-300 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           className
         )}
@@ -41,7 +44,9 @@ export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
               <div className="h-6 w-6 rounded-md bg-customs-600 flex items-center justify-center">
                 <span className="text-white font-bold text-xs">KCS</span>
               </div>
-              <span className="font-semibold text-sm">관세청 시스템</span>
+              <span className="font-semibold text-sm">
+                {isAdmin ? t('admin.systemTitle') : t('sidebar.title')}
+              </span>
             </div>
             {/* Close button for mobile */}
             <Button
@@ -61,45 +66,47 @@ export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
               {/* Main Navigation */}
               <div>
                 <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  주요 메뉴
+                  {isAdmin ? t('admin.adminDashboard') : t('sidebar.mainMenu')}
                 </h3>
-                <MainNav onItemClick={onClose} />
+                <MainNav onItemClick={onClose} isAdmin={isAdmin} />
               </div>
 
-              {/* Quick Actions */}
-              <div>
-                <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  빠른 작업
-                </h3>
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
-                  >
-                    새 신고서 작성
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
-                  >
-                    서류 업로드
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
-                  >
-                    진행 상황 확인
-                  </Button>
+              {/* Quick Actions - Only show for regular users */}
+              {!isAdmin && (
+                <div>
+                  <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t('sidebar.quickActions')}
+                  </h3>
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm font-normal"
+                      onClick={onClose}
+                    >
+                      {t('sidebar.newDeclaration')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm font-normal"
+                      onClick={onClose}
+                    >
+                      {t('sidebar.uploadDoc')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm font-normal"
+                      onClick={onClose}
+                    >
+                      {t('sidebar.checkStatus')}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Help & Support */}
               <div>
                 <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  도움말
+                  {t('sidebar.help')}
                 </h3>
                 <div className="space-y-1">
                   <Button
@@ -107,21 +114,21 @@ export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
                     className="w-full justify-start text-sm font-normal"
                     onClick={onClose}
                   >
-                    사용자 가이드
+                    {t('sidebar.userGuide')}
                   </Button>
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm font-normal"
                     onClick={onClose}
                   >
-                    고객센터
+                    {t('sidebar.customerService')}
                   </Button>
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm font-normal"
                     onClick={onClose}
                   >
-                    FAQ
+                    {t('sidebar.faq')}
                   </Button>
                 </div>
               </div>
@@ -146,8 +153,8 @@ export function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
               </div>
             </div>
             <div className="mt-3 text-xs text-muted-foreground">
-              <p>버전 1.0.0</p>
-              <p>© 2024 한국관세청</p>
+              <p>{t('sidebar.version')}</p>
+              <p>{t('sidebar.copyright')}</p>
             </div>
           </div>
         </div>

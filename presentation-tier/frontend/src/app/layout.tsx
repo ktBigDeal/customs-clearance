@@ -2,8 +2,16 @@ import { Inter, Noto_Sans_KR } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 
 import '@/styles/globals.css';
-import { cn } from '@/lib/utils';
+// import { cn } from '../lib/utils';
+
+// utils.ts
+// Utility function to concatenate class names
+export function cn(...classes: (string | undefined | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 import { QueryProvider } from '@/components/providers/query-provider';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -51,9 +59,13 @@ export default function RootLayout({
     <html lang="ko" className={cn(inter.variable, notoSansKR.variable)}>
       <body className="min-h-screen bg-background font-sans antialiased">
         <QueryProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">{children}</div>
-          </div>
+          <AuthProvider>
+            <LanguageProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <div className="flex-1">{children}</div>
+              </div>
+            </LanguageProvider>
+          </AuthProvider>
           <Toaster
             position="top-right"
             toastOptions={{

@@ -1,14 +1,16 @@
 'use client';
 
-import { BarChart3, FileText, Home, Settings, MessageCircle } from 'lucide-react';
+import { BarChart3, FileText, Home, Settings, MessageCircle, Shield, Users, Copy, History, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MainNavProps {
   className?: string;
   onItemClick?: (() => void) | undefined;
+  isAdmin?: boolean;
 }
 
 interface NavItem {
@@ -18,23 +20,71 @@ interface NavItem {
   description?: string;
 }
 
-export function MainNav({ className, onItemClick }: MainNavProps) {
+export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
-  const navItems: NavItem[] = [
+  const userNavItems: NavItem[] = [
     {
-      title: '대시보드',
+      title: t('sidebar.dashboard'),
       href: '/dashboard',
       icon: Home,
-      description: '시스템 현황 및 주요 지표',
+      description: t('sidebar.dashboard.desc'),
     },
     {
-      title: 'AI 상담',
+      title: t('sidebar.chat'),
       href: '/chat',
       icon: MessageCircle,
-      description: '통관 전문 AI 상담 서비스',
+      description: t('sidebar.chat.desc'),
+    },
+    {
+      title: 'HS코드 추천',
+      href: '/hscode',
+      icon: Hash,
+      description: 'AI 기반 HS코드 분류 및 추천',
     },
   ];
+
+  const adminNavItems: NavItem[] = [
+    {
+      title: t('admin.dashboard'),
+      href: '/admin/dashboard',
+      icon: Shield,
+      description: '시스템 전반적인 관리 현황',
+    },
+    {
+      title: t('admin.userManagement'),
+      href: '/admin/users',
+      icon: Users,
+      description: '사용자 계정 및 권한 관리',
+    },
+    {
+      title: t('admin.documentManagement'),
+      href: '/admin/documents',
+      icon: FileText,
+      description: '문서 처리 상태 관리',
+    },
+    {
+      title: t('admin.templateManagement'),
+      href: '/admin/templates',
+      icon: Copy,
+      description: '신고서 템플릿 관리',
+    },
+    {
+      title: t('admin.systemSettings'),
+      href: '/admin/settings',
+      icon: Settings,
+      description: '시스템 환경 설정',
+    },
+    {
+      title: t('admin.logViewer'),
+      href: '/admin/logs',
+      icon: History,
+      description: '시스템 로그 조회',
+    },
+  ];
+
+  const navItems = isAdmin ? adminNavItems : userNavItems;
 
   return (
     <nav
@@ -47,7 +97,6 @@ export function MainNav({ className, onItemClick }: MainNavProps) {
         const Icon = item.icon;
 
         const linkProps: any = {
-          key: item.href,
           href: item.href as any,
           className: cn(
             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
@@ -65,7 +114,7 @@ export function MainNav({ className, onItemClick }: MainNavProps) {
         }
 
         return (
-          <Link {...linkProps}>
+          <Link key={item.href} {...linkProps}>
             <Icon
               className={cn(
                 'h-4 w-4 flex-shrink-0',

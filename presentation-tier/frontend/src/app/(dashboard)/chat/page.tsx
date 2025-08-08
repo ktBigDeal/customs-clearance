@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
  * 채팅 메시지 데이터 구조 정의 (TypeScript 인터페이스)
@@ -98,6 +99,8 @@ interface Message {
  * @returns {JSX.Element} 채팅 페이지 컴포넌트
  */
 export default function ChatPage() {
+  const { t } = useLanguage();
+  
   /** 채팅 메시지 목록 */
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -267,7 +270,7 @@ export default function ChatPage() {
             {/* Chat Messages Area */}
             <div className="flex-1 flex flex-col">
               {/* Chat Header */}
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-600">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-600 relative">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full">
                     <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -276,16 +279,16 @@ export default function ChatPage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-white">
-                      통관 AI 상담사
+                      {t('chat.aiConsultant')}
                     </h2>
                     <p className="text-sm text-blue-100">
-                      수출입 전문 상담 서비스
+                      {t('chat.serviceDesc')}
                     </p>
                   </div>
-                  <div className="ml-auto flex items-center space-x-2">
+                   <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                     <span className="text-sm text-blue-100">
-                      온라인
+                      {t('chat.online')}
                     </span>
                   </div>
                 </div>
@@ -304,7 +307,7 @@ export default function ChatPage() {
                             </svg>
                           </div>
                           <span className="text-sm font-medium text-gray-700">
-                            통관 AI 상담사
+                            {t('chat.aiConsultant')}
                           </span>
                           <span className="text-xs text-gray-500">
                             {message.timestamp.toLocaleTimeString('ko-KR', { 
@@ -328,7 +331,7 @@ export default function ChatPage() {
                               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                             </div>
                             <span className="text-sm text-gray-500">
-                              답변을 생성중입니다...
+                              {t('chat.generating')}
                             </span>
                           </div>
                         ) : (
@@ -363,7 +366,7 @@ export default function ChatPage() {
                               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                             </svg>
                             <span className="text-sm font-medium text-blue-800">
-                              참고 문서
+                              {t('chat.references')}
                             </span>
                           </div>
                           <div className="space-y-2">
@@ -399,7 +402,7 @@ export default function ChatPage() {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="통관 관련 궁금한 사항을 입력하세요..."
+                      placeholder={t('chat.placeholder')}
                       className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
                       rows={1}
                       style={{minHeight: '48px', maxHeight: '120px'}}
@@ -426,17 +429,12 @@ export default function ChatPage() {
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                       </svg>
-                      <span>파일 첨부</span>
+                      <span>{t('chat.fileAttach')}</span>
                     </button>
-                    <button className="flex items-center space-x-2 text-sm text-gray-500 hover:text-blue-600 transition-colors">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
-                      </svg>
-                      <span>음성 입력</span>
-                    </button>
+
                   </div>
                   <p className="text-xs text-gray-400">
-                    Enter로 전송, Shift+Enter로 줄바꿈
+                    {t('chat.inputHelp')}
                   </p>
                 </div>
               </div>
@@ -446,7 +444,7 @@ export default function ChatPage() {
             <div className="w-80 border-l border-gray-100 bg-gray-50/50">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  빠른 질문
+                  {t('chat.quickQuestions')}
                 </h3>
                 <div className="space-y-3">
                   {quickQuestions.map((question, index) => (
@@ -467,7 +465,7 @@ export default function ChatPage() {
 
                 <div className="mt-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    최근 대화
+                    {t('chat.recentChats')}
                   </h3>
                   <div className="space-y-2">
                     {recentChats.map((chat, index) => (
@@ -488,11 +486,11 @@ export default function ChatPage() {
                       <path d="M12,18.5L10.25,16.75L14.75,12.25L10.25,7.75L12,6L18,12L12,18.5M6,6H8V18H6V6Z"/>
                     </svg>
                     <span className="text-sm font-medium text-blue-800">
-                      도움말
+                      {t('chat.help')}
                     </span>
                   </div>
                   <p className="text-xs text-blue-700">
-                    더 정확한 답변을 위해 구체적인 상황과 함께 질문해 주세요.
+                    {t('chat.helpDesc')}
                   </p>
                 </div>
               </div>
