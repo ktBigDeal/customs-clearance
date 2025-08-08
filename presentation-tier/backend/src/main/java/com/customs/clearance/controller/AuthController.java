@@ -2,6 +2,7 @@
 package com.customs.clearance.controller;
 
 import com.customs.clearance.dto.RegisterRequest;
+import com.customs.clearance.dto.UpdateUserRequest;
 import com.customs.clearance.dto.UserResponseDto;
 import com.customs.clearance.entity.User;
 import com.customs.clearance.security.JwtTokenProvider;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
  * @version 1.0
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/user")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -81,38 +82,137 @@ public class AuthController {
     }
 
     /**
- * 관리자만 전체 사용자 목록을 조회할 수 있는 엔드포인트입니다.
- *
- * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
- * 토큰에서 추출한 역할이 ADMIN일 경우에만 응답합니다.
- *
- * @param token Authorization 헤더의 JWT 토큰
- * @return 전체 사용자 목록
- */
-@GetMapping("/users")
-public List<UserResponseDto> getAllUsers() {
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth == null || !auth.isAuthenticated()) {
-        throw new AccessDeniedException("인증되지 않았습니다.");
+     * 관리자만 전체 사용자 목록을 조회할 수 있는 엔드포인트입니다.
+     *
+     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+     * 토큰에서 추출한 역할이 ADMIN일 경우에만 응답합니다.
+     *
+     * @param token Authorization 헤더의 JWT 토큰
+     * @return 전체 사용자 목록
+     */
+    @GetMapping("/users")
+    public List<UserResponseDto> getAllUsers() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new AccessDeniedException("인증되지 않았습니다.");
+        }
+
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            throw new AccessDeniedException("관리자 권한이 필요합니다.");
+        }
+
+        return userService.findAllUsers().stream()
+            .map(user -> new UserResponseDto(
+                user.getId(),
+                user.getUsername(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole(),
+                user.isEnabled()
+            ))
+            .collect(Collectors.toList());
+    }
+    /** * 특정 사용자의 프로필 정보를 조회하는 엔드포인트입니다.
+     * 본인만 자신의 정보를 조회할 수 있으며, 다른 사용자의 정보는 접근할 수 없습니다.
+     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+     * 토큰에서 추출한 사용자명과 경로 변수의 사용자명이 일치해야 합니다.
+     * 비밀번호 정보는 해싱된 상태로 저장되기 때문에 반환하지 않습니다.
+     * 
+     * @param username 경로 변수로 전달된 사용자명
+     * @return 사용자 프로필 정보
+     * @throws AccessDeniedException 본인 정보가 아닌 경우
+     */
+    @GetMapping("/{username}")
+    public UserResponseDto getUserProfile(@PathVariable String username) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!auth.getName().equals(username)) {
+            throw new AccessDeniedException("본인 정보만 조회할 수 있습니다.");
+        }
+
+        User user = userService.findByUsername(username);
+        return new UserResponseDto(user.getId(), user.getUsername(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled());
     }
 
-    boolean isAdmin = auth.getAuthorities().stream()
-        .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+    /**
+     * 관리자가 특정 사용자의 활성화 상태를 변경하는 엔드포인트입니다.
+     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+     * 토큰에서 추출한 역할이 ADMIN일 경우에만 접근할 수 있습니다.
+     *
+     * @param userId  경로 변수로 전달된 사용자 ID
+     * @param enabled 활성화 상태 (true: 활성화, false: 비활성화)
+     * @throws AccessDeniedException 관리자 권한이 없는 경우
+     */
+    @PatchMapping("/admin/{userId}")
+    public void updateEnableStatus(@PathVariable Long userId, @RequestParam boolean enabled) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) throw new AccessDeniedException("관리자 권한 필요");
 
-    if (!isAdmin) {
-        throw new AccessDeniedException("관리자 권한이 필요합니다.");
+        User user = userService.findById(userId);
+        user.setEnabled(enabled);
+        userService.save(user);
     }
 
-    return userService.findAllUsers().stream()
-        .map(user -> new UserResponseDto(
-            user.getId(),
-            user.getUsername(),
-            user.getName(),
-            user.getEmail(),
-            user.getRole(),
-            user.isEnabled()
-        ))
-        .collect(Collectors.toList());
-}
+    /**
+     * 본인이 자신의 정보를 수정하는 엔드포인트입니다.
+     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+     * 토큰에서 추출한 사용자명과 경로 변수의 사용자 ID가 일치해야 합니다.
+     * 
+     * @param userId 경로 변수로 전달된 사용자 ID
+     * @param dto 수정할 사용자 정보 DTO
+     * @throws AccessDeniedException 본인 정보가 아닌 경우
+     */
+    @PutMapping("/{userId}")
+    public void updateMyInfo(@PathVariable Long userId, @RequestBody UpdateUserRequest dto) {
+        // 기본 인증
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.findById(userId);
+
+        if (!auth.getName().equals(user.getUsername())) {
+            throw new AccessDeniedException("본인만 수정할 수 있습니다.");
+        }
+
+
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(dto.getPassword());
+            userService.updatePassword(user);
+            return;
+        }
+
+        userService.save(user);
+    }
+
+    /**
+     * 사용자를 삭제하는 엔드포인트입니다.
+     * 클라이언트는 Authorization 헤더로 Bearer 토큰을 전달해야 하며,
+     * 토큰에서 추출한 역할이 ADMIN일 경우에만 접근할 수 있습니다.
+     *
+     * @param userId 경로 변수로 전달된 사용자 ID
+     * @throws AccessDeniedException 관리자 권한이 없는 경우
+     */
+
+    @DeleteMapping("/{userId}")
+    public void deleteUser(@PathVariable Long userId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.findById(userId);
+
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!auth.getName().equals(user.getUsername()) && !isAdmin) {
+            throw new AccessDeniedException("본인 또는 관리자만 삭제 가능");
+        }
+
+        userService.deleteById(userId);
+    }
+
+
+
 
 }

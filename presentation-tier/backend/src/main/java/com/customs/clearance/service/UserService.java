@@ -5,6 +5,8 @@ import com.customs.clearance.dto.RegisterRequest;
 import com.customs.clearance.entity.User;
 import com.customs.clearance.repository.UserRepository;
 
+import jakarta.transaction.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -64,6 +66,17 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
+    
+    /**
+     * 사용자의 id를 기준으로 사용자를 조회합니다.
+     * @param id 조회할 사용자 ID
+     * @return 해당 ID에 매핑되는 {@link User}
+     * @throws IllegalArgumentException 사용자가 존재하지 않을 경우 발생
+     */
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    }
 
     /**
      * 시스템에 등록된 모든 사용자를 조회합니다.
@@ -72,5 +85,35 @@ public class UserService {
      */
     public List<User> findAllUsers() {
     return userRepository.findAll();
-}
+    }
+
+    /**
+     * 사용자 정보를 저장합니다. 주로 사용자 등록 및 정보 수정에 사용됩니다.
+     *
+     * @param user 저장할 {@link User} 엔티티
+     * @return 저장된 {@link User} 엔티티
+     */
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+    /**
+     * 사용자 정보를 저장합니다. 비밀번호는 해싱 후 저장됩니다.
+     * 
+     * @param user 수정할 {@link User} 엔티티
+     * @return 수정된 {@link User} 엔티티
+     */
+    public User updatePassword(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
+    /**
+     * 사용자를 삭제합니다.
+     *
+     * @param userId 삭제할 사용자 ID
+     */
+    @Transactional
+    public void deleteById(Long userId) {
+        userRepository.deleteById(userId);
+    }
 }
