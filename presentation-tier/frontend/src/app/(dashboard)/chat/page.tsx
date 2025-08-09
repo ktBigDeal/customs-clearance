@@ -41,6 +41,7 @@ import { chatbotApiClient } from '@/lib/chatbot-api';
 import type { ChatbotResponse, ChatbotMessage } from '@/lib/chatbot-api';
 import { ProgressIndicator } from '@/components/chat/ProgressIndicator';
 import { AIMessageRenderer } from '@/components/chat/MarkdownRenderer';
+import { useRecentConversations, formatConversationTime, generateConversationTitle } from '@/hooks/useRecentConversations';
 
 /**
  * 채팅 메시지 데이터 구조 정의 (UI용 확장 인터페이스)
@@ -273,6 +274,11 @@ export default function ChatPage() {
       // 대화 세션 ID 업데이트 (새 대화인 경우)
       if (response.is_new_conversation && response.conversation_id) {
         setConversationId(response.conversation_id);
+        
+        // 새 대화 생성 시 대화 목록 새로고침
+        setTimeout(() => {
+          refetchConversations();
+        }, 1000); // 1초 후 새로고침 (서버 처리 완료 대기)
       }
 
       // AI 응답 메시지만 UI 형식으로 변환 (사용자 메시지는 이미 추가됨)
@@ -337,6 +343,113 @@ export default function ChatPage() {
     inputRef.current?.focus();
   };
 
+  /**
+   * 대화 선택 핸들러
+   * 
+   * 기존 대화를 선택하면 해당 대화의 히스토리를 로드하고 현재 대화로 설정합니다.
+   * 
+   * @param {string} selectedConversationId - 선택된 대화 ID
+   */
+  const handleConversationSelect = async (selectedConversationId: string) => {
+    try {
+      console.log('[Chat] 대화 선택:', selectedConversationId);
+      
+      // 현재 대화 ID 설정
+      setConversationId(selectedConversationId);
+      
+      // 로딩 상태 설정
+      setIsLoading(true);
+      
+      // 기존 메시지 초기화
+      setMessages([{
+        id: '1',
+        type: 'assistant',
+        content: `# 대화를 불러오는 중... 📋\n\n선택하신 대화의 히스토리를 불러오고 있습니다.\n\n**불러오는 대화 ID**: ${selectedConversationId}\n\n잠시만 기다려주세요...`,
+        timestamp: new Date(),
+      }]);
+
+      // 대화 히스토리 조회
+      const history = await chatbotApiClient.getConversationHistory(
+        selectedConversationId,
+        userId,
+        50, // 최근 50개 메시지
+        0
+      );
+
+      // 메시지 형식 변환 및 시간순 정렬
+      const convertedMessages: Message[] = history.messages
+        .filter(msg => msg.role && msg.content) // 유효한 메시지만 필터링
+        .map(msg => ({
+          id: msg.id,
+          type: msg.role as 'user' | 'assistant', // 타입 명시적 변환
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          sources: msg.references?.map(ref => ref.title) || [],
+          conversation_id: msg.conversation_id,
+          agent_used: msg.agent_used,
+          routing_info: msg.routing_info,
+        }))
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // 시간순 정렬 (오래된 것부터)
+
+      // 디버깅: 사용자/AI 메시지 개수 확인
+      const userMessages = convertedMessages.filter(m => m.type === 'user');
+      const assistantMessages = convertedMessages.filter(m => m.type === 'assistant');
+
+      // 메시지 업데이트
+      setMessages(convertedMessages.length > 0 ? convertedMessages : [{
+        id: '1',
+        type: 'assistant',
+        content: `# 안녕하세요! 👋\n\n**통관 AI 상담사**입니다. 이어서 대화하시거나 새로운 질문을 해주세요.\n\n*언제든지 궁금한 점을 말씀해 주세요!*`,
+        timestamp: new Date(),
+      }]);
+
+      console.log('[Chat] 대화 히스토리 로드 완료:', {
+        conversationId: selectedConversationId,
+        totalMessages: convertedMessages.length,
+        userMessages: userMessages.length,
+        assistantMessages: assistantMessages.length,
+        totalApiMessages: history.messages.length,
+        messageBreakdown: {
+          user: userMessages.map(m => ({
+            id: m.id.substring(0, 8),
+            content: m.content.substring(0, 50) + '...',
+            timestamp: m.timestamp.toLocaleString('ko-KR')
+          })),
+          assistant: assistantMessages.map(m => ({
+            id: m.id.substring(0, 8),
+            content: m.content.substring(0, 50) + '...',
+            timestamp: m.timestamp.toLocaleString('ko-KR')
+          }))
+        },
+        rawApiResponse: history.messages.slice(0, 5).map(m => ({
+          id: m.id.substring(0, 8),
+          role: m.role,
+          content: m.content.substring(0, 30) + '...'
+        }))
+      });
+
+      // 로딩 상태 해제
+      setIsLoading(false);
+
+    } catch (error) {
+      console.error('[Chat] 대화 히스토리 로드 실패:', error);
+      
+      // 에러 메시지 표시
+      setMessages([{
+        id: 'error',
+        type: 'assistant',
+        content: `# 대화 로드 실패 ❌\n\n죄송합니다. 선택하신 대화를 불러오는데 실패했습니다.\n\n**오류 내용**: ${error instanceof Error ? error.message : '알 수 없는 오류'}\n\n**선택된 대화 ID**: ${selectedConversationId}\n\n새로운 대화를 시작하거나 다른 대화를 선택해 주세요.`,
+        timestamp: new Date(),
+      }]);
+      
+      // 대화 ID 초기화
+      setConversationId(null);
+      
+      // 로딩 상태 해제
+      setIsLoading(false);
+    }
+  };
+
   /** 빠른 질문 템플릿 목록 */
   const quickQuestions = [
     'HS코드 분류 방법이 궁금해요',
@@ -347,13 +460,18 @@ export default function ChatPage() {
     '관세 계산 방법을 알고 싶어요'
   ];
 
-  /** 최근 대화 목록 (실제 환경에서는 API에서 로드) */
-  const recentChats = [
-    { title: 'HS코드 관련 질문', time: '2시간 전' },
-    { title: '수출신고서 작성법', time: '어제' },
-    { title: '원산지증명서 발급', time: '2일 전' },
-    { title: 'FTA 활용 방법', time: '1주 전' }
-  ];
+  /** 최근 대화 목록 데이터 가져오기 */
+  const {
+    conversations: recentConversations,
+    totalConversations,
+    isLoading: isConversationsLoading,
+    isError: isConversationsError,
+    refetch: refetchConversations
+  } = useRecentConversations({
+    userId,
+    limit: 5, // 최근 5개 대화만 표시
+    enabled: true
+  });
 
   return (
     <DashboardLayout>
@@ -391,7 +509,7 @@ export default function ChatPage() {
               <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-6 space-y-6"
+                className="flex-1 overflow-y-auto p-6 space-y-4"
               >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -452,7 +570,10 @@ export default function ChatPage() {
                             {message.type === 'assistant' ? (
                               <AIMessageRenderer content={message.content} />
                             ) : (
-                              message.content
+                              <div className="user-message">
+                                <span className="text-xs opacity-70 block mb-1">👤 사용자 질문</span>
+                                {message.content}
+                              </div>
                             )}
                           </div>
                         )}
@@ -600,19 +721,113 @@ export default function ChatPage() {
                 </div>
 
                 <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    {t('chat.recentChats')}
-                  </h3>
-                  <div className="space-y-2">
-                    {recentChats.map((chat, index) => (
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {t('chat.recentChats')}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      {totalConversations > 0 && (
+                        <span className="text-sm text-gray-500">
+                          ({totalConversations})
+                        </span>
+                      )}
                       <button
-                        key={index}
-                        className="w-full text-left p-3 rounded-lg hover:bg-white transition-colors"
+                        onClick={() => {
+                          setConversationId(null);
+                          setMessages([{
+                            id: '1',
+                            type: 'assistant',
+                            content: `# 안녕하세요! 👋\n\n**통관 AI 상담사**입니다. 수출입 관련 궁금한 사항이나 통관 절차에 대해 무엇이든 물어보세요.\n\n## 🔍 도움을 드릴 수 있는 분야:\n\n- **HS코드 분류** - 품목별 관세코드 확인\n- **관세 계산** - 관세율 및 부가세 산정\n- **통관 절차** - 필요서류 및 신고방법\n- **FTA 활용** - 특혜관세 적용방법\n- **원산지 증명** - 원산지증명서 발급\n\n*궁금한 점이 있으시면 언제든 말씀해 주세요!*`,
+                            timestamp: new Date(),
+                          }]);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="새 대화 시작"
+                        disabled={isLoading}
                       >
-                        <div className="text-sm font-medium text-gray-700 mb-1">{chat.title}</div>
-                        <div className="text-xs text-gray-500">{chat.time}</div>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+                        </svg>
                       </button>
-                    ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {/* 로딩 상태 */}
+                    {isConversationsLoading && (
+                      <div className="space-y-2">
+                        {[...Array(3)].map((_, index) => (
+                          <div
+                            key={index}
+                            className="w-full p-3 rounded-lg bg-gray-100 animate-pulse"
+                          >
+                            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-20"></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 에러 상태 */}
+                    {isConversationsError && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2ZM13,17H11V15H13V17ZM13,13H11V7H13V13Z"/>
+                          </svg>
+                          <span className="text-sm font-medium text-red-800">
+                            대화 목록 로드 실패
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => refetchConversations()}
+                          className="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          다시 시도
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* 실제 데이터 */}
+                    {!isConversationsLoading && !isConversationsError && (
+                      <>
+                        {recentConversations.length > 0 ? (
+                          recentConversations.map((conversation) => (
+                            <button
+                              key={conversation.id}
+                              onClick={() => handleConversationSelect(conversation.id)}
+                              className="w-full text-left p-3 rounded-lg hover:bg-white transition-colors border border-transparent hover:border-blue-200"
+                              disabled={isLoading}
+                            >
+                              <div className="text-sm font-medium text-gray-700 mb-1 truncate">
+                                {generateConversationTitle(conversation)}
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-500">
+                                  {formatConversationTime(conversation.updated_at)}
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="text-xs text-gray-400">
+                                    {conversation.message_count}개 메시지
+                                  </div>
+                                  {conversation.last_agent_used && (
+                                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                      {conversation.last_agent_used.replace('_agent', '').replace('_', ' ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                            <div className="text-sm text-gray-500 text-center">
+                              아직 대화 기록이 없습니다
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

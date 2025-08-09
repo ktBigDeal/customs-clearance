@@ -217,13 +217,34 @@ class ConversationUtils:
         if not initial_message:
             return "새 대화"
         
-        # 기본 제목 생성
-        title = initial_message.strip()
+        # 의미 있는 제목 생성 - 핵심 키워드 추출 방식
+        message = initial_message.strip()
         
-        # 길이 조정
-        if len(title) > max_length:
-            title = title[:max_length-3] + "..."
+        # 통관/관세 관련 키워드 매핑
+        keywords_mapping = {
+            'HS코드': 'HS코드 분류 문의',
+            '수입신고': '수입신고서 문의',
+            '수출신고': '수출신고서 문의',
+            '원산지': '원산지증명 문의',
+            'FTA': 'FTA 특혜관세 문의',
+            '관세': '관세 계산 문의',
+            '통관': '통관 절차 문의',
+            '검역': '검역 절차 문의',
+            '신고서': '신고서 작성 문의',
+            '서류': '필요서류 문의'
+        }
         
+        # 키워드가 포함된 경우 매핑된 제목 사용
+        for keyword, title in keywords_mapping.items():
+            if keyword in message:
+                return title
+        
+        # 키워드가 없으면 원본 메시지 기반 제목 생성
+        if len(message) > max_length:
+            title = message[:max_length-3] + "..."
+        else:
+            title = message
+            
         return title
     
     @staticmethod

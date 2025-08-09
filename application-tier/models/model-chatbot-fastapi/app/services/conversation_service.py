@@ -282,11 +282,11 @@ class ConversationService:
             if not conversation or not ConversationValidator.validate_user_permission(user_id, conversation):
                 raise ValueError("Invalid conversation or permission denied")
             
-            # 메시지 조회
+            # 메시지 조회 (시간순 정렬 - 오래된 것부터)
             query = (
                 select(MessageORM)
                 .where(MessageORM.conversation_id == conversation_id)
-                .order_by(desc(MessageORM.timestamp))
+                .order_by(MessageORM.timestamp.asc())  # 시간순 정렬로 변경
                 .limit(limit)
                 .offset(offset)
             )
