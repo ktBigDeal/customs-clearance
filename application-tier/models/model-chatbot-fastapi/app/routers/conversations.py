@@ -18,6 +18,7 @@ from ..models.conversation import (
 )
 from ..core.database import get_database_manager, DatabaseManager
 from ..core.langgraph_integration import get_langgraph_manager, LangGraphManager
+from .progress import progress_manager
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,14 @@ async def chat_with_langgraph(
         is_new_conversation = False
         conversation_id = request.conversation_id
         
+        # 진행상황: 대화 세션 준비
+        await progress_manager.send_progress(
+            conversation_id or "new", 
+            "대화 준비", 
+            "대화 세션을 준비하고 있습니다...",
+            ""
+        )
+        
         # 새 대화 생성
         if not conversation_id:
             conversation = await service.create_conversation(
@@ -126,6 +135,22 @@ async def chat_with_langgraph(
             )
             conversation_id = conversation.id
             is_new_conversation = True
+            
+            # 진행상황: 새 대화 생성 완료
+            await progress_manager.send_progress(
+                conversation_id, 
+                "대화 생성", 
+                "새로운 대화를 생성했습니다",
+                f"대화 ID: {conversation_id}"
+            )
+        
+        # 진행상황: AI 분석 시작
+        await progress_manager.send_progress(
+            conversation_id, 
+            "AI 분석", 
+            "메시지를 분석하고 있습니다...",
+            "LangGraph 시스템을 통해 최적의 응답을 준비 중입니다"
+        )
         
         # LangGraph 매니저를 통한 메시지 처리
         langgraph_result = await langgraph_manager.process_message(
@@ -154,6 +179,14 @@ async def chat_with_langgraph(
                 user_id=request.user_id
             )
         
+        # 진행상황: AI 응답 생성 완료
+        await progress_manager.send_progress(
+            conversation_id, 
+            "응답 생성", 
+            "AI 응답이 생성되었습니다",
+            f"사용된 에이전트: {langgraph_result.get('agent_used', 'unknown')}"
+        )
+        
         # AI 응답 메시지 저장
         assistant_msg = await service.add_assistant_message(
             conversation_id=conversation_id,
@@ -163,6 +196,14 @@ async def chat_with_langgraph(
                 "routing_info": langgraph_result.get("routing_info", {}),
                 "references": langgraph_result.get("references", [])
             }
+        )
+        
+        # 진행상황: 완료
+        await progress_manager.send_progress(
+            conversation_id, 
+            "완료", 
+            "채팅 응답이 완료되었습니다",
+            "대화를 이어나가실 수 있습니다"
         )
         
         return ChatResponse(

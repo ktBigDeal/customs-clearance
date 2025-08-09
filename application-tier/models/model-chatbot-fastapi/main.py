@@ -28,6 +28,7 @@ current_dir = Path(__file__).parent
 # 내부 모듈 import
 from app.core.database import db_manager, create_tables
 from app.routers.conversations import router as conversations_router
+from app.routers.progress import router as progress_router
 
 
 # 로깅 설정
@@ -162,6 +163,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # 라우터 등록
 app.include_router(conversations_router)
+app.include_router(progress_router)
 
 # 헬스 체크 엔드포인트
 @app.get("/health", tags=["health"])

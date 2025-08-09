@@ -792,3 +792,126 @@ CHROMADB_MODE=docker
 CHROMADB_HOST=localhost
 CHROMADB_PORT=8011
 ```
+
+---
+
+## 🎯 최근 해결된 AI Gateway 챗봇 API 통합 이슈 (2025-08-08)
+
+### ✅ 완전 해결된 문제들
+
+#### 🔍 문제 1: 대화 목록 조회 실패
+- **증상**: `http://localhost:8000/api/v1/chatbot/conversations/user/1?page=1&limit=10` 요청에 대해 빈 배열 반환
+- **원인**: API 파라미터 불일치 (`page` vs `offset`)
+- **해결**: AI Gateway에서 `offset = (page - 1) * limit` 변환 로직 추가
+- **결과**: 3개 대화 목록 정상 조회 ✅
+
+#### 🔍 문제 2: 422 Unprocessable Entity 오류  
+- **증상**: `GET /api/v1/conversations/{id}/messages` 호출 시 422 오류 발생
+- **원인**: 필수 파라미터 `user_id` 누락
+- **해결**: AI Gateway API에 `user_id: int` 파라미터 추가 및 하위 API 전달
+- **결과**: 메시지 조회 정상 동작 ✅
+
+#### 🔍 문제 3: API 응답 구조 불일치
+- **원인**: Model-Chatbot-FastAPI와 AI Gateway 간 응답 필드명 차이
+  - `total_count` ↔ `total_conversations`
+  - `page_size` ↔ `limit`
+- **해결**: 응답 구조 매핑 로직 구현
+- **결과**: 일관된 API 응답 구조 제공 ✅
+
+### 🛠️ 핵심 코드 변경사항
+
+#### **chatbot_integration.py** - 대화 목록 조회 수정
+```python
+# Before: 직접 page 파라미터 전달
+params={
+    "user_id": user_id,
+    "page": page,
+    "limit": limit
+}
+
+# After: page → offset 변환 + 응답 구조 매핑
+offset = (page - 1) * limit
+params={
+    "user_id": user_id,
+    "limit": limit,
+    "offset": offset
+}
+
+return ConversationListResponse(
+    conversations=result.get("conversations", []),
+    total_conversations=result.get("total_count", 0),
+    page=page,
+    limit=limit
+)
+```
+
+#### **chatbot_integration.py** - 메시지 조회 수정
+```python
+# Before: user_id 파라미터 누락
+async def get_conversation_history(
+    conversation_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    ...
+):
+    params={"limit": limit, "offset": offset}
+
+# After: 필수 user_id 추가 + 응답 매핑
+async def get_conversation_history(
+    conversation_id: str,
+    user_id: int,  # 추가
+    limit: int = 50,
+    offset: int = 0,
+    ...
+):
+    params={"user_id": user_id, "limit": limit, "offset": offset}
+    
+    return ConversationHistoryResponse(
+        conversation_id=conversation_id,
+        messages=result.get("messages", []),
+        total_messages=result.get("total_count", 0),
+        created_at=None
+    )
+```
+
+### 📊 최종 동작 확인
+
+#### ✅ 대화 목록 조회 API
+```bash
+curl "http://localhost:8000/api/v1/chatbot/conversations/user/1?page=1&limit=10"
+```
+**응답**: 3개 대화 정상 반환
+```json
+{
+  "conversations": [
+    {"id": "conv_fafbe92dcbe9", "title": "아보카도 수입 시 주의사항에 대해 알려주세요", ...},
+    {"id": "conv_a18a7af9ad99", "title": "아보카도 수입 시 주의사항에 대해 알려주세요", ...},
+    {"id": "sample_conv_001", "title": "딸기 수입 관련 문의", ...}
+  ],
+  "total_conversations": 3,
+  "page": 1,
+  "limit": 10
+}
+```
+
+#### ✅ 대화 메시지 조회 API
+```bash
+curl "http://localhost:8000/api/v1/chatbot/conversations/conv_fafbe92dcbe9/messages?user_id=1&limit=50&offset=0"
+```
+**응답**: 3개 메시지 정상 반환 (아보카도 수입 관련 전문 상담 내용)
+
+### 🎯 시스템 통합 완료
+
+- **AI Gateway** (`localhost:8000`) ↔ **Model-Chatbot-FastAPI** (`localhost:8004`) 완전 연동
+- **PostgreSQL 대화기록** 정상 조회 및 관리
+- **RESTful API 표준화** 달성
+- **파라미터 검증** FastAPI Pydantic 통과
+
+### 📝 관련 커밋
+
+**커밋 ID**: `1307787`
+**커밋 메시지**: `fix(api): AI Gateway 챗봇 API 통합 오류 해결`
+**변경사항**: 2개 파일 수정 (21 추가, 6 삭제)
+**작업 일시**: 2025-08-08
+
+이로써 AI Gateway를 통한 챗봇 시스템이 완전히 통합되어, 프론트엔드에서 일관된 API 인터페이스로 챗봇 기능을 활용할 수 있게 되었습니다.

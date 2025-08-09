@@ -39,6 +39,8 @@ import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { chatbotApiClient } from '@/lib/chatbot-api';
 import type { ChatbotResponse, ChatbotMessage } from '@/lib/chatbot-api';
+import { ProgressIndicator } from '@/components/chat/ProgressIndicator';
+import { AIMessageRenderer } from '@/components/chat/MarkdownRenderer';
 
 /**
  * 채팅 메시지 데이터 구조 정의 (UI용 확장 인터페이스)
@@ -97,7 +99,19 @@ export default function ChatPage() {
     {
       id: '1',
       type: 'assistant',
-      content: '안녕하세요! 통관 AI 상담사입니다. 수출입 관련 궁금한 사항이나 통관 절차에 대해 무엇이든 물어보세요.',
+      content: `# 안녕하세요! 👋
+
+**통관 AI 상담사**입니다. 수출입 관련 궁금한 사항이나 통관 절차에 대해 무엇이든 물어보세요.
+
+## 🔍 도움을 드릴 수 있는 분야:
+
+- **HS코드 분류** - 품목별 관세코드 확인
+- **관세 계산** - 관세율 및 부가세 산정
+- **통관 절차** - 필요서류 및 신고방법
+- **FTA 활용** - 특혜관세 적용방법
+- **원산지 증명** - 원산지증명서 발급
+
+*궁금한 점이 있으시면 언제든 말씀해 주세요!*`,
       timestamp: new Date(),
     }
   ]);
@@ -119,6 +133,15 @@ export default function ChatPage() {
   
   /** 텍스트 입력 필드 참조 */
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  /** 메시지 컨테이너 참조 (스크롤 감지용) */
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
+  /** 사용자가 수동으로 스크롤했는지 여부 */
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  
+  /** 초기 로드 완료 여부 */
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   /**
    * ChatbotMessage를 UI Message로 변환하는 유틸리티 함수
@@ -137,16 +160,69 @@ export default function ChatPage() {
   };
 
   /**
-   * 메시지 목록 하단으로 자동 스크롤
+   * 사용자가 하단 근처에 있는지 확인
    */
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const isNearBottom = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    
+    const threshold = 100; // 하단에서 100px 이내
+    return (
+      container.scrollTop + container.clientHeight >= 
+      container.scrollHeight - threshold
+    );
   };
 
-  // 메시지가 추가될 때마다 하단으로 스크롤
+  /**
+   * 메시지 목록 하단으로 자동 스크롤
+   * 메시지 컨테이너만 스크롤하고 헤더/사이드바는 고정
+   */
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  /**
+   * 스크롤 이벤트 핸들러
+   */
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // 사용자가 하단 근처에 있으면 자동 스크롤 활성화
+    setIsUserScrolling(!isNearBottom());
+  };
+
+  // 초기 로드 완료 처리
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 1000); // 1초 후에 자동 스크롤 활성화 (더 안전한 타이밍)
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 메시지가 추가될 때 조건부 자동 스크롤 (새로운 메시지가 실제로 추가된 경우만)
+  useEffect(() => {
+    // 초기 로드 중에는 자동 스크롤 하지 않음
+    if (isInitialLoad) return;
+    
+    // 메시지가 1개 이하면 스크롤하지 않음 (초기 메시지만 있는 경우)
+    if (messages.length <= 1) return;
+    
+    // 사용자가 스크롤 중이 아니거나 하단 근처에 있을 때만 자동 스크롤
+    if (!isUserScrolling || isNearBottom()) {
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 100); // 약간의 지연을 두어 DOM 업데이트 완료 후 실행
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages, isUserScrolling, isInitialLoad]);
 
   /**
    * 메시지 전송 핸들러
@@ -164,15 +240,26 @@ export default function ChatPage() {
     setInputValue('');
     setIsLoading(true);
 
-    // 타이핑 인디케이터 표시
-    const typingMessage: Message = {
-      id: 'typing',
-      type: 'assistant',
-      content: '',
+    // 1단계: 사용자 메시지 먼저 표시
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: messageContent,
       timestamp: new Date(),
-      isTyping: true,
     };
-    setMessages(prev => [...prev, typingMessage]);
+    setMessages(prev => [...prev, userMessage]);
+
+    // 2단계: 약간의 지연 후 타이핑 인디케이터 표시
+    setTimeout(() => {
+      const typingMessage: Message = {
+        id: 'typing',
+        type: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isTyping: true,
+      };
+      setMessages(prev => [...prev, typingMessage]);
+    }, 300);
 
     try {
       // AI Gateway를 통한 실제 API 호출
@@ -188,14 +275,12 @@ export default function ChatPage() {
         setConversationId(response.conversation_id);
       }
 
-      // 사용자 메시지와 AI 응답 메시지를 UI 형식으로 변환
-      const userMessage = convertChatbotMessageToMessage(response.user_message);
+      // AI 응답 메시지만 UI 형식으로 변환 (사용자 메시지는 이미 추가됨)
       const assistantMessage = convertChatbotMessageToMessage(response.assistant_message);
 
-      // 타이핑 인디케이터 제거하고 실제 메시지들 추가
+      // 3단계: 타이핑 인디케이터 제거하고 AI 응답 메시지 추가
       setMessages(prev => [
         ...prev.filter(msg => msg.id !== 'typing'),
-        userMessage,
         assistantMessage
       ]);
 
@@ -209,26 +294,19 @@ export default function ChatPage() {
     } catch (error) {
       console.error('[Chat] API 호출 실패:', error);
       
-      // 타이핑 인디케이터 제거
-      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
-      
-      // 사용자 메시지는 보여주고 에러 메시지도 추가
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: messageContent,
-        timestamp: new Date(),
-      };
-      
+      // 타이핑 인디케이터 제거하고 에러 메시지 추가 (사용자 메시지는 이미 추가됨)
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now().toString(),
         type: 'assistant',
         content: `죄송합니다. 일시적인 오류가 발생했습니다.\n\n오류 내용: ${error instanceof Error ? error.message : '알 수 없는 오류'}\n\n잠시 후 다시 시도해 주세요.`,
         timestamp: new Date(),
         sources: [],
       };
       
-      setMessages(prev => [...prev, userMessage, errorMessage]);
+      setMessages(prev => [
+        ...prev.filter(msg => msg.id !== 'typing'),
+        errorMessage
+      ]);
       
     } finally {
       setIsLoading(false);
@@ -279,13 +357,13 @@ export default function ChatPage() {
 
   return (
     <DashboardLayout>
-      <div className="h-[calc(100vh-8rem)]">
-        <Card className="h-full overflow-hidden">
+      <div className="h-[calc(100vh-6rem)]">
+        <Card className="h-full overflow-hidden rounded-lg">
           <div className="flex h-full">
             {/* Chat Messages Area */}
             <div className="flex-1 flex flex-col">
               {/* Chat Header */}
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-600 relative">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-500 to-indigo-600 relative rounded-t-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full">
                     <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -310,7 +388,11 @@ export default function ChatPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div 
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-6 space-y-6"
+              >
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-2xl ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
@@ -366,7 +448,13 @@ export default function ChatPage() {
                             </span>
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap">{message.content}</div>
+                          <div className="whitespace-pre-wrap">
+                            {message.type === 'assistant' ? (
+                              <AIMessageRenderer content={message.content} />
+                            ) : (
+                              message.content
+                            )}
+                          </div>
                         )}
                       </div>
 
@@ -421,6 +509,23 @@ export default function ChatPage() {
                     </div>
                   </div>
                 ))}
+                
+                {/* 진행상황 표시기 */}
+                {isLoading && (
+                  <div className="flex justify-center my-4">
+                    <ProgressIndicator
+                      conversationId={conversationId || "new"}
+                      isVisible={isLoading}
+                      onComplete={() => {
+                        console.log('[Chat] Progress completed');
+                      }}
+                      onError={(error) => {
+                        console.error('[Chat] Progress error:', error);
+                      }}
+                    />
+                  </div>
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
 
@@ -472,7 +577,7 @@ export default function ChatPage() {
             </div>
 
             {/* Sidebar */}
-            <div className="w-80 border-l border-gray-100 bg-gray-50/50">
+            <div className="w-80 border-l border-gray-100 bg-gray-50/50 rounded-tr-lg">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   {t('chat.quickQuestions')}
