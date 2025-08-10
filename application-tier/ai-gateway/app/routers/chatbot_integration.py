@@ -390,3 +390,85 @@ async def health_check(service_url: str = Depends(get_chatbot_service_url)):
             "url": service_url,
             "error": str(e)
         }
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+async def delete_conversation(
+    conversation_id: str,
+    user_id: int,
+    service_url: str = Depends(get_chatbot_service_url)
+):
+    """
+    대화 세션 삭제
+    
+    사용자의 대화 세션을 삭제합니다. 실제로는 소프트 삭제가 수행되어
+    대화가 비활성화되고 목록에서 제외됩니다.
+    
+    Args:
+        conversation_id: 삭제할 대화 세션 ID
+        user_id: 사용자 ID (권한 검증용)
+        
+    Returns:
+        204 No Content: 삭제 성공
+        404 Not Found: 대화를 찾을 수 없음
+        403 Forbidden: 삭제 권한 없음
+        500 Internal Server Error: 서버 오류
+    """
+    try:
+        logger.info(f"Deleting conversation {conversation_id} for user {user_id}")
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.delete(
+                f"{service_url}/api/v1/conversations/{conversation_id}",
+                params={"user_id": user_id}
+            )
+            
+            if response.status_code == 204:
+                logger.info(f"Successfully deleted conversation {conversation_id}")
+                # FastAPI에서 204 응답을 위해서는 None을 반환하거나 Response를 직접 생성
+                return
+            
+            elif response.status_code == 404:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Conversation not found"
+                )
+            
+            elif response.status_code == 403:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Permission denied"
+                )
+            
+            else:
+                error_detail = response.text if response.text else "Unknown error"
+                logger.error(f"Failed to delete conversation: HTTP {response.status_code} - {error_detail}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to delete conversation: {error_detail}"
+                )
+                
+    except HTTPException:
+        # HTTP 예외는 그대로 전파
+        raise
+        
+    except httpx.ConnectError:
+        logger.error(f"Connection failed to chatbot service: {service_url}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chatbot service unavailable"
+        )
+        
+    except httpx.TimeoutException:
+        logger.error("Timeout deleting conversation")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Delete operation timeout"
+        )
+        
+    except Exception as e:
+        logger.error(f"Unexpected error deleting conversation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete conversation"
+        )

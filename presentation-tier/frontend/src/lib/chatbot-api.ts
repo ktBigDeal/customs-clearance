@@ -430,6 +430,34 @@ class ChatbotApiClient {
   }
 
   /**
+   * 대화 세션 삭제
+   * 
+   * 사용자의 대화 세션을 삭제합니다. 실제로는 소프트 삭제가 수행되어
+   * 대화가 비활성화되고 목록에서 제외됩니다.
+   * 
+   * @param {string} conversationId - 삭제할 대화 세션 ID
+   * @param {number} userId - 사용자 ID (권한 검증용)
+   * @returns {Promise<void>} 삭제 성공 시 void, 실패 시 예외 발생
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   await chatbotApiClient.deleteConversation('conv_abc123', 1);
+   *   console.log('대화가 성공적으로 삭제되었습니다');
+   * } catch (error) {
+   *   console.error('대화 삭제 실패:', error.message);
+   * }
+   * ```
+   * 
+   * @throws {Error} 대화를 찾을 수 없거나 권한이 없는 경우
+   */
+  async deleteConversation(conversationId: string, userId: number): Promise<void> {
+    await this.client.delete(`/api/v1/chatbot/conversations/${conversationId}`, {
+      params: { user_id: userId }
+    });
+  }
+
+  /**
    * 챗봇 서비스 헬스 체크
    * 
    * AI Gateway와 model-chatbot-fastapi 서비스의 상태를 확인합니다.

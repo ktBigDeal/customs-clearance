@@ -143,6 +143,20 @@ export default function ChatPage() {
   
   /** 초기 로드 완료 여부 */
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  /** 삭제 확인 모달 상태 */
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    conversationId: string | null;
+    conversationTitle: string | null;
+  }>({
+    isOpen: false,
+    conversationId: null,
+    conversationTitle: null
+  });
+  
+  /** 삭제 진행 상태 */
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /**
    * ChatbotMessage를 UI Message로 변환하는 유틸리티 함수
@@ -448,6 +462,73 @@ export default function ChatPage() {
       // 로딩 상태 해제
       setIsLoading(false);
     }
+  };
+
+  /**
+   * 대화 삭제 확인 모달 열기
+   */
+  const handleDeleteConfirm = (conversationId: string, conversationTitle: string) => {
+    setDeleteModal({
+      isOpen: true,
+      conversationId,
+      conversationTitle
+    });
+  };
+
+  /**
+   * 대화 삭제 실행
+   */
+  const handleDeleteConversation = async () => {
+    if (!deleteModal.conversationId) return;
+
+    try {
+      setIsDeleting(true);
+      
+      // API를 통한 대화 삭제
+      await chatbotApiClient.deleteConversation(deleteModal.conversationId, userId);
+      
+      // 성공 시 모달 닫기
+      setDeleteModal({
+        isOpen: false,
+        conversationId: null,
+        conversationTitle: null
+      });
+      
+      // 대화 목록 새로고침
+      setTimeout(() => {
+        refetchConversations();
+      }, 500);
+      
+      // 현재 보고 있는 대화가 삭제된 경우 새 대화로 전환
+      if (conversationId === deleteModal.conversationId) {
+        setConversationId(null);
+        setMessages([{
+          id: '1',
+          type: 'assistant',
+          content: `# 안녕하세요! 👋\n\n**통관 AI 상담사**입니다. 수출입 관련 궁금한 사항이나 통관 절차에 대해 무엇이든 물어보세요.\n\n## 🔍 도움을 드릴 수 있는 분야:\n\n- **HS코드 분류** - 품목별 관세코드 확인\n- **관세 계산** - 관세율 및 부가세 산정\n- **통관 절차** - 필요서류 및 신고방법\n- **FTA 활용** - 특혜관세 적용방법\n- **원산지 증명** - 원산지증명서 발급\n\n*궁금한 점이 있으시면 언제든 말씀해 주세요!*`,
+          timestamp: new Date(),
+        }]);
+      }
+      
+      console.log('[Chat] 대화 삭제 완료:', deleteModal.conversationId);
+      
+    } catch (error) {
+      console.error('[Chat] 대화 삭제 실패:', error);
+      // 에러는 API 클라이언트에서 이미 처리되므로 사용자에게 별도 알림 없이 모달만 닫기
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  /**
+   * 삭제 모달 닫기
+   */
+  const handleDeleteCancel = () => {
+    setDeleteModal({
+      isOpen: false,
+      conversationId: null,
+      conversationTitle: null
+    });
   };
 
   /** 빠른 질문 템플릿 목록 */
@@ -793,31 +874,53 @@ export default function ChatPage() {
                       <>
                         {recentConversations.length > 0 ? (
                           recentConversations.map((conversation) => (
-                            <button
+                            <div
                               key={conversation.id}
-                              onClick={() => handleConversationSelect(conversation.id)}
-                              className="w-full text-left p-3 rounded-lg hover:bg-white transition-colors border border-transparent hover:border-blue-200"
-                              disabled={isLoading}
+                              className="group relative p-3 rounded-lg hover:bg-white transition-colors border border-transparent hover:border-blue-200"
                             >
-                              <div className="text-sm font-medium text-gray-700 mb-1 truncate">
-                                {generateConversationTitle(conversation)}
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="text-xs text-gray-500">
-                                  {formatConversationTime(conversation.updated_at)}
+                              <button
+                                onClick={() => handleConversationSelect(conversation.id)}
+                                className="w-full text-left pr-8"
+                                disabled={isLoading}
+                              >
+                                <div className="text-sm font-medium text-gray-700 mb-1 truncate">
+                                  {generateConversationTitle(conversation)}
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <div className="text-xs text-gray-400">
-                                    {conversation.message_count}개 메시지
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs text-gray-500">
+                                    {formatConversationTime(conversation.updated_at)}
                                   </div>
-                                  {conversation.last_agent_used && (
-                                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
-                                      {conversation.last_agent_used.replace('_agent', '').replace('_', ' ')}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center space-x-2">
+                                    <div className="text-xs text-gray-400">
+                                      {conversation.message_count}개 메시지
+                                    </div>
+                                    {conversation.last_agent_used && (
+                                      <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                        {conversation.last_agent_used.replace('_agent', '').replace('_', ' ')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </button>
+                              </button>
+                              
+                              {/* 삭제 버튼 */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteConfirm(
+                                    conversation.id, 
+                                    generateConversationTitle(conversation)
+                                  );
+                                }}
+                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-600"
+                                title="대화 삭제"
+                                disabled={isLoading || isDeleting}
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                                </svg>
+                              </button>
+                            </div>
                           ))
                         ) : (
                           <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
@@ -849,6 +952,69 @@ export default function ChatPage() {
           </div>
         </Card>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 flex items-center justify-center bg-red-100 rounded-full">
+                  <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    대화 삭제 확인
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    이 작업은 되돌릴 수 없습니다
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700">
+                  다음 대화를 삭제하시겠습니까?
+                </p>
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+                  <p className="text-sm font-medium text-gray-900">
+                    "{deleteModal.conversationTitle}"
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  삭제된 대화는 복구할 수 없으며, 모든 메시지 기록이 사라집니다.
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  disabled={isDeleting}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeleteConversation}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>삭제 중...</span>
+                    </div>
+                  ) : (
+                    '삭제'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

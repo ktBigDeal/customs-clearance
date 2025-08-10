@@ -40,6 +40,11 @@ logging.basicConfig(
         logging.FileHandler('app.log')
     ]
 )
+
+# watchfiles 로깅 비활성화 (개발 환경에서 너무 많은 로그 출력 방지)
+logging.getLogger("watchfiles.main").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 

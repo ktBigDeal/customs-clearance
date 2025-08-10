@@ -627,3 +627,47 @@ class ConversationService:
             agent_used=agent_used,
             extra_metadata=extra_metadata
         )
+    
+    async def delete_conversation(self, conversation_id: str, user_id: int) -> bool:
+        """
+        대화 세션 삭제 (소프트 삭제)
+        
+        Args:
+            conversation_id: 삭제할 대화 세션 ID
+            user_id: 사용자 ID (권한 검증용)
+            
+        Returns:
+            bool: 삭제 성공 여부
+            
+        Raises:
+            ValueError: 대화가 존재하지 않거나 권한이 없는 경우
+        """
+        async with self.db_manager.get_db_session() as session:
+            # 대화 세션 조회 및 권한 검증
+            conversation = await session.get(ConversationORM, conversation_id)
+            if not conversation:
+                raise ValueError(f"Conversation {conversation_id} not found")
+            
+            # 사용자 권한 검증
+            if conversation.user_id != user_id:
+                raise ValueError("Permission denied: conversation does not belong to user")
+            
+            # 이미 삭제된 대화인지 확인
+            if not conversation.is_active:
+                return True  # 이미 삭제됨
+            
+            # 소프트 삭제 (is_active = False)
+            conversation.is_active = False
+            conversation.updated_at = datetime.now()
+            
+            await session.commit()
+            
+            # 캐시에서 제거
+            await self._invalidate_conversation_cache(conversation_id)
+            
+            # Redis 통계 정보도 제거
+            stats_key = f"stats:{conversation_id}"
+            await self.redis.delete(stats_key)
+            
+            logger.info(f"Conversation {conversation_id} deleted by user {user_id}")
+            return True

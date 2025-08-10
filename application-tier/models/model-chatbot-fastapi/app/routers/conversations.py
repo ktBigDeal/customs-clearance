@@ -415,19 +415,49 @@ async def delete_conversation(
     """
     대화 세션 삭제 (소프트 삭제)
     
-    - **conversation_id**: 대화 세션 ID
+    사용자의 대화 세션을 소프트 삭제합니다. 실제로는 is_active를 False로 변경하여
+    대화를 비활성화하고 목록에서 제외시킵니다.
+    
+    - **conversation_id**: 삭제할 대화 세션 ID  
+    - **user_id**: 삭제 권한 검증용 사용자 ID
+    
+    Returns:
+        204 No Content: 삭제 성공
+        404 Not Found: 대화를 찾을 수 없음
+        403 Forbidden: 삭제 권한 없음
+        500 Internal Server Error: 서버 오류
     """
     try:
-        # TODO: service.delete_conversation 메서드 구현 필요
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Delete conversation not implemented yet"
-        )
+        success = await service.delete_conversation(conversation_id, user_id)
+        if success:
+            logger.info(f"Successfully deleted conversation {conversation_id} for user {user_id}")
+            # 204 No Content는 응답 본문이 없음
+            return
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete conversation"
+            )
         
-    except HTTPException:
-        raise
+    except ValueError as e:
+        error_msg = str(e)
+        if "not found" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found"
+            )
+        elif "Permission denied" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg
+            )
     except Exception as e:
-        logger.error(f"Failed to delete conversation: {e}")
+        logger.error(f"Failed to delete conversation {conversation_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete conversation"
