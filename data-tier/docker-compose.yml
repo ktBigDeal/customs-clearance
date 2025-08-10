@@ -118,7 +118,6 @@ services:
       - chatbot-postgres
     networks:
       - customs-network
-    profiles: ["with-pgadmin"]
 
 volumes:
   mysql_data:
