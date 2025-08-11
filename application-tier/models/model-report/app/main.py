@@ -101,7 +101,9 @@ def make_documents(json_path):
 stat_code_documents = make_documents(base_path / "무역통계부호.json")
 
 # AI Model Setting
-llm = ChatOpenAI(temperature=0.3, model_name="gpt-4o-mini")
+model_name = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+temperature = float(os.getenv("TEMPERATURE", "0.3"))
+llm = ChatOpenAI(temperature=temperature, model_name=model_name)
 
 # User-defined functions (Document Search)
 def get_documents_by_main_item_name(documents, main_item_name):

@@ -16,7 +16,7 @@ settings = get_settings()
 async def get_hs_code_client():
     """Get HTTP client for Report service"""
     return httpx.AsyncClient(
-        base_url=settings.MODEL_HSCODE_URL or "http://localhost:8003",
+        base_url=settings.MODEL_HSCODE_URL or "http://localhost:8006",
         timeout=60.0,
         headers={"Content-Type": "application/json"}
     )
@@ -31,7 +31,7 @@ async def get_hs_code_info():
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/"            
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/"            
             )
         if response.status_code == 200:
             return response.json()
@@ -53,7 +53,7 @@ async def initialize_hs_code_service():
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/initialize"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/initialize"
             )
         if response.status_code == 200:
             logger.info("HS Code service initialized successfully")
@@ -91,7 +91,7 @@ async def get_hs_code_status():
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/status"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/status"
             )
         if response.status_code == 200:
             return response.json()
@@ -116,7 +116,7 @@ async def convert_hs_code(requset: ConvertRequest):
         # Call Report service for import declaration
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/convert",
                 json={
                     "us_hs_code": requset.us_hs_code,
                     "product_name": requset.product_name
@@ -163,7 +163,7 @@ async def lookup_hs_code(hscode: str):
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/lookup/{hscode}"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/lookup/{hscode}"
             )
         if response.status_code == 200:
             return response.json()
@@ -185,7 +185,7 @@ async def clear_hs_code_cache():
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.delete(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/cache"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/cache"
             )
         if response.status_code == 200:
             logger.info("HS Code cache cleared successfully")
@@ -215,7 +215,7 @@ async def get_hs6_description(hs6: str):
     try:
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/hs6/{hs6}/description"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/hs6/{hs6}/description"
             )
         if response.status_code == 200:
             return response.json()
@@ -239,7 +239,7 @@ async def check_hscode_health():
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/health"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/health"
             )
         
         return response.json()

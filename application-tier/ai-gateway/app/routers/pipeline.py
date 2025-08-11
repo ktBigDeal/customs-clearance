@@ -60,38 +60,51 @@ async def process_complete_workflow(
         ocr_data = ocr_response.json()
         logger.info("Step 1 completed: OCR analysis successful")
         
-        # Step 2: HS Code Conversion
+        # Step 2: HS Code Conversion (수정된 부분)
         logger.info("Step 2: Converting HS Code")
-        items = ocr_data.get("items", None)
-        
-        hsk_code_data = []
-        
-        if(declaration_type == "import"):
-            for item in items or []:
+        items = ocr_data.get("items", [])
+        hscode_results = []
+
+        if declaration_type == "import":
+            for item in items:
                 item_name = item.get("item_name", "")
                 hs_code = item.get("hs_code", "")
                 hs_code_fixed = hs_code.replace(".", "")
-
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    hs_code_response = await client.post(
-                        f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
-                        json={"us_hs_code": hs_code_fixed, "product_name": item_name}
-                    )
-                if hs_code_response.status_code != 200:
-                    logger.error(f"HS Code conversion failed for {item_name}: {hs_code_response.text}")
-                    hsk_code_data.append("")
-                    continue
                 
-                hs_code_data = hs_code_response.json()
-                hs_code_suggestions = hs_code_data.get("suggestions", [])
-                hsk_code_data.append(hs_code_suggestions[0] if hs_code_suggestions else "" )
+                hsk_code_suggestion = ""
+                
+                try:
+                    async with httpx.AsyncClient(timeout=60.0) as client:
+                        hs_code_response = await client.post(
+                            f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/convert",
+                            json={"us_hs_code": hs_code_fixed, "product_name": item_name}
+                        )
+                    
+                    if hs_code_response.status_code == 200:
+                        hs_code_data = hs_code_response.json()
+                        
+                        # 수정된 부분: suggestions 대신 korea_recommendation에서 hs_code를 가져옵니다.
+                        korea_recommendation = hs_code_data.get("korea_recommendation", {})
+                        hsk_code_suggestion = korea_recommendation.get("hs_code", "")
+                        
+                    else:
+                        logger.error(f"HS Code conversion failed for {item_name}: {hs_code_response.text}")
 
-            # Merge HS Code data with OCR results
-            for item, hsk_code in zip(ocr_data.get("items", []), hsk_code_data):
-                item["hsk_code_suggestions"] = hsk_code
-            
+                except Exception as e:
+                    logger.error(f"HS Code conversion error for {item_name}: {e}")
+
+                # 원본 ocr_data의 item에 직접 HSK 코드 결과를 추가
+                item["hsk_code_suggestions"] = hsk_code_suggestion
+
+                # step 2의 응답으로 반환할 데이터에 품목 정보와 HSK 코드를 함께 담음
+                hscode_results.append({
+                    "item_name": item_name,
+                    "original_hs_code": hs_code,
+                    "hsk_code_suggestion": hsk_code_suggestion
+                })
+
         logger.info("Step 2 completed: HS Code conversion successful")
-
+        
         # Step 3: Generate Declaration
         logger.info("Step 3: Generating customs declaration")
         
@@ -166,7 +179,7 @@ async def process_complete_workflow(
                     },
                     "step_2_hscode_conversion": {
                         "status": "completed",
-                        "data": hsk_code_data
+                        "data": hscode_results # 수정된 부분
                     },
                     "step_3_declaration": {
                         "status": "completed",
@@ -180,7 +193,6 @@ async def process_complete_workflow(
                         "requested": consultation_query is not None
                     }
                 }
-
             }
         )
         
@@ -239,19 +251,19 @@ async def check_all_services():
     try:    
         async with httpx.AsyncClient(timeout=5.0) as client:
             hs_code_response = await client.get(
-                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8003'}/health"
+                f"{settings.MODEL_HSCODE_URL or 'http://localhost:8006'}/health"
             )
         
         services_status["model-hscode"] = {
             "status": hs_code_response.json().get("status", "unhealthy"),
-            "url": settings.MODEL_HSCODE_URL or "http://localhost:8003"
+            "url": settings.MODEL_HSCODE_URL or "http://localhost:8006"
         }
     
     except Exception as e:
         services_status["model-hscode"] = {
             "status": "unreachable",
             "error": str(e),
-            "url": settings.MODEL_HSCODE_URL or "http://localhost:8003"
+            "url": settings.MODEL_HSCODE_URL or "http://localhost:8006"
         }
     
     # Check Chatbot service

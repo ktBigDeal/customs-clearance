@@ -1076,7 +1076,7 @@ class HSCodeRecommender:
                     # LLM 재순위 정보
                     if 'llm_rerank' in llm:
                         rerank = llm['llm_rerank']
-                        print(f"     🔄 재순위 점수: {rerank['score']}/10")
+                        print(f"     🔄재순위 점수: {rerank['score']}/10")
                         print(f"     📊 재순위 근거: {rerank['reason']}")
                         print(f"     📍 LLM 순위: {rerank['rank']}위")
                 

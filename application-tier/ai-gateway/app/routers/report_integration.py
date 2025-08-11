@@ -30,19 +30,65 @@ async def get_report_client():
     )
 
 
+async def convert_us_hs_codes(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert US HS codes to Korean HS codes using US Converter service"""
+    logger.info("Converting US HS codes to Korean HS codes")
+    
+    # Create a copy of OCR data to modify
+    converted_data = ocr_data.copy()
+    
+    # Convert HS codes in items
+    if "items" in converted_data:
+        for item in converted_data["items"]:
+            if "hs_code" in item and item["hs_code"]:
+                us_hs_code = item["hs_code"]
+                product_name = item.get("item_name", "")
+                
+                try:
+                    # Call US HS Code Converter service (port 8006)
+                    async with httpx.AsyncClient(timeout=60.0) as client:
+                        convert_response = await client.post(
+                            "http://localhost:8006/convert",
+                            json={
+                                "us_hs_code": us_hs_code,
+                                "product_name": product_name
+                            }
+                        )
+                    
+                    if convert_response.status_code == 200:
+                        conversion_result = convert_response.json()
+                        # Extract Korean HS code from conversion result
+                        if "korea_recommendation" in conversion_result:
+                            korean_hs = conversion_result["korea_recommendation"].get("hs_code", us_hs_code)
+                            item["hs_code"] = korean_hs
+                            logger.info(f"Converted US HS {us_hs_code} → Korean HS {korean_hs}")
+                        else:
+                            logger.warning(f"No Korean recommendation for US HS {us_hs_code}, keeping original")
+                    else:
+                        logger.warning(f"Failed to convert HS code {us_hs_code}, keeping original")
+                        
+                except Exception as e:
+                    logger.error(f"Error converting HS code {us_hs_code}: {e}")
+                    # Keep original HS code if conversion fails
+    
+    return converted_data
+
 @router.post("/generate-import-declaration")
 async def generate_import_declaration(request: DeclarationRequest):
-    """Generate import customs declaration using Report service"""
+    """Generate import customs declaration with HS code conversion"""
     
     try:
-        logger.info("Starting import declaration generation via Report service")
+        logger.info("Starting import declaration generation with HS code conversion")
         
-        # Call Report service for import declaration
+        # Step 1: Convert US HS codes to Korean HS codes
+        converted_ocr_data = await convert_us_hs_codes(request.ocr_data)
+        
+        # Step 2: Call Report service for import declaration with converted data
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
                 f"{settings.MODEL_REPORT_URL or 'http://localhost:8002'}/generate-customs-declaration/import",
                 json={
-                    "ocr_data": request.ocr_data
+                    "ocr_data": converted_ocr_data
                 }
             )
         
@@ -83,17 +129,20 @@ async def generate_import_declaration(request: DeclarationRequest):
 
 @router.post("/generate-export-declaration")
 async def generate_export_declaration(request: DeclarationRequest):
-    """Generate export customs declaration using Report service"""
+    """Generate export customs declaration with HS code conversion"""
     
     try:
-        logger.info("Starting export declaration generation via Report service")
+        logger.info("Starting export declaration generation with HS code conversion")
         
-        # Call Report service for export declaration
+        # Step 1: Convert US HS codes to Korean HS codes
+        converted_ocr_data = await convert_us_hs_codes(request.ocr_data)
+        
+        # Step 2: Call Report service for export declaration with converted data
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
                 f"{settings.MODEL_REPORT_URL or 'http://localhost:8002'}/generate-customs-declaration/export",
                 json={
-                    "ocr_data": request.ocr_data
+                    "ocr_data": converted_ocr_data
                 }
             )
         

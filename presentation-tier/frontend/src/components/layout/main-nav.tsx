@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, FileText, Home, Settings, MessageCircle, Shield, Users, Copy, History, Hash } from 'lucide-react';
+import { BarChart3, FileText, Home, Settings, MessageCircle, Shield, Users, Copy, History, Hash, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -30,6 +30,12 @@ export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProp
       href: '/dashboard',
       icon: Home,
       description: t('sidebar.dashboard.desc'),
+    },
+    {
+      title: '보고서 생성',
+      href: '/report',
+      icon: ClipboardList,
+      description: '수출입 신고서 생성 및 관리',
     },
     {
       title: t('sidebar.chat'),

@@ -8,6 +8,7 @@ from pathlib import Path
 import logging
 import re
 import os
+from dotenv import load_dotenv
 # 상대 경로로 import 수정
 from us_ks_hs_converter_service import HSCodeConverterService, convert_numpy_types
 
@@ -24,33 +25,29 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
     global converter_service
     
     try:
+        # .env 파일 로드 (프로젝트 루트의 .env 파일)
+        project_root = Path(__file__).parent.parent
+        env_file = project_root / ".env"
+        if env_file.exists():
+            load_dotenv(env_file)
+            logger.info(f"환경 변수 파일 로드: {env_file}")
+        else:
+            logger.warning(f"환경 변수 파일이 없음: {env_file}")
         # 기존 서비스가 있다면 정리
         if converter_service is not None:
-            print("🔄 기존 서비스 정리 중...")
+            logger.info("기존 서비스 정리 중...")
             # 캐시 정리
             if hasattr(converter_service, 'clear_cache'):
                 converter_service.clear_cache()
             converter_service = None
         
-        # OpenAI API 키를 환경 변수에서 먼저 로드, 없으면 파일에서 로드
+        # OpenAI API 키를 환경 변수에서 로드
         if not openai_api_key:
             openai_api_key = os.getenv("OPENAI_API_KEY")
             if openai_api_key:
-                print("🔑 환경 변수에서 OpenAI API 키 로드")
+                logger.info("환경 변수에서 OpenAI API 키 로드")
             else:
-                # 환경 변수에 없으면 파일에서 로드
-                project_root = Path(__file__).parent.parent
-                api_key_file = project_root / "docs" / "Aivle-api.txt"
-                
-                if api_key_file.exists():
-                    try:
-                        with open(api_key_file, 'r', encoding='utf-8') as f:
-                            openai_api_key = f.read().strip()
-                        print(f"🔑 API 키 파일에서 로드: {api_key_file}")
-                    except Exception as e:
-                        print(f"⚠️ API 키 파일 읽기 실패: {e}")
-                else:
-                    print(f"⚠️ API 키 파일을 찾을 수 없음: {api_key_file}")
+                logger.warning("환경 변수에서 OpenAI API 키를 찾을 수 없음")
         
         # 미국 관세율표 파일 경로 설정
         if not us_tariff_file:
@@ -58,12 +55,12 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
             us_tariff_file = project_root / "관세청_미국 관세율표_20250714.xlsx"
             
             # 디버깅 정보 출력
-            print(f"📂 프로젝트 루트: {project_root}")
-            print(f"📄 찾는 파일 경로: {us_tariff_file}")
-            print(f"📋 파일 존재 여부: {os.path.exists(us_tariff_file)}")
+            logger.info(f"프로젝트 루트: {project_root}")
+            logger.info(f"찾는 파일 경로: {us_tariff_file}")
+            logger.info(f"파일 존재 여부: {os.path.exists(us_tariff_file)}")
             
             if not os.path.exists(us_tariff_file):
-                print(f"❌ 파일을 찾을 수 없습니다: {us_tariff_file}")
+                logger.error(f"파일을 찾을 수 없습니다: {us_tariff_file}")
                 return False, f"미국 관세율표 파일을 찾을 수 없습니다: {us_tariff_file}"
 
         # 한국 추천 시스템 로드 시도
@@ -93,14 +90,14 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
         )
 
         # 시스템 초기화
-        print("🔄 시스템 초기화 시작...")
+        logger.info("시스템 초기화 시작...")
         success, message = converter_service.initialize_system()
         
         if success:
-            logger.info(f"🚀 {message}")
+            logger.info(f"성공: {message}")
             return True, message
         else:
-            logger.error(f"❌ {message}")
+            logger.error(f"실패: {message}")
             # 초기화 실패시 converter_service를 None으로 리셋
             converter_service = None
             return False, message
@@ -117,15 +114,18 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("🚀 HS Code Converter API 서버 시작")
+    global converter_service
+    logger.info("HS Code Converter API 서버 시작")
     success, message = await initialize_converter_service()
-    if not success:
+    if success:
+        logger.info(f"초기화 성공: {message}")
+    else:
         logger.warning(f"기본 초기화 실패: {message}")
     
     yield
     
     # Shutdown
-    logger.info("👋 HS Code Converter API 서버 종료")
+    logger.info("HS Code Converter API 서버 종료")
 
 # FastAPI 앱 생성 (lifespan 이벤트 핸들러 포함)
 app = FastAPI(
@@ -194,7 +194,7 @@ async def root():
 async def initialize_system():
     """시스템 수동 초기화 (기본 경로 자동 로드)"""
     try:
-        print("🔄 수동 초기화 요청 - 기본 경로에서 자동 로드")
+        logger.info("수동 초기화 요청 - 기본 경로에서 자동 로드")
         
         # 항상 None을 전달해서 자동 로드하도록 함
         success, message = await initialize_converter_service(
@@ -370,9 +370,9 @@ if __name__ == "__main__":
     # .env 파일에서 포트 설정 로드 (기본값 8006)
     port = int(os.getenv("PORT", 8006))
     
-    print("🚀 HS Code Converter API 서버 시작")
-    print(f"📖 API 문서: http://localhost:{port}/docs")
-    print(f"🔍 Interactive API: http://localhost:{port}/redoc")
+    print("HS Code Converter API 서버 시작")
+    print(f"API 문서: http://localhost:{port}/docs")
+    print(f"Interactive API: http://localhost:{port}/redoc")
     
     uvicorn.run(
         "us_main:app",  # 문자열로 모듈명과 앱 객체 지정

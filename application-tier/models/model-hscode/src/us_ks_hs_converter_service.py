@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 import torch
 from dataclasses import dataclass
 import pandas as pd
+from dotenv import load_dotenv
 
 try:
     import openai
@@ -1185,20 +1186,25 @@ def main():
     print("🚀 HS Code Converter - 미국→한국 HS코드 변환 시스템 (LLM 강화)")
     print("="*80)
     
-    # OpenAI API 키 입력받기
-    print("🔑 LLM 강화 기능을 사용하려면 OpenAI API 키를 입력하세요.")
-    print("   (키를 입력하지 않으면 기본 모드로 실행됩니다)")
-    openai_api_key = input("OpenAI API 키 (선택사항): ").strip()
-    
-    if not openai_api_key:
-        print("📊 기본 모드로 실행합니다.")
-    else:
-        print("🤖 LLM 강화 모드로 실행합니다.")
-    
-    # 변환 시스템 초기화
+    # .env 파일 로드 및 OpenAI API 키 가져오기
     from pathlib import Path
     project_root = Path(__file__).parent.parent
-    us_tariff_file = project_root/"관세청_미국 관세율표_20250714.xlsx"
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"환경 변수 파일 로드: {env_file}")
+    else:
+        print(f"환경 변수 파일이 없음: {env_file}")
+    
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not openai_api_key:
+        print("📊 기본 모드로 실행합니다 (환경변수에서 OpenAI API 키를 찾을 수 없음).")
+    else:
+        print("🤖 LLM 강화 모드로 실행합니다 (환경변수에서 OpenAI API 키 로드).")
+    
+    # 변환 시스템 초기화
+    us_tariff_file = project_root / "관세청_미국 관세율표_20250714.xlsx"
     
     # 한국 추천 시스템 로드 시도
     korea_recommender = None
@@ -1282,7 +1288,7 @@ def main():
             llm_hint = " (LLM 분석에 도움됨)" if converter.llm_available else ""
             product_name = input(f"📦 상품명 (선택사항{llm_hint}): ").strip()
             
-            print(f"\n🔄 변환 중... [{us_hs_code}" + (f" - {product_name}" if product_name else "") + "]")
+            print(f"\n변환 중... [{us_hs_code}" + (f" - {product_name}" if product_name else "") + "]")
             print("-"*50)
             
             # 변환 실행
@@ -1300,7 +1306,7 @@ def main():
             
             # 계속할지 묻기
             print("\n" + "-"*50)
-            continue_choice = input("🔄 다른 코드를 변환하시겠습니까? (Enter: 계속, q: 종료): ").strip()
+            continue_choice = input("다른 코드를 변환하시겠습니까? (Enter: 계속, q: 종료): ").strip()
             if continue_choice.lower() in ['q', 'quit', 'exit']:
                 print("👋 프로그램을 종료합니다.")
                 break
@@ -1543,7 +1549,7 @@ def print_enhanced_success_result(result, converter):
     
     # 대안 분류 정보
     if korea_rec.get('is_alternative_classification'):
-        print(f"- 분류 유형: 🔄 대안 분류 (HS {korea_rec['source_hs6']})")
+        print(f"- 분류 유형: 대안 분류 (HS {korea_rec['source_hs6']})")
     
     print(f"\n📊 **분석 정보**")
     print(f"- HS 6자리 매칭: ✅ 완료 ({hs_analysis['us_hs6']})")

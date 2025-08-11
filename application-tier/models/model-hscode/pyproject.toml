@@ -16,6 +16,9 @@ dependencies = [
     "gradio>=4.0.0",
     "aiofiles>=23.2.1",
     "asyncio-mqtt>=0.16.2",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "dotenv>=0.9.9",
 ]
 
 [project.scripts]

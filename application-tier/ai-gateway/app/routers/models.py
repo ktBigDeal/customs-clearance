@@ -66,7 +66,7 @@ model_registry: Dict[str, ModelInfo] = {
         status=ModelStatus.READY,
         description="HS Code 변환 및 조회 서비스",
         metadata={
-            "service_url": "http://localhost:8003",
+            "service_url": "http://localhost:8006",
             "endpoints": {
                 "convert": "/convert",
                 "lookup": "/lookup"

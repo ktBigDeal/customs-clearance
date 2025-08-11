@@ -73,7 +73,7 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       /** API 서버의 기본 URL (환경변수 또는 기본값 사용) */
-      baseURL: process.env.API_BASE_URL || 'http://localhost:3000/api',
+      baseURL: process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1` : 'http://localhost:8080/api/v1',
       /** 요청 타임아웃 (10초) */
       timeout: 10000,
       /** 기본 HTTP 헤더 */
@@ -387,6 +387,123 @@ class ApiClient {
 
 // Create singleton instance
 export const apiClient = new ApiClient();
+
+// Additional API functions for report generation
+
+// Declaration types for report generation
+export interface DeclarationCreateRequest {
+  declarationNumber: string;
+  declarationType: 'IMPORT' | 'EXPORT';
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  importerName: string;
+  hsCode?: string;
+  totalAmount?: number;
+  declarationDetails?: string;
+}
+
+export interface OcrAnalysisRequest {
+  files: File[];
+  analysisType: 'invoice' | 'packing_list' | 'bill_of_lading' | 'certificate_of_origin';
+}
+
+export interface OcrAnalysisResult {
+  extractedText: string;
+  structuredData: any;
+  confidence: number;
+}
+
+// API base URL configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+/**
+ * Create a new declaration with file uploads
+ */
+export const createDeclaration = async (
+  declarationData: DeclarationCreateRequest,
+  files?: {
+    invoiceFile?: File;
+    packingListFile?: File;
+    billOfLadingFile?: File;
+    certificateOfOriginFile?: File;
+  }
+): Promise<any> => {
+  try {
+    const formData = new FormData();
+    
+    // Add declaration data to form
+    Object.entries(declarationData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
+    });
+    
+    // Add files to form data
+    if (files) {
+      if (files.invoiceFile) {
+        formData.append('invoice_file', files.invoiceFile);
+      }
+      if (files.packingListFile) {
+        formData.append('packing_list_file', files.packingListFile);
+      }
+      if (files.billOfLadingFile) {
+        formData.append('bill_of_lading_file', files.billOfLadingFile);
+      }
+      if (files.certificateOfOriginFile) {
+        formData.append('certificate_of_origin_file', files.certificateOfOriginFile);
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/declaration`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error('Declaration creation error:', error);
+    throw new Error(error.message || 'Failed to create declaration');
+  }
+};
+
+/**
+ * Perform OCR analysis on uploaded files (mock implementation)
+ */
+export const performOcrAnalysis = async (
+  request: OcrAnalysisRequest
+): Promise<OcrAnalysisResult> => {
+  // Mock implementation - in real app, this would call AI Gateway
+  await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+  
+  return {
+    extractedText: 'Mock extracted text from documents...',
+    structuredData: {
+      companyInfo: {
+        name: 'AI 추출된 업체명',
+        address: '서울시 강남구 테헤란로 123',
+        businessNumber: '123-45-67890'
+      },
+      goods: [
+        {
+          description: 'AI 추출된 상품명',
+          quantity: 100,
+          unitPrice: 50,
+          hsCode: '1234567890'
+        }
+      ],
+      invoice: {
+        invoiceNumber: 'INV-2024-001',
+        date: '2024-01-15',
+        amount: 5000
+      }
+    },
+    confidence: 0.92
+  };
+};
 
 // Extend AxiosRequestConfig to include metadata
 declare module 'axios' {

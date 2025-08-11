@@ -184,10 +184,10 @@ export function ProgressIndicator({
       }, 3000);
     };
 
-    eventSource.onclose = () => {
+    eventSource.addEventListener('close', () => {
       console.log('[Progress] SSE connection closed');
       setConnectionStatus('disconnected');
-    };
+    });
   };
 
   /**
