@@ -3,6 +3,7 @@ package com.customs.clearance.controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
 import com.customs.clearance.service.DeclarationService;
 
@@ -155,6 +156,53 @@ public class DeclarationController {
         }
 
         return declarationService.getDeclarationList(null, status, token);
+    }
+
+    @GetMapping("/attachment/{declarationId}")
+    public List<Attachment> getAttachmentListByDeclaration(
+        @PathVariable Long declarationId,
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getAttachmentListByDeclaration(declarationId, token);
+    }
+
+    @GetMapping("/attachment/user/{userId}")
+    public List<Attachment> getAttachmentListByUser(
+        @PathVariable Long userId,
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getAttachmentListByUser(userId, token);
+    }
+
+    @GetMapping("/attachment/admin")
+    public List<Attachment> getAttachmentListByAdmin(
+        HttpServletRequest request
+    ) {
+        
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getAttachmentListByAdmin(token);
     }
 
 }

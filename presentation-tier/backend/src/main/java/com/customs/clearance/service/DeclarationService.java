@@ -24,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -218,7 +219,7 @@ public class DeclarationService {
             throw new RuntimeException("다른 사용자의 신고서 목록은 조회할 수 없습니다.");
         }
 
-        List<Declaration> list; 
+        List<Declaration> list = new ArrayList<>(); 
 
         if (user.getRole().equals("USER") && status == null) {
             list = declarationRepository.findAllByCreatedBy(user.getId());
@@ -235,7 +236,7 @@ public class DeclarationService {
             list = declarationRepository.findAllByCreatedByAndStatus(userId, enumStatus);
         } else if(user.getRole().equals("ADMIN") && status == null){
             list = declarationRepository.findAll();
-        } else {
+        } else if(user.getRole().equals("ADMIN") && status != null){
             
             Declaration.DeclarationStatus enumStatus;
 
@@ -249,6 +250,53 @@ public class DeclarationService {
         }
 
         return list;
+    }
+
+    public List<Attachment> getAttachmentListByDeclaration(Long declarationId, String token){
+
+        User user = getUserByToken(token);
+        Declaration declaration = declarationRepository.findById(declarationId).orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
+
+        if(user.getRole().equals("USER") && user.getId() != declaration.getCreatedBy()){
+            throw new RuntimeException("다른 사용자의 파일 목록은 조회할 수 없습니다.");
+        }
+
+        List<Attachment> list = attachmentRepository.findByDeclarationId(declarationId);
+
+         return list;
+    }
+
+    public List<Attachment> getAttachmentListByUser(Long userId, String token){
+
+        User user = getUserByToken(token);
+
+        if(user.getRole().equals("USER") && user.getId() != userId){
+            throw new RuntimeException("다른 사용자의 파일 목록은 조회할 수 없습니다.");
+        }
+
+        List<Declaration> deList = declarationRepository.findAllByCreatedBy(userId);
+
+        List<Attachment> list = new ArrayList<>();
+
+        for(Declaration declaration : deList){
+            List<Attachment> atList = attachmentRepository.findByDeclarationId(declaration.getId());
+            list.addAll(atList);
+        }
+
+         return list;
+    }
+
+    public List<Attachment> getAttachmentListByAdmin(String token){
+
+        User user = getUserByToken(token);
+
+        if(!user.getRole().equals("ADMIN")){
+            throw new RuntimeException("관리자 권한 사용자만 조회할 수 있습니다.");
+        }
+
+        List<Attachment> list = attachmentRepository.findAll();
+
+         return list;
     }
 
 }
