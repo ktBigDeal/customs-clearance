@@ -1,1 +1,1 @@
-# HS Code 변환 API 패키지
+# FastAPI HS 코드 추천 앱

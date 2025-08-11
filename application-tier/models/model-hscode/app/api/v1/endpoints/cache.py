@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 import logging
 import time
 
-from core.recommender import RecommenderService
-from schemas.request import CacheRequest
-from schemas.response import CacheResponse, StatusResponse
+from ....core.recommender import RecommenderService
+from ....schemas.request import CacheRequest
+from ....schemas.response import CacheResponse, StatusResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

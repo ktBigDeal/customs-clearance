@@ -18,7 +18,7 @@ sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
 from hs_recommender import HSCodeRecommender
-from core.config import Settings
+from .config import Settings
 
 logger = logging.getLogger(__name__)
 

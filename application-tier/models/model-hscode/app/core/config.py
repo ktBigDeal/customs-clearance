@@ -2,7 +2,9 @@
 API 서버 설정 관리
 """
 
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 from pathlib import Path
 from typing import Dict, Any, Optional
 from functools import lru_cache
@@ -12,6 +14,9 @@ import sys
 # 프로젝트 루트 경로 설정
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.append(str(PROJECT_ROOT))
+
+# .env 파일 로드
+load_dotenv(PROJECT_ROOT / ".env")
 
 # 기존 설정 가져오기
 try:
@@ -105,10 +110,12 @@ class Settings(BaseSettings):
         """LLM 설정 반환"""
         return LLM_CONFIG
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
 
 class DevelopmentSettings(Settings):
     """개발 환경 설정"""

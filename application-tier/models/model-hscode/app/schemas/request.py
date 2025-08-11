@@ -123,7 +123,7 @@ class CacheRequest(BaseModel):
     
     action: str = Field(
         ...,
-        regex="^(rebuild|clear|info)$",
+        pattern="^(rebuild|clear|info)$",
         description="캐시 액션: rebuild, clear, info"
     )
     
@@ -139,7 +139,7 @@ class ValidateHSCodeRequest(BaseModel):
         ...,
         min_length=6,
         max_length=10,
-        regex="^[0-9]+$",
+        pattern="^[0-9]+$",
         description="검증할 HS 코드",
         example="7318159000"
     )
@@ -166,7 +166,7 @@ class SimilarRequest(BaseModel):
         ...,
         min_length=6,
         max_length=10,
-        regex="^[0-9]+$",
+        pattern="^[0-9]+$",
         description="기준 HS 코드"
     )
     

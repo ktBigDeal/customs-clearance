@@ -7,9 +7,9 @@ from typing import List
 import time
 import logging
 
-from core.recommender import RecommenderService
-from schemas.request import RecommendRequest, BatchRecommendRequest
-from schemas.response import (
+from ....core.recommender import RecommenderService
+from ....schemas.request import RecommendRequest, BatchRecommendRequest
+from ....schemas.response import (
     RecommendResponse, BatchRecommendResponse, 
     HSCodeRecommendation, SearchInfo
 )

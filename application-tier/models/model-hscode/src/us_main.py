@@ -32,20 +32,25 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
                 converter_service.clear_cache()
             converter_service = None
         
-        # OpenAI API 키 자동 로드
+        # OpenAI API 키를 환경 변수에서 먼저 로드, 없으면 파일에서 로드
         if not openai_api_key:
-            project_root = Path(__file__).parent.parent
-            api_key_file = project_root / "docs" / "Aivle-api.txt"
-            
-            if api_key_file.exists():
-                try:
-                    with open(api_key_file, 'r', encoding='utf-8') as f:
-                        openai_api_key = f.read().strip()
-                    print(f"🔑 API 키 자동 로드: {api_key_file}")
-                except Exception as e:
-                    print(f"⚠️ API 키 파일 읽기 실패: {e}")
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if openai_api_key:
+                print("🔑 환경 변수에서 OpenAI API 키 로드")
             else:
-                print(f"⚠️ API 키 파일을 찾을 수 없음: {api_key_file}")
+                # 환경 변수에 없으면 파일에서 로드
+                project_root = Path(__file__).parent.parent
+                api_key_file = project_root / "docs" / "Aivle-api.txt"
+                
+                if api_key_file.exists():
+                    try:
+                        with open(api_key_file, 'r', encoding='utf-8') as f:
+                            openai_api_key = f.read().strip()
+                        print(f"🔑 API 키 파일에서 로드: {api_key_file}")
+                    except Exception as e:
+                        print(f"⚠️ API 키 파일 읽기 실패: {e}")
+                else:
+                    print(f"⚠️ API 키 파일을 찾을 수 없음: {api_key_file}")
         
         # 미국 관세율표 파일 경로 설정
         if not us_tariff_file:
@@ -362,14 +367,17 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     
+    # .env 파일에서 포트 설정 로드 (기본값 8006)
+    port = int(os.getenv("PORT", 8006))
+    
     print("🚀 HS Code Converter API 서버 시작")
-    print("📖 API 문서: http://localhost:8000/docs")
-    print("🔍 Interactive API: http://localhost:8000/redoc")
+    print(f"📖 API 문서: http://localhost:{port}/docs")
+    print(f"🔍 Interactive API: http://localhost:{port}/redoc")
     
     uvicorn.run(
         "us_main:app",  # 문자열로 모듈명과 앱 객체 지정
         host="0.0.0.0",
-        port=8000,
+        port=port,      # 환경 변수에서 읽어온 포트 사용
         reload=True,
         log_level="info"
     )

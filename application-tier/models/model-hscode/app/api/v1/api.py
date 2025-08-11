@@ -4,7 +4,7 @@ API v1 라우터 통합
 
 from fastapi import APIRouter
 
-from api.v1.endpoints import recommend, search, health, cache
+from .endpoints import recommend, search, health, cache
 
 api_router = APIRouter()
 

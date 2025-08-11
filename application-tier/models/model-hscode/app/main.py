@@ -19,10 +19,10 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
-from api.v1.api import api_router
-from core.config import get_settings
-from core.recommender import RecommenderService
-from schemas.response import HealthResponse, StatusResponse
+from .api.v1.api import api_router
+from .core.config import get_settings
+from .core.recommender import RecommenderService
+from .schemas.response import HealthResponse, StatusResponse
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -153,10 +153,10 @@ def get_recommender_service() -> RecommenderService:
     return recommender_service
 
 # 의존성 등록 (다른 모듈에서 사용)
-from api.v1.endpoints.recommend import get_recommender_service as recommend_get_service
-from api.v1.endpoints.search import get_recommender_service as search_get_service  
-from api.v1.endpoints.health import get_recommender_service as health_get_service
-from api.v1.endpoints.cache import get_recommender_service as cache_get_service
+from .api.v1.endpoints.recommend import get_recommender_service as recommend_get_service
+from .api.v1.endpoints.search import get_recommender_service as search_get_service  
+from .api.v1.endpoints.health import get_recommender_service as health_get_service
+from .api.v1.endpoints.cache import get_recommender_service as cache_get_service
 
 app.dependency_overrides[recommend_get_service] = get_recommender_service
 app.dependency_overrides[search_get_service] = get_recommender_service
@@ -181,14 +181,14 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="HS 코드 추천 API 서버")
     parser.add_argument("--host", default="0.0.0.0", help="호스트 주소")
-    parser.add_argument("--port", type=int, default=8000, help="포트 번호")
+    parser.add_argument("--port", type=int, default=8003, help="포트 번호")
     parser.add_argument("--reload", action="store_true", help="개발 모드 (자동 재시작)")
     parser.add_argument("--workers", type=int, default=1, help="워커 프로세스 수")
     
     args = parser.parse_args()
     
     uvicorn.run(
-        "main:app",
+        "app.main:app",
         host=args.host,
         port=args.port,
         reload=args.reload,
