@@ -1,0 +1,707 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wco:Declaration xmlns:wco="urn:kr:gov:kcs:data:standard:KCS_DeclarationOfIMP_929SchemaModule:1:0" xmlns:kcs="urn:kr:gov:kcs:data:standard:KCS_DeclarationOfIMP_929SchemaModule:1:0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:kr:gov:kcs:data:standard:KCS_DeclarationOfIMP_929SchemaModule:1:0 ../../schema4G/kcs/data/standard/KCS_DeclarationOfIMP_929SchemaModule_1.0_standard.xsd">
+	<!--신고세관/과-->
+	<wco:DeclarationOfficeID>01020</wco:DeclarationOfficeID>
+	<!--신고번호-->
+	<wco:ID>4062001070010U</wco:ID>
+	<!--결제금액(통화종류)-->
+	<wco:InvoiceAmount currencyID="USD">1000000</wco:InvoiceAmount>
+	<!--신고일자(CCYYMMDD)-->
+	<wco:IssueDateTime>20130101</wco:IssueDateTime>
+	<!--총중량(단위)-->
+	<wco:TotalGrossMassMeasure kcsUnitCode="KG">95.2</wco:TotalGrossMassMeasure>
+	<!--총포장갯수(포장종류)-->
+	<wco:TotalPackageQuantity kcsUnitCode="CT">2</wco:TotalPackageQuantity>
+	<!--문서형태구분(GOVCBR929 고정)-->
+	<wco:TypeCode>GOVCBR929</wco:TypeCode>
+	<!--거래구분-->
+	<wco:TransactionNatureCode>11</wco:TransactionNatureCode>
+	<!--응답형태코드-->
+	<kcs:ResponseTypeCode>AB</kcs:ResponseTypeCode>
+	<!--포괄적 가격신고서 등록번호-->
+	<kcs:AggregationPriceDeclarationID>123456789012</kcs:AggregationPriceDeclarationID>
+	<!--징수형태-->
+	<kcs:PaymentTypeCode>13</kcs:PaymentTypeCode>
+	<!--B/L분할기타사유-->
+	<kcs:Reason>분할기타사유</kcs:Reason>
+	<wco:AdditionalCode>
+		<!--원산지증명서 유무(Y/N 기재)-->
+		<kcs:CertificateOfOriginIndicatorCode>Y</kcs:CertificateOfOriginIndicatorCode>
+		<!--가격신고서 유무(Y/N 기재)-->
+		<kcs:ValueDeclarationFormIndicatorCode>Y</kcs:ValueDeclarationFormIndicatorCode>
+		<!--B/L분할사유부호-->
+		<kcs:BillOfLadingSplitCode>A</kcs:BillOfLadingSplitCode>
+		<!--금거래계좌여부(Y/N 기재)-->
+		<kcs:GoldTradeAcountIndicatorCode>Y</kcs:GoldTradeAcountIndicatorCode>
+		<!--가격신고서 제출 비대상 사유-->
+		<kcs:ValueDeclarationExceptionCode>01</kcs:ValueDeclarationExceptionCode>
+	</wco:AdditionalCode>
+	<wco:AdditionalDocument>
+		<!--전자인보이스:935/전자패킹리스트:271-->
+		<wco:TypeCode>935</wco:TypeCode>
+		<!--세관 제출번호-->
+		<wco:ID>000000000000000000000000000</wco:ID>
+	</wco:AdditionalDocument>
+	<wco:AdditionalDocument>
+		<!--전자인보이스:935/전자패킹리스트:271-->
+		<wco:TypeCode>271</wco:TypeCode>
+		<!--세관 제출번호-->
+		<wco:ID>000000000000000000000000000</wco:ID>
+	</wco:AdditionalDocument>
+	<wco:AdditionalInformation>
+		<!--관세사 기재사항 1-->
+		<wco:Content>기재사항1</wco:Content>
+		<!--관세사기재구분부호 1(257:거래관계부호)-->
+		<wco:StatementCode name="257">A</wco:StatementCode>
+		<!--관세사기재구분부호 2(258:품명규격세번관련부호)-->
+		<wco:StatementCode name="258">A</wco:StatementCode>
+		<!--관세사기재구분부호 3(259:검사의견부호)-->
+		<wco:StatementCode name="259">A</wco:StatementCode>
+		<!--모바일 조회･납부 서비스대상-->
+		<wco:StatementTypeCode>Y</wco:StatementTypeCode>
+		<!--관세사 기재사항 2-->
+		<wco:StatementDescription>기재사항2</wco:StatementDescription>
+		<!--사용신고 구분-->
+		<kcs:UsageDclarationCode>B</kcs:UsageDclarationCode>
+		<!--사용일시-->
+		<kcs:UsageDateTime>20120210101200</kcs:UsageDateTime>
+	</wco:AdditionalInformation>
+	<wco:Agent>
+		<!--특별통관대상업체부호-->
+		<wco:ID>1234567890</wco:ID>
+		<!--구매･배송대행업자 상호-->
+		<wco:Name>온라인마켓</wco:Name>
+		<!--구매･배송대행업자 부호-->
+		<kcs:RegistrationID>B12200001</kcs:RegistrationID>
+	</wco:Agent>
+	<wco:BorderTransportMeans>
+		<!--입항일자-->
+		<wco:ArrivalDateTime>20120101</wco:ArrivalDateTime>
+		<!--선(기)명-->
+		<wco:Name>KE1098</wco:Name>
+		<!--선(기)국적-->
+		<wco:RegistrationNationalityID>KR</wco:RegistrationNationalityID>
+		<!--운송수단-->
+		<wco:TypeCode>4</wco:TypeCode>
+	</wco:BorderTransportMeans>
+	<wco:CurrencyExchange>
+		<!--환율-->
+		<wco:RateNumeric>1210.12</wco:RateNumeric>
+	</wco:CurrencyExchange>
+	<wco:CustomsProcedure>
+		<!--신고구분-->
+		<kcs:ProcessTypeCode>A</kcs:ProcessTypeCode>
+		<!--수입종류-->
+		<kcs:TypeCode>L</kcs:TypeCode>
+	</wco:CustomsProcedure>
+	<wco:Consignment>
+		<wco:AdditionalInformation>
+			<!--전자상거래유형-->
+			<wco:StatementTypeCode>A</wco:StatementTypeCode>
+		</wco:AdditionalInformation>
+		<wco:Agent>
+			<!--판매중개자 부호-->
+			<wco:ID>D12200001</wco:ID>
+			<!--판매중개자 상호-->
+			<wco:Name>11번가</wco:Name>
+		</wco:Agent>
+		<wco:Exporter>
+			<!--해외판매자 부호-->
+			<wco:ID>A12200001</wco:ID>
+			<!--해외판매자 상호-->
+			<wco:Name>아마존</wco:Name>
+		</wco:Exporter>
+		<!--0..50 시작-->
+		<wco:PreviousDocument>
+			<!--주문번호-->
+			<wco:ID>12345678</wco:ID>
+			<!--주문번호 일련번호-->
+			<wco:SequenceNumeric>01</wco:SequenceNumeric>
+		</wco:PreviousDocument>
+		<wco:PreviousDocument>
+			<!--주문번호-->
+			<wco:ID>22222222</wco:ID>
+			<!--주문번호 일련번호-->
+			<wco:SequenceNumeric>02</wco:SequenceNumeric>
+		</wco:PreviousDocument>
+		<!--0..50 끝-->
+	</wco:Consignment>
+	<!--10번 반복 시작-->
+	<!--총관세-->
+	<wco:DutyTaxFee>
+		<!--총과세가격 합계(원화/미화)-->
+		<wco:AdValoremTaxBaseAmount currencyID="KRW">999999999999</wco:AdValoremTaxBaseAmount>
+		<!--총과세가격 합계(원화/미화)-->
+		<wco:AdValoremTaxBaseAmount currencyID="USD">9999999999</wco:AdValoremTaxBaseAmount>
+		<!--세액 구분코드(관세)-->
+		<wco:TypeCode>CUD</wco:TypeCode>
+		<wco:Payment>
+			<!--총관세총액-->
+			<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총개별소비세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(특소세)-->
+		<wco:TypeCode>IND</wco:TypeCode>
+		<wco:Payment>
+			<!--총특소세-->
+			<wco:TaxAssessedAmount>100</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총교통세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(교통세)-->
+		<wco:TypeCode>5AA</wco:TypeCode>
+		<wco:Payment>
+			<!--총교통세-->
+			<wco:TaxAssessedAmount>100</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총주세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(주세)-->
+		<wco:TypeCode>ACT</wco:TypeCode>
+		<wco:Payment>
+			<!--총주세-->
+			<wco:TaxAssessedAmount>100</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총교육세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(교육세)-->
+		<wco:TypeCode>5AB</wco:TypeCode>
+		<wco:Payment>
+			<!--총교육세-->
+			<wco:TaxAssessedAmount>100</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총농특세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(농특세)-->
+		<wco:TypeCode>CAP</wco:TypeCode>
+		<wco:Payment>
+			<!--총농특세-->
+			<wco:TaxAssessedAmount>100</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총부가세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(부가세)-->
+		<wco:TypeCode>VAT</wco:TypeCode>
+		<wco:Payment>
+			<!--총부가세-->
+			<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--신고지연가산세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(신고지연가산세)-->
+		<wco:TypeCode>5AC </wco:TypeCode>
+		<wco:Payment>
+			<!--신고지연가산세-->
+			<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--미신고가산세-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(미신고가산세)-->
+		<wco:TypeCode>5AY</wco:TypeCode>
+		<wco:Payment>
+			<!--미신고가산세-->
+			<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--총세액합계-->
+	<wco:DutyTaxFee>
+		<!--세액 구분코드(총세액합계)-->
+		<wco:TypeCode>5CZ</wco:TypeCode>
+		<!--총부가세과세과표-->
+		<kcs:TotalVATBaseAmount>999999999999</kcs:TotalVATBaseAmount>
+		<!--총부가세면세과표-->
+		<kcs:TotalVATExemptionBaseAmount>999999999999</kcs:TotalVATExemptionBaseAmount>
+		<wco:Payment>
+			<!--(총세액합계)-->
+			<wco:TaxAssessedAmount>1234</wco:TaxAssessedAmount>
+		</wco:Payment>
+	</wco:DutyTaxFee>
+	<!--10번 반복 끝-->
+	<wco:GoodsShipment>
+		<!--적출국가코드-->
+		<wco:ExportationCountryCode>PR</wco:ExportationCountryCode>
+		<wco:Agent>
+			<!--운송주선인 부호-->
+			<wco:ID>ABCD</wco:ID>
+			<!--운송주선인 상호-->
+			<wco:Name>세관무역㈜</wco:Name>
+		</wco:Agent>
+		<wco:AdditionalDocument>
+			<wco:Authenticator>
+				<!--해외공급자 부호-->
+				<wco:ID>CNTOSHIN12345</wco:ID>
+				<!--해외공급자 상호-->
+				<wco:Name>OMR ENGR</wco:Name>
+				<wco:Address>
+					<!--해외공급자 국가-->
+					<wco:CountryCode>JP</wco:CountryCode>
+				</wco:Address>
+			</wco:Authenticator>
+		</wco:AdditionalDocument>
+		<wco:Consignment>
+			<wco:Carrier>
+				<!--운수기관부호-->
+				<wco:ID>HJSC</wco:ID>
+			</wco:Carrier>
+			<wco:Express>
+				<!--특송업체부호-->
+				<kcs:ID>HJSC</kcs:ID>
+			</wco:Express>
+			<wco:TransportContractDocument>
+				<!--B/L(AWB) 번호/Master B/L 번호-->
+				<wco:ID>DBSC96100123AB01</wco:ID>
+				<!--B/L종류코드(714:H-B/L, 704:M-B/L)-->
+				<wco:TypeCode>714</wco:TypeCode>
+			</wco:TransportContractDocument>
+			<wco:TransportContractDocument>
+				<!--B/L(AWB) 번호/Master B/L 번호-->
+				<wco:ID>HJSC98100123AB01</wco:ID>
+				<!--B/L종류코드(714:H-B/L, 704:M-B/L)-->
+				<wco:TypeCode>704</wco:TypeCode>
+			</wco:TransportContractDocument>
+			<wco:TransportEquipment>
+				<!--운송용기-->
+				<wco:CharacteristicCode>ETC</wco:CharacteristicCode>
+			</wco:TransportEquipment>
+			<wco:UnloadingLocation>
+				<!--국내도착항-->
+				<wco:ID>KRPUS</wco:ID>
+			</wco:UnloadingLocation>
+		</wco:Consignment>
+		<wco:CustomsValuation>
+			<!--보험료(통화단위)-->
+			<wco:ExitToEntryChargeAmount currencyID="KRW">1000</wco:ExitToEntryChargeAmount>
+			<!--운임(통화단위)-->
+			<wco:FreightChargeAmount currencyID="KRW">1000</wco:FreightChargeAmount>
+			<wco:ChargeDeduction>
+				<!--가산/공제 구분(가산:01, 공제:02)-->
+				<wco:ChargesTypeCode>01</wco:ChargesTypeCode>
+				<!--가산금액/공제금액-->
+				<wco:OtherChargeDeductionAmount>999999999999</wco:OtherChargeDeductionAmount>
+			</wco:ChargeDeduction>
+			<wco:ChargeDeduction>
+				<!--가산/공제 구분(가산:01, 공제:02)-->
+				<wco:ChargesTypeCode>02</wco:ChargesTypeCode>
+				<!--가산금액/공제금액-->
+				<wco:OtherChargeDeductionAmount>999999999999</wco:OtherChargeDeductionAmount>
+			</wco:ChargeDeduction>
+		</wco:CustomsValuation>
+		<!--999 반복 시작-->
+		<wco:GovernmentAgencyGoodsItem>
+			<!--란번호-->
+			<wco:SequenceNumeric>123</wco:SequenceNumeric>
+			<wco:AdditionalCode>
+				<!--신고인기재 검사필요란 여부-->
+				<kcs:ExaminationIndicatorCode>Y</kcs:ExaminationIndicatorCode>
+			</wco:AdditionalCode>
+			<wco:AdditionalDocument>
+				<!--즉시반출신고번호-->
+				<wco:ID>0307709920R0023782</wco:ID>
+			</wco:AdditionalDocument>
+			<!--8번반복 시작-->
+			<wco:AdditionalInformation>
+				<!--요건 비대상 사유-->
+				<wco:Content>기타사유</wco:Content>
+				<!--요건 비대상 사유 부호-->
+				<wco:ReconciliationReasonCode>A</wco:ReconciliationReasonCode>
+				<!--요건 비대상 상세사유코드-->
+				<wco:StatementCode>상세사유코드</wco:StatementCode>
+				<!--요건 비대상 법령부호-->
+				<kcs:CriteriaConformanceCode>05</kcs:CriteriaConformanceCode>
+			</wco:AdditionalInformation>
+			<wco:AdditionalInformation>
+				<!--요건 비대상 사유-->
+				<wco:Content>기타사유</wco:Content>
+				<!--요건 비대상 사유 부호-->
+				<wco:ReconciliationReasonCode>A</wco:ReconciliationReasonCode>
+				<!--요건 비대상 법령부호-->
+				<kcs:CriteriaConformanceCode>05</kcs:CriteriaConformanceCode>
+			</wco:AdditionalInformation>
+			<!--8번반복 끝-->
+			<wco:Commodity>
+				<!--제품란번호-->
+				<wco:SequenceNumeric>123</wco:SequenceNumeric>
+				<!--거래품명-->
+				<wco:CargoDescription>RABBIT MEAT</wco:CargoDescription>
+				<!--표준품명코드-->
+				<wco:CharacteristicCode>0208100000-01-101</wco:CharacteristicCode>
+				<!--수량(단위)-->
+				<wco:CountQuantity kcsUnitCode="DZ">30</wco:CountQuantity>
+				<!--품명-->
+				<wco:Description>TACKS</wco:Description>
+				<!--제품원료구분-->
+				<wco:IntendedUseCode>7</wco:IntendedUseCode>
+				<!--상표명-->
+				<wco:Name>상표명</wco:Name>
+				<!--상표코드-->
+				<kcs:NameCode>ZZZZ</kcs:NameCode>
+				<!--환급물량(단위)-->
+				<kcs:DetailedCountQuantity kcsUnitCode="">123</kcs:DetailedCountQuantity>
+				<wco:AdditionalCode>
+					<!--합의세율신청 및 서류첨부여부(Y/N 기재)-->
+					<kcs:AttachmentIndicatorCode>Y</kcs:AttachmentIndicatorCode>
+					<!--관세액기준(1:종가세,3:종량세)-->
+					<kcs:CriteriaCode>1</kcs:CriteriaCode>
+					<!--특송업체 C/S(Y/N 기재)-->
+					<kcs:ExaminationIndicatorCode>Y</kcs:ExaminationIndicatorCode>
+				</wco:AdditionalCode>
+				<wco:AdditionalDocument>
+					<!--전용물품확인공문번호-->
+					<wco:ID>123456789</wco:ID>
+				</wco:AdditionalDocument>
+				<wco:CertificateOfOrigin>
+					<!--원산지증명서 원산지 기준코드-->
+					<kcs:CriteriaCode>01</kcs:CriteriaCode>
+					<!--원산지증명서 발행일자-->
+					<kcs:IssueDateTime>20130101</kcs:IssueDateTime>
+					<!--원산지증명서 발행번호-->
+					<kcs:IssueID>123456789</kcs:IssueID>
+					<!--원산지증명서 발행기관명-->
+					<kcs:IssueAgencyName>발행기관명</kcs:IssueAgencyName>
+					<!--원산지증명서 발행 국가부호-->
+					<kcs:IssueLocationCode>KR</kcs:IssueLocationCode>
+					<!--원산지증명서 발급지역명-->
+					<kcs:IssueLocationName>발급지역명</kcs:IssueLocationName>
+					<!--원산지증명서 발급담당자명-->
+					<kcs:IssuerName>발급담당자명</kcs:IssuerName>
+					<!--원산지증명서 분할여부(Y/N 기재)-->
+					<kcs:SplitIndicatorCode>Y</kcs:SplitIndicatorCode>
+					<!--원산지증명서 전체중량-->
+					<kcs:TotalGrossMassMeasure>10000</kcs:TotalGrossMassMeasure>
+					<!--원산지증명서 전체수량-->
+					<kcs:TotalQuantityQuantity>10000</kcs:TotalQuantityQuantity>
+					<!--원산지증명서 사용중량-->
+					<kcs:UsageGrossMassMeasure>10000</kcs:UsageGrossMassMeasure>
+					<!--원산지증명서 사용수량-->
+					<kcs:UsageQuantityQuantity>10000</kcs:UsageQuantityQuantity>
+				</wco:CertificateOfOrigin>
+				<wco:Classification>
+					<!--세번부호(HS코드)-->
+					<wco:ID>0208100000</wco:ID>
+				</wco:Classification>
+				<!--99번반복 시작-->
+				<wco:DetailedCommodity>
+					<!--규격번호-->
+					<wco:SequenceNumeric>01</wco:SequenceNumeric>
+					<!--중량수량(단위)-->
+					<wco:CountQuantity kcsUnitCode="PC">999999999</wco:CountQuantity>
+					<!--모델 및 규격-->
+					<wco:Description>모델 및 규격</wco:Description>
+					<!--부품코드-->
+					<wco:LotNumberID>K12123</wco:LotNumberID>
+					<!--단가-->
+					<kcs:UnitPriceAmount>30.402575</kcs:UnitPriceAmount>
+					<!--금액-->
+					<kcs:ValueAmount>30.4627</kcs:ValueAmount>
+					<!--8번반복 시작-->
+					<wco:AdditionalDocument>
+						<!--수입요건확인서 법령코드-->
+						<wco:CriteriaConformanceCode>123456789</wco:CriteriaConformanceCode>
+						<!--수입요건승인번호-->
+						<wco:ID>01</wco:ID>
+						<!--수입요건확인서 발급일자-->
+						<wco:IssueDateTime>20120101</wco:IssueDateTime>
+						<!--수입요건확인서구분-->
+						<wco:TypeCode>1</wco:TypeCode>
+						<!--수입요건확인서 발급서류명-->
+						<wco:Name>서류명</wco:Name>
+						<!--용도코드-->
+						<kcs:IntendedUseCode>11</kcs:IntendedUseCode>
+						<!--품목식별부호-->
+						<kcs:CommercialCategorizationID>12455632</kcs:CommercialCategorizationID>
+					</wco:AdditionalDocument>
+					<!--8번반복 끝-->
+					<wco:AdditionalInformation>
+						<!--반복수출입거래등록번호-->
+						<kcs:RegistrationID>123451200000001</kcs:RegistrationID>
+					</wco:AdditionalInformation>
+					<wco:Constituent>
+						<!--성분-->
+						<wco:ElementName>성분</wco:ElementName>
+					</wco:Constituent>
+				</wco:DetailedCommodity>
+				<!--99번반복 끝-->
+				<!--6번반복 시작-->
+				<!--관세(관세액은 필수 기재(설계구조상 C))-->
+				<wco:DutyTaxFee>
+					<!--과세가격(원화/미화)-->
+					<wco:AdValoremTaxBaseAmount currencyID="KRW">1000</wco:AdValoremTaxBaseAmount>
+					<!--과세가격(원화/미화)-->
+					<wco:AdValoremTaxBaseAmount currencyID="USD">100</wco:AdValoremTaxBaseAmount>
+					<!--관세감면액-->
+					<wco:DeductAmount>2001020</wco:DeductAmount>
+					<!--관세감면구분-->
+					<kcs:DutyTaxDecuctTypeCode>AA</kcs:DutyTaxDecuctTypeCode>
+					<!--관세감면분납부호-->
+					<kcs:DutyTaxDeductionInstallmentID>A028040100</kcs:DutyTaxDeductionInstallmentID>
+					<!--관세감면율(관세일경우 1번만기재)-->
+					<kcs:DeductionRateNumeric>99.99</kcs:DeductionRateNumeric>
+					<!--상세 세종 구분코드-->
+					<wco:DutyRegimeCode>x</wco:DutyRegimeCode>
+					<!--관세율-->
+					<wco:TaxRateNumeric>99.99</wco:TaxRateNumeric>
+					<!--세금한정코드(CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세)-->
+					<wco:TypeCode>CUD</wco:TypeCode>
+					<wco:Payment>
+						<!--세액 (각 세종부호별 해당 세액을 기재)=> 관세액/내국세/교육세/농특세/부가세-->
+						<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+					</wco:Payment>
+				</wco:DutyTaxFee>
+				<!--내국세-->
+				<wco:DutyTaxFee>
+					<!--내국세구분부호-->
+					<wco:DutyRegimeCode>x</wco:DutyRegimeCode>
+					<!--내국세종부호-->
+					<kcs:InternalTaxTypeCode>AA</kcs:InternalTaxTypeCode>
+					<!--특소세 면세부호(내국세일경우만 기재)-->
+					<kcs:SpecialConsumptionTaxDeductionCode>AA</kcs:SpecialConsumptionTaxDeductionCode>
+					<!--내국세율-->
+					<wco:TaxRateNumeric>99.99</wco:TaxRateNumeric>
+					<!--세금한정코드 (CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세)-->
+					<wco:TypeCode>LCN</wco:TypeCode>
+					<!--주세면세부호(내국세일때 기재)-->
+					<kcs:LiquorTaxDeduction>0000001</kcs:LiquorTaxDeduction>
+					<!--교통세면세부호-->
+					<kcs:TransportaionTaxDeduction>T120101</kcs:TransportaionTaxDeduction>
+					<wco:Payment>
+						<!--특수세액 계산근거(내국세일때 기재)-->
+						<kcs:SpecialTaxDescriptionAmount>999999999999</kcs:SpecialTaxDescriptionAmount>
+						<!--세액 (각 세종부호별 해당 세액을 기재)=> 관세액/내국세/교육세/농특세/부가세-->
+						<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+					</wco:Payment>
+				</wco:DutyTaxFee>
+				<!--교육세-->
+				<wco:DutyTaxFee>
+					<!--교육세구분부호-->
+					<wco:DutyRegimeCode>x</wco:DutyRegimeCode>
+					<!--세금한정코드 (CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세)-->
+					<wco:TypeCode>5AB</wco:TypeCode>
+					<wco:Payment>
+						<!--세액 (각 세종부호별 해당 세액을 기재)=> 관세액/내국세/교육세/농특세/부가세-->
+						<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+					</wco:Payment>
+				</wco:DutyTaxFee>
+				<!--농특세-->
+				<wco:DutyTaxFee>
+					<!--농특세구분부호-->
+					<wco:DutyRegimeCode>x</wco:DutyRegimeCode>
+					<!--세금한정코드 (CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세)-->
+					<wco:TypeCode>CAP</wco:TypeCode>
+					<wco:Payment>
+						<!--세액 (각 세종부호별 해당 세액을 기재)=> 관세액/내국세/교육세/농특세/부가세-->
+						<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+					</wco:Payment>
+				</wco:DutyTaxFee>
+				<!--부가세-->
+				<wco:DutyTaxFee>
+					<!--부가세감면부호-->
+					<kcs:DeductionID>11</kcs:DeductionID>
+					<!--부가세구분부호-->
+					<wco:DutyRegimeCode>x</wco:DutyRegimeCode>
+					<!--세금한정코드(CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세)-->
+					<wco:TypeCode>VAT</wco:TypeCode>
+					<!--부가세과세과표(부가세일경우만 기재)-->
+					<kcs:VATBaseAmount>11</kcs:VATBaseAmount>
+					<!--부가세면세과표(부가세일경우만 기재)-->
+					<kcs:VATExemptionBaseAmount>11</kcs:VATExemptionBaseAmount>
+					<wco:Payment>
+						<!--세액 (각 세종부호별 해당 세액을 기재)=> 관세액/내국세/교육세/농특세/부가세-->
+						<wco:TaxAssessedAmount>999999999999</wco:TaxAssessedAmount>
+					</wco:Payment>
+				</wco:DutyTaxFee>
+				<!--탄력관세-->
+				<wco:DutyTaxFee>
+					<!--탄력관세구분부호-->
+					<wco:DutyRegimeCode>I</wco:DutyRegimeCode>
+					<!--탄력관세율-->
+					<wco:TaxRateNumeric>99.99</wco:TaxRateNumeric>
+					<!--세금한정코드(CUD:관세,LCN:내국세,5AB:교육세,CAP:농특세,VAT:부가세,FCU:탄력관세)-->
+					<wco:TypeCode>FCU</wco:TypeCode>
+				</wco:DutyTaxFee>
+				<!--6번반복 끝-->
+				<!--999번반복 시작-->
+				<wco:PreviousDocument>
+					<!--수출신고번호-->
+					<wco:ID>1234567</wco:ID>
+					<!--수출신고번호 란번호-->
+					<wco:LineNumeric>123</wco:LineNumeric>
+					<!--수출신고번호 규격번호-->
+					<kcs:SequenceNumeric>12</kcs:SequenceNumeric>
+					<wco:GoodsMeasure>
+						<!--수출신고사용량(단위)-->
+						<wco:NetNetWeightMeasure kcsUnitCode="">123</wco:NetNetWeightMeasure>
+					</wco:GoodsMeasure>
+				</wco:PreviousDocument>
+				<!--999번반복 끝-->
+				<!--3번반복 시작-->
+				<wco:ResponsibleGovernmentAgency>
+					<!--사후확인기관 1-->
+					<wco:ID>023</wco:ID>
+					<!--사후확인기관 2-->
+					<wco:ID>019</wco:ID>
+					<!--사후확인기관 3-->
+					<wco:ID>020</wco:ID>
+				</wco:ResponsibleGovernmentAgency>
+				<!--3번반복 끝-->
+			</wco:Commodity>
+			<wco:GoodsMeasure>
+				<!--순중량(단위)-->
+				<wco:NetNetWeightMeasure kcsUnitCode="KGM">99999.9</wco:NetNetWeightMeasure>
+			</wco:GoodsMeasure>
+			<wco:Origin>
+				<!--원산지코드-->
+				<wco:CountryCode>CN</wco:CountryCode>
+				<!--원산지결정기준-->
+				<wco:RuleCode>12</wco:RuleCode>
+				<wco:OriginDescription>
+					<!--원산지 표시유무-->
+					<kcs:DisplayIndicatorCode>Y</kcs:DisplayIndicatorCode>
+					<!--원산지 표시방법-->
+					<kcs:MarksNumbersID>03</kcs:MarksNumbersID>
+					<!--원산지 표시면제사유-->
+					<kcs:NonDescriptionReason>14</kcs:NonDescriptionReason>
+				</wco:OriginDescription>
+			</wco:Origin>
+			<!--0..999 반복-->
+			<wco:PreviousDocument>
+				<!--즉시반출신고번호-->
+				<wco:ID>001</wco:ID>
+				<!--즉시반출신고번호 일련번호-->
+				<wco:SequenceNumeric>016180102162000230</wco:SequenceNumeric>
+			</wco:PreviousDocument>
+		</wco:GovernmentAgencyGoodsItem>
+		<wco:Seller>
+			<!--무역거래처 부호-->
+			<wco:ID>CNTOSHIN12347</wco:ID>
+			<!--무역거래처 상호-->
+			<wco:Name>OMR ENGR</wco:Name>
+			<wco:Address>
+				<!--무역거래처 국가-->
+				<wco:CountryCode>JP</wco:CountryCode>
+			</wco:Address>
+		</wco:Seller>
+		<wco:TradeTerms>
+			<!--인도조건-->
+			<wco:ConditionCode>CFR</wco:ConditionCode>
+			<!--결제방법-->
+			<kcs:SettlementConditionCode>DA</kcs:SettlementConditionCode>
+		</wco:TradeTerms>
+		<wco:UCR>
+			<!--화물관리번호-->
+			<kcs:CustomsAssignedReferenceID>01KE0766SS20010003</kcs:CustomsAssignedReferenceID>
+			<!--무역업체 참조번호-->
+			<wco:TraderAssignedReferenceID>123456789</wco:TraderAssignedReferenceID>
+		</wco:UCR>
+		<wco:Warehouse>
+			<!--반입일자-->
+			<wco:ArrivalDateTime>20120101</wco:ArrivalDateTime>
+			<!--검사(반입)장소 보세구역부호-->
+			<wco:ID>13011013</wco:ID>
+			<wco:Address>
+				<!--검사(반입)장소 보세구역위치번호-->
+				<wco:Line>가1A123456</wco:Line>
+			</wco:Address>
+		</wco:Warehouse>
+	</wco:GoodsShipment>
+	<wco:GovernmentProcedure>
+		<!--통관계획-->
+		<wco:CurrentCode>D</wco:CurrentCode>
+	</wco:GovernmentProcedure>
+	<wco:Importer>
+		<!--수입자 통관고유부호-->
+		<wco:ID>관세상사1234561</wco:ID>
+		<!--수입자 상호 또는 성명-->
+		<wco:Name>조인성</wco:Name>
+		<!--수입자 구분-->
+		<wco:RoleCode>A</wco:RoleCode>
+	</wco:Importer>
+	<wco:SouthNorthTrade>
+		<!--남북교역과세구분(Y/N 기재)-->
+		<kcs:TradeIndicatorCode>Y</kcs:TradeIndicatorCode>
+	</wco:SouthNorthTrade>
+	<wco:Submitter>
+		<!--신고인 상호 및 성명-->
+		<wco:Name>신고인 상호 및 성명</wco:Name>
+		<wco:Communication>
+			<!--통신수단유형(TE:전화번호, EM:이메일, EX:내선번호)-->
+			<wco:TypeID>TE</wco:TypeID>
+			<!--신고인 전화번호-->
+			<wco:ID>000-000-0000</wco:ID>
+		</wco:Communication>
+		<wco:Communication>
+			<!--통신수단유형(TE:전화번호, EM:이메일, EX:내선번호)-->
+			<wco:TypeID>EX</wco:TypeID>
+			<!--신고인 전화 내선번호-->
+			<wco:ID>0000</wco:ID>
+		</wco:Communication>
+		<wco:Communication>
+			<!--통신수단유형(TE:전화번호, EM:이메일, EX:내선번호)-->
+			<wco:TypeID>EM</wco:TypeID>
+			<!--신고인 이메일-->
+			<wco:ID>id@nnnn</wco:ID>
+		</wco:Communication>
+	</wco:Submitter>
+	<wco:Payer>
+		<!--납부자 식별번호/사업장일련번호/통관고유부호-->
+		<!--ZZZ:납세의무자 식별번호, KTS:사업장일련번호, 380:통관고유부호-->
+		<!--납부자 식별번호-->
+		<wco:ID schemeAgencyID="ZZZ">6510071645915</wco:ID>
+		<!--납세의무자 식별번호(통관고유부호)-->
+		<wco:ID schemeAgencyID="380">모나리자1771025</wco:ID>
+		<!--납세의무자 식별번호(사업장별일련번호)-->
+		<wco:ID schemeAgencyID="KTS">0001</wco:ID>
+		<!--납세의무자 상호-->
+		<wco:Name>모나리자㈜</wco:Name>
+		<!--납세의무자 식별번호 구분부호-->
+		<wco:RoleCode>01</wco:RoleCode>
+		<wco:Address>
+			<!--납세의무자 도로명코드-->
+			<wco:CountrySubDivisionID>012345678912</wco:CountrySubDivisionID>
+			<!--납세의무자상세주소-->
+			<wco:Line>서울시 강남구 논현동 235</wco:Line>
+			<!--납세의무자 소재지 우편번호-->
+			<wco:PostcodeID>11087</wco:PostcodeID>
+			<!--납세의무자 건물관리번호-->
+			<kcs:BuildingNumber>1234567891234567891234567</kcs:BuildingNumber>
+			<!--납세의무자기본주소-->
+			<kcs:Description>7층 101호</kcs:Description>
+		</wco:Address>
+		<wco:Contact>
+			<!--납세의무자 성명-->
+			<wco:Name>홍나리</wco:Name>
+		</wco:Contact>
+		<wco:Communication>
+			<!--통신수단유형(TE:전화번호, EM:이메일)-->
+			<wco:TypeID>TE</wco:TypeID>
+			<!--납세의무자 전화번호-->
+			<wco:ID>000-000-0000</wco:ID>
+		</wco:Communication>
+		<wco:Communication>
+			<!--통신수단유형(TE:전화번호, EM:이메일)-->
+			<wco:TypeID>EM</wco:TypeID>
+			<!--납세의무자 이메일-->
+			<wco:ID>id@domain.com</wco:ID>
+		</wco:Communication>
+	</wco:Payer>
+	<wco:TransportContractDocument>
+		<!--전자B/L 세관 제출번호-->
+		<wco:ID>000000000000000000000000000</wco:ID>
+		<!--분할수입신고 여부(replace("true", "Y").replace("false", "N"))-->
+		<wco:SplitDeclarationIndicator>true</wco:SplitDeclarationIndicator>
+	</wco:TransportContractDocument>
+	<wco:TransportEquipment>
+		<!--컨테이너일련번호-->
+		<wco:SequenceNumeric>001</wco:SequenceNumeric>
+		<!--컨테이너 번호-->
+		<wco:ID>TCNU4394926</wco:ID>
+	</wco:TransportEquipment>
+</wco:Declaration>

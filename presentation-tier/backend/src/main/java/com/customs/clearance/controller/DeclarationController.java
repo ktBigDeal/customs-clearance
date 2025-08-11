@@ -1,5 +1,6 @@
 package com.customs.clearance.controller;
 
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,9 +14,6 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
 
 
 @RestController
@@ -205,4 +203,22 @@ public class DeclarationController {
         return declarationService.getAttachmentListByAdmin(token);
     }
 
+    @GetMapping("/{declarationId}/xml")
+    public ResponseEntity<byte[]> downloadKcsXml(
+            @PathVariable Long declarationId,
+            @RequestParam(value="docType", required = false) String docType,
+            HttpServletRequest request
+    ) {
+        String authHeader = request.getHeader("Authorization");
+        String token = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7) : null;
+
+        byte[] xml = declarationService.generateKcsXml(declarationId, docType, token);
+
+        String fileName = (docType == null ? "declaration" : docType) + "-" + declarationId + ".xml";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_XML)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .body(xml);
+    }
 }

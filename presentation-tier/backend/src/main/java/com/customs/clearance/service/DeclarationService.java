@@ -11,6 +11,7 @@ import com.customs.clearance.security.JwtTokenProvider;
 import com.customs.clearance.util.DeclarationServiceUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import lombok.RequiredArgsConstructor;
 
@@ -299,4 +300,35 @@ public class DeclarationService {
          return list;
     }
 
+    private final KcsXmlMapper kcsXmlMapper;
+
+    public byte[] generateKcsXml(Long declarationId, String docType, String token) {
+        Declaration dec = declarationRepository.findById(declarationId)
+                .orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
+        User user = getUserByToken(token);
+        if (user.getRole().equals("USER") && !user.getId().equals(dec.getCreatedBy())) {
+            throw new RuntimeException("다른 사용자의 신고서는 조회할 수 없습니다.");
+        }
+
+        // declarationDetails(JSON string) -> Map
+        try {
+            ObjectMapper om = new ObjectMapper();
+            Map<String,Object> details = om.readValue(dec.getDeclarationDetails(), new TypeReference<Map<String,Object>>(){});
+
+            // docType이 null이면 엔티티 타입에 맞춤
+            String type = (docType!=null? docType : dec.getDeclarationType().name()).toLowerCase();
+
+            if ("import".equals(type)) {
+                return kcsXmlMapper.buildImportXml(details);
+            } else if ("export".equals(type)) {
+                return kcsXmlMapper.buildExportXml(details);
+            } else {
+                throw new IllegalArgumentException("docType 은 import/export 중 하나여야 합니다.");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("신고서 상세(JSON) 파싱 오류", e);
+        } catch (Exception e) {
+            throw new RuntimeException("KCS XML 생성 실패", e);
+        }
+    }
 }
