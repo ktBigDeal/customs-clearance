@@ -300,9 +300,10 @@ public class DeclarationService {
          return list;
     }
 
-    private final KcsXmlMapper kcsXmlMapper;
+    private final KcsImportXmlMapper kcsImportXmlMapper;
+    private final KcsExportXmlMapper kcsExportXmlMapper;
 
-    public byte[] generateKcsXml(Long declarationId, String docType, String token) {
+    public byte [] generateKcsXml(Long declarationId, String docType, String token) {
         Declaration dec = declarationRepository.findById(declarationId)
                 .orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
         User user = getUserByToken(token);
@@ -312,16 +313,13 @@ public class DeclarationService {
 
         // declarationDetails(JSON string) -> Map
         try {
-            ObjectMapper om = new ObjectMapper();
-            Map<String,Object> details = om.readValue(dec.getDeclarationDetails(), new TypeReference<Map<String,Object>>(){});
-
             // docType이 null이면 엔티티 타입에 맞춤
             String type = (docType!=null? docType : dec.getDeclarationType().name()).toLowerCase();
 
             if ("import".equals(type)) {
-                return kcsXmlMapper.buildImportXml(details);
+                return kcsImportXmlMapper.buildImportXml(dec);
             } else if ("export".equals(type)) {
-                return kcsXmlMapper.buildExportXml(details);
+                return kcsExportXmlMapper.buildExportXml(dec);
             } else {
                 throw new IllegalArgumentException("docType 은 import/export 중 하나여야 합니다.");
             }
