@@ -272,9 +272,17 @@ class LangChainVectorStore:
             # Document를 딕셔너리 형태로 변환
             results = []
             for doc in docs:
+                # 메타데이터에서 자주 사용되는 필드 추출 (law_retriever.py 호환성)
+                doc_id = doc.metadata.get("doc_id", f"doc_{len(results)}")
+                index = doc.metadata.get("index", "")
+                subtitle = doc.metadata.get("subtitle", "")
+                
                 result = {
+                    "id": doc_id,  # law_retriever.py에서 필요로 하는 id 필드
                     "content": doc.page_content,
                     "metadata": doc.metadata,
+                    "index": index,  # 최상위 레벨로 추가 (접근 편의성)
+                    "subtitle": subtitle,  # 최상위 레벨로 추가 (접근 편의성)
                     "score": getattr(doc, "score", 0.0)  # 점수가 있으면 포함
                 }
                 results.append(result)
@@ -355,21 +363,39 @@ class LangChainVectorStore:
                         # 컬렉션이 존재하지 않는 경우 무시
                         pass
                     
-                    # 새 벡터스토어 인스턴스 생성
-                    self.vectorstore = Chroma(
-                        collection_name=self.collection_name,
-                        embedding_function=self.embedding_function,
-                        persist_directory=str(self.db_path)
-                    )
+                    # 모드에 따라 다른 방식으로 새 벡터스토어 인스턴스 생성
+                    if self.mode == "docker":
+                        # Docker 모드: HTTP 클라이언트 사용
+                        self.vectorstore = Chroma(
+                            collection_name=self.collection_name,
+                            embedding_function=self.embedding_function,
+                            client=self.chroma_client
+                        )
+                    else:
+                        # 로컬 모드: persist_directory 사용
+                        self.vectorstore = Chroma(
+                            collection_name=self.collection_name,
+                            embedding_function=self.embedding_function,
+                            persist_directory=str(self.db_path)
+                        )
                     logger.info(f"Created new collection: {self.collection_name}")
                 except Exception as e:
                     logger.warning(f"Could not reset collection: {e}")
                     # 재설정에 실패한 경우 새 인스턴스 생성 시도
-                    self.vectorstore = Chroma(
-                        collection_name=self.collection_name,
-                        embedding_function=self.embedding_function,
-                        persist_directory=str(self.db_path)
-                    )
+                    if self.mode == "docker":
+                        # Docker 모드: HTTP 클라이언트 사용
+                        self.vectorstore = Chroma(
+                            collection_name=self.collection_name,
+                            embedding_function=self.embedding_function,
+                            client=self.chroma_client
+                        )
+                    else:
+                        # 로컬 모드: persist_directory 사용
+                        self.vectorstore = Chroma(
+                            collection_name=self.collection_name,
+                            embedding_function=self.embedding_function,
+                            persist_directory=str(self.db_path)
+                        )
             
             # LangChain Chroma는 자동으로 컬렉션을 생성하므로 항상 성공
             logger.info(f"Collection '{self.collection_name}' is ready")

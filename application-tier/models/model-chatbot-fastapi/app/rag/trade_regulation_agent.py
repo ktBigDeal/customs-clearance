@@ -339,20 +339,106 @@ class AsyncTradeRegulationAgent:
         return self.memory.get_conversation_history(include_timestamps=True)
     
     async def _create_regulation_search_context(self, user_input: str) -> Dict[str, Any]:
-        """무역 규제 전용 검색 컨텍스트 생성 (비동기)"""
+        """무역 규제 전용 검색 컨텍스트 생성 (질의 의도 기반 동적 생성)"""
+        
+        # 기본 컨텍스트
         search_context = {
             "agent_type": "regulation_agent",
-            "domain_hints": ["trade_regulation", "animal_plant_import", "허용국가", "수입규제"],
-            "boost_keywords": ["허용국가", "수입", "수출", "금지", "제한", "규제", "동식물", "검역"],
-            "priority_data_sources": ["동식물허용금지지역", "수입규제DB", "수입제한품목", "수출제한품목"]
+            "domain_hints": ["trade_regulation"],
+            "boost_keywords": [],
+            "priority_data_sources": []
         }
         
-        # HS코드 관련 질의 추가 힌트 제공
+        # 질의 텍스트 소문자 변환
+        query_lower = user_input.lower()
+        
+        # 1. 수출/수입 구분
+        is_export_query = any(keyword in query_lower for keyword in 
+                             ["수출", "export", "내보내", "해외판매", "외국판매"])
+        is_import_query = any(keyword in query_lower for keyword in 
+                             ["수입", "import", "들여오", "해외구매", "외국구매"])
+        
+        # 2. 제한/금지 구분
+        is_restriction_query = any(keyword in query_lower for keyword in 
+                                  ["제한", "restriction", "제한품목", "제한물품"])
+        is_prohibition_query = any(keyword in query_lower for keyword in 
+                                  ["금지", "prohibition", "금지품목", "금지물품"])
+        
+        # 3. 동식물 관련 구분
+        animal_plant_keywords = ["동식물", "동물", "식물", "농산물", "축산물", "검역", "아보카도", 
+                                "바나나", "딸기", "소고기", "돼지고기", "닭고기", "생선", "우유"]
+        is_animal_plant_query = any(keyword in query_lower for keyword in animal_plant_keywords)
+        
+        # 4. 외국 규제 (한국 수출품에 대한 외국의 규제) - 키워드 확장
+        foreign_restriction_patterns = [
+            "외국", "해외", "상대국", "목적지", "destination",
+            "베트남", "인도", "중국", "미국", "일본", "태국", "싱가포르", "필리핀", "말레이시아",
+            "이 거는", "가 거는", "이 한국", "가 한국", "대한", "한국에", "한국 제품",
+            "반덤핑", "세이프가드", "수입제한", "수입금지", "관세부과", "통상제재"
+        ]
+        is_foreign_restriction = any(keyword in query_lower for keyword in foreign_restriction_patterns)
+        
+        # 5. 질의 유형별 컨텍스트 설정 (우선순위 기반 분류)
+        # 1순위: 외국 규제 (키워드만으로 판단, is_export_query 조건 제거)
+        if is_foreign_restriction:
+            # 외국이 한국 수출품에 거는 규제
+            search_context.update({
+                "domain_hints": ["trade_regulation", "destination_restrictions", "외국규제"],
+                "boost_keywords": ["목적지국", "상대국규제", "해외규제", "수입규제DB"],
+                "priority_data_sources": ["수입규제DB_전체"],
+                "regulation_type_hint": "export_destination_restrictions"
+            })
+            
+        # 2순위: 동식물 수입 규제  
+        elif is_import_query and is_animal_plant_query:
+            search_context.update({
+                "domain_hints": ["trade_regulation", "animal_plant_import", "허용국가", "수입규제"],
+                "boost_keywords": ["허용국가", "동식물", "검역", "수입허용", "수입금지", "검역규정"],
+                "priority_data_sources": ["동식물허용금지지역"],
+                "regulation_type_hint": "import_regulations"
+            })
+            
+        # 3순위: 한국의 수출 금지 품목
+        elif is_export_query and is_prohibition_query:
+            search_context.update({
+                "domain_hints": ["trade_regulation", "export_control", "수출금지", "수출규제"],
+                "boost_keywords": ["수출금지", "수출금지품목", "수출규제", "수출통제"],
+                "priority_data_sources": ["수출금지품목"],
+                "regulation_type_hint": "export_prohibitions"
+            })
+            
+        # 4순위: 한국의 수출 제한 품목
+        elif is_export_query and is_restriction_query:
+            search_context.update({
+                "domain_hints": ["trade_regulation", "export_control", "수출제한", "수출규제"],
+                "boost_keywords": ["수출제한", "수출제한품목", "수출규제", "수출통제", "수출관리법"],
+                "priority_data_sources": ["수출제한품목"],
+                "regulation_type_hint": "export_restrictions"
+            })
+            
+        # 5순위: 한국의 일반 수입 제한 품목  
+        elif is_import_query and is_restriction_query and not is_animal_plant_query:
+            search_context.update({
+                "domain_hints": ["trade_regulation", "import_control", "수입제한", "수입규제"],
+                "boost_keywords": ["수입제한", "수입제한품목", "수입규제", "수입통제"],
+                "priority_data_sources": ["수입제한품목"],
+                "regulation_type_hint": "import_restrictions"
+            })
+            
+        else:
+            # 기본 경우: 모든 규제 데이터에서 검색
+            search_context.update({
+                "domain_hints": ["trade_regulation", "general_regulations"],
+                "boost_keywords": ["규제", "제한", "금지", "허용", "수출", "수입"],
+                "priority_data_sources": ["수출제한품목", "수입제한품목", "동식물허용금지지역", "수출금지품목", "수입규제DB_전체"]
+            })
+        
+        # 6. HS코드 관련 질의 추가 힌트 제공
         if any(char.isdigit() for char in user_input) and len([c for c in user_input if c.isdigit()]) >= 4:
             search_context["domain_hints"].extend(["hs_code", "품목분류"])
             search_context["boost_keywords"].extend(["HS코드", "품목", "분류", "관세"])
         
-        logger.debug(f"🎯 무역규제 검색 컨텍스트: {search_context}")
+        logger.info(f"🎯 동적 검색 컨텍스트 생성: {search_context}")
         return search_context
     
     async def _search_regulation_documents(self, 

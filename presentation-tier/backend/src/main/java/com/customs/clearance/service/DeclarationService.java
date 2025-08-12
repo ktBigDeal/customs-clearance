@@ -11,7 +11,6 @@ import com.customs.clearance.security.JwtTokenProvider;
 import com.customs.clearance.util.DeclarationServiceUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import lombok.RequiredArgsConstructor;
 
@@ -216,7 +215,7 @@ public class DeclarationService {
         
         User user = getUserByToken(token);
 
-        if(user.getRole().equals("USER") && user.getId() != userId){
+        if(user.getRole().equals("USER") && !user.getId().equals(userId)){
             throw new RuntimeException("다른 사용자의 신고서 목록은 조회할 수 없습니다.");
         }
 
@@ -258,7 +257,7 @@ public class DeclarationService {
         User user = getUserByToken(token);
         Declaration declaration = declarationRepository.findById(declarationId).orElseThrow(() -> new RuntimeException("신고서 정보 없음"));
 
-        if(user.getRole().equals("USER") && user.getId() != declaration.getCreatedBy()){
+        if(user.getRole().equals("USER") && !user.getId().equals(declaration.getCreatedBy())){
             throw new RuntimeException("다른 사용자의 파일 목록은 조회할 수 없습니다.");
         }
 
@@ -271,7 +270,7 @@ public class DeclarationService {
 
         User user = getUserByToken(token);
 
-        if(user.getRole().equals("USER") && user.getId() != userId){
+        if(user.getRole().equals("USER") && !user.getId().equals(userId)){
             throw new RuntimeException("다른 사용자의 파일 목록은 조회할 수 없습니다.");
         }
 
