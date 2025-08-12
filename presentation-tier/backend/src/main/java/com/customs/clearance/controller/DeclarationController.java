@@ -92,9 +92,8 @@ public class DeclarationController {
         return declarationService.deleteDeclaration(declarationId, token);
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user")
     public List<Declaration> getUserDeclarationList(
-        @PathVariable Long userId,
         HttpServletRequest request
     ) {
         
@@ -105,12 +104,11 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(userId, null, token);
+        return declarationService.getDeclarationList(null, token);
     }
 
-    @GetMapping("/user/{userId}/{status}")
+    @GetMapping("/user/{status}")
     public List<Declaration> getUserDeclarationListByStatus(
-        @PathVariable Long userId,
         @PathVariable String status,
         HttpServletRequest request
     ) {
@@ -122,7 +120,7 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(userId, status, token);
+        return declarationService.getDeclarationList(status, token);
     }
 
     @GetMapping("/admin")
@@ -137,7 +135,7 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(null, null, token);
+        return declarationService.getDeclarationList(null, token);
     }
 
     @GetMapping("/admin/{status}")
@@ -153,7 +151,7 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(null, status, token);
+        return declarationService.getDeclarationList(status, token);
     }
 
     @GetMapping("/attachment/{declarationId}")
@@ -172,9 +170,8 @@ public class DeclarationController {
         return declarationService.getAttachmentListByDeclaration(declarationId, token);
     }
 
-    @GetMapping("/attachment/user/{userId}")
+    @GetMapping("/attachment/user")
     public List<Attachment> getAttachmentListByUser(
-        @PathVariable Long userId,
         HttpServletRequest request
     ) {
         
@@ -185,7 +182,7 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getAttachmentListByUser(userId, token);
+        return declarationService.getAttachmentListByUser(token);
     }
 
     @GetMapping("/attachment/admin")

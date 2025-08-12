@@ -211,13 +211,9 @@ public class DeclarationService {
         return true;
     }
 
-    public List<Declaration> getDeclarationList(Long userId, String status, String token) {
+    public List<Declaration> getDeclarationList(String status, String token) {
         
         User user = getUserByToken(token);
-
-        if(user.getRole().equals("USER") && !user.getId().equals(userId)){
-            throw new RuntimeException("다른 사용자의 신고서 목록은 조회할 수 없습니다.");
-        }
 
         List<Declaration> list = new ArrayList<>(); 
 
@@ -233,7 +229,7 @@ public class DeclarationService {
                 throw new RuntimeException("잘못된 상태 값입니다: " + status);
             }
 
-            list = declarationRepository.findAllByCreatedByAndStatus(userId, enumStatus);
+            list = declarationRepository.findAllByCreatedByAndStatus(user.getId(), enumStatus);
         } else if(user.getRole().equals("ADMIN") && status == null){
             list = declarationRepository.findAll();
         } else if(user.getRole().equals("ADMIN") && status != null){
@@ -266,15 +262,11 @@ public class DeclarationService {
          return list;
     }
 
-    public List<Attachment> getAttachmentListByUser(Long userId, String token){
+    public List<Attachment> getAttachmentListByUser(String token){
 
         User user = getUserByToken(token);
 
-        if(user.getRole().equals("USER") && !user.getId().equals(userId)){
-            throw new RuntimeException("다른 사용자의 파일 목록은 조회할 수 없습니다.");
-        }
-
-        List<Declaration> deList = declarationRepository.findAllByCreatedBy(userId);
+        List<Declaration> deList = declarationRepository.findAllByCreatedBy(user.getId());
 
         List<Attachment> list = new ArrayList<>();
 

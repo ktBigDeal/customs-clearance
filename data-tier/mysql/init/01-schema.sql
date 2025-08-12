@@ -88,7 +88,7 @@ CREATE TABLE `declarations` (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
   `declaration_number` VARCHAR(50) UNIQUE,
   `declaration_type` ENUM ('IMPORT', 'EXPORT') NOT NULL,
-  `status` ENUM ('CLEARED', 'UPDATED', 'CONVERTED') DEFAULT 'CLEARED',
+  `status` ENUM ('DRAFT', 'UPDATED', 'SUBMITTED', 'APPROVED', 'REJECTED') DEFAULT 'DRAFT',
   `declaration_details` TEXT,
   `notes` TEXT,
   `created_at` DATETIME DEFAULT (CURRENT_TIMESTAMP),
