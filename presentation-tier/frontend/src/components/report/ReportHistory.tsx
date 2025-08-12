@@ -51,32 +51,76 @@ export default function ReportHistory({
   const [isLoading, setIsLoading] = useState(false);
   const [apiReports, setApiReports] = useState<Report[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Load reports from API
   useEffect(() => {
-    const loadReports = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Mock API call - in real implementation, use declarationsApi
-        // const result = await declarationsApi.getDeclarations();
-        // setApiReports(result.data || []);
-        
-        // For now, use the reports prop passed from parent
-        setApiReports(reports);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load reports');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    load()}, []);
 
-    loadReports();
-  }, [reports]);
+  function toReportForListFromBackend(src: any) {
+    // details 파싱 (문자열 JSON or 이미 파싱된 객체 대응)
+    let details: any = {};
+    try {
+      if (typeof src?.declaration_details === 'string') {
+        details = JSON.parse(src.declaration_details);
+      } else if (src?.rawDetails && typeof src.rawDetails === 'object') {
+        details = src.rawDetails;
+      }
+    } catch { /* ignore */ }
+
+    const typeVal = src.declarationType ?? src.declaration_type;
+    const declarationNumber =
+      src.declarationNumber ??
+      src.declaration_number ??
+      details['신고번호'] ??
+      details['송품장부 호'] ??
+      `${typeVal === 'EXPORT' ? 'EXP' : 'IMP'}${String(src.id ?? Date.now()).padStart(6, '0')}`;
+
+    return {
+      id: src.id ?? Date.now(),
+      declarationNumber,
+      declarationType: typeVal ?? 'IMPORT',
+      status: src.status ?? 'DRAFT',
+      createdAt: src.createdAt ?? src.created_at ?? new Date().toISOString(),
+      updatedAt: src.updatedAt ?? src.updated_at ?? new Date().toISOString(),
+      totalAmount: 0,
+      importerName: '',
+    };
+  }
+  const load = async () => {
+
+    try {
+      setLoading(true);
+      setLoadError(null);
+
+      // 1) 서버 호출
+      const raw = await declarationsApi.listByUser();
+      // 2) 어떤 형태로 와도 배열만 안전하게 추출
+      const arr: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as any)?.data)
+        ? (raw as any).data
+        : Array.isArray((raw as any)?.content)
+        ? (raw as any).content
+        : [];
+
+      // 3) 최소 정규화 후 상태 반영
+      const mapped = arr.map(toReportForListFromBackend);
+      setApiReports(mapped);
+
+      // (선택) 디버그
+      console.log('[History] fetched:', { raw, count: arr.length });
+    } catch (e: any) {
+      setLoadError(e?.message || '목록 조회에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 필터링 및 정렬된 보고서 목록 (API 데이터 또는 prop 데이터 사용)
-  const currentReports = (apiReports && apiReports.length ? apiReports : reports) ?? [];  const filteredAndSortedReports = currentReports
+  const currentReports = (apiReports && apiReports.length ? apiReports : reports) ?? [];
+  const filteredAndSortedReports = currentReports
     .filter(report => {
       const dn = (report?.declarationNumber ?? '').toLowerCase();
       const im = (report?.importerName ?? '').toLowerCase();

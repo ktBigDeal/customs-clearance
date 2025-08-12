@@ -97,16 +97,13 @@ export class DeclarationsApi {
   }
 
   /**사용자 신고서 목록 */
-  async listByUser(userId: number): Promise<DeclarationResponseDto[]> {
-    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user/${userId}`);
+  async listByUser(): Promise<DeclarationResponseDto[]> {
+    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user`);
   }
 
   /** 사용자 신고서 목록(상태 필터) */
-  async listByUserAndStatus(
-    userId: number,
-    status: DeclarationStatus
-  ): Promise<DeclarationResponseDto[]> {
-    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user/${userId}/${status}`);
+  async listByUserAndStatus(status: DeclarationStatus): Promise<DeclarationResponseDto[]> {
+    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user/${status}`);
   }
 
   /** 관리자 전체 목록 */
