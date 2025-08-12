@@ -16,14 +16,12 @@ import {
   FileText,
   DollarSign
 } from 'lucide-react';
-
 interface Report {
   id: number;
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   importerName: string;
-  hsCode?: string;
   totalAmount?: number;
   createdAt: string;
   updatedAt: string;
@@ -78,15 +76,16 @@ export default function ReportHistory({
   }, [reports]);
 
   // 필터링 및 정렬된 보고서 목록 (API 데이터 또는 prop 데이터 사용)
-  const currentReports = apiReports.length > 0 ? apiReports : reports;
-  const filteredAndSortedReports = currentReports
+  const currentReports = (apiReports && apiReports.length ? apiReports : reports) ?? [];  const filteredAndSortedReports = currentReports
     .filter(report => {
-      const matchesSearch = report.declarationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          report.importerName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'ALL' || report.status === statusFilter;
-      const matchesType = typeFilter === 'ALL' || report.declarationType === typeFilter;
-      
-      return matchesSearch && matchesStatus && matchesType;
+      const dn = (report?.declarationNumber ?? '').toLowerCase();
+      const im = (report?.importerName ?? '').toLowerCase();
+      const matchesSearch =
+        dn.includes(searchTerm.toLowerCase()) ||
+        im.includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === 'ALL' || report?.status === statusFilter;
     })
     .sort((a, b) => {
       let aValue, bValue;
@@ -101,8 +100,8 @@ export default function ReportHistory({
           bValue = new Date(b.updatedAt).getTime();
           break;
         case 'declarationNumber':
-          aValue = a.declarationNumber;
-          bValue = b.declarationNumber;
+          aValue = a?.declarationNumber ?? '';
+          bValue = b?.declarationNumber ?? '';
           break;
         default:
           return 0;
@@ -349,11 +348,8 @@ export default function ReportHistory({
                 <tr key={report.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {report.declarationNumber}
+                      {report.declarationNumber ?? ''}
                     </div>
-                    {report.hsCode && (
-                      <div className="text-xs text-gray-500">HS: {report.hsCode}</div>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -403,7 +399,7 @@ export default function ReportHistory({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(report.id, report.declarationNumber)}
+                        onClick={() => handleDelete(report?.id, report?.declarationNumber ?? '')}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="w-4 h-4" />

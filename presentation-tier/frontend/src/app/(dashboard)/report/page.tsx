@@ -13,7 +13,7 @@ interface Report {
   id: number;
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   importerName: string;
   hsCode?: string;
   totalAmount?: number;
@@ -75,6 +75,7 @@ export default function ReportPage() {
   const getStatusBadge = (status: Report['status']) => {
     const styles = {
       DRAFT: 'bg-gray-100 text-gray-800',
+      UPDATED: 'bg-gray-100 text-gray-800',
       SUBMITTED: 'bg-blue-100 text-blue-800',
       APPROVED: 'bg-green-100 text-green-800',
       REJECTED: 'bg-red-100 text-red-800'
@@ -82,6 +83,7 @@ export default function ReportPage() {
 
     const labels = {
       DRAFT: '초안',
+      UPDATED: '수정됨',
       SUBMITTED: '제출됨',
       APPROVED: '승인됨',
       REJECTED: '반려됨'

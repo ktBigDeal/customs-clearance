@@ -3,7 +3,8 @@ AI 게이트웨이 애플리케이션 설정 모듈
 환경 변수와 기본값을 사용하여 설정을 로드하며, 타입 안전성을 보장합니다.
 """
 
-import osfrom functools import lru_cache
+import os 
+from functools import lru_cache
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 from pydantic import field_validator

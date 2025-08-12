@@ -26,10 +26,10 @@ public class DeclarationController {
     @PostMapping
     public Declaration postDeclaration(
         @ModelAttribute Declaration declaration,
-        @RequestPart(value = "invoice_file", required = false) MultipartFile invoiceFile,
-        @RequestPart(value = "packing_list_file", required = false) MultipartFile packingListFile,
-        @RequestPart(value = "bill_of_lading_file", required = false) MultipartFile billOfLadingFile,
-        @RequestPart(value = "certificate_of_origin_file", required = false) MultipartFile certificateOfOriginFile,
+        @RequestPart(value = "invoiceFile", required = false) MultipartFile invoiceFile,
+        @RequestPart(value = "packingListFile", required = false) MultipartFile packingListFile,
+        @RequestPart(value = "billOfLadingFile", required = false) MultipartFile billOfLadingFile,
+        @RequestPart(value = "certificateOfOriginFile", required = false) MultipartFile certificateOfOriginFile,
         HttpServletRequest request
     ) throws IOException {
 

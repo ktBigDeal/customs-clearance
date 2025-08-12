@@ -69,8 +69,8 @@ public class DeclarationService {
 
         String jsonString = callAiPipeLine(declaration.getDeclarationType().toString(), invoiceFile, packingListFile, billOfLadingFile);
 
-        declaration.setDeclarationDetails(jsonString);
-        declaration.setStatus(DeclarationStatus.CLEARED);
+        declaration.setDeclarationDetails(jsonString);       
+        declaration.setStatus(DeclarationStatus.DRAFT);
         declaration.setCreatedBy(user.getId());
 
         declaration = declarationRepository.save(declaration);

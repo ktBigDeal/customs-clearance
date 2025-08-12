@@ -58,6 +58,10 @@ import { ApiResponse, ApiError } from '@/types/api';
  * const newUser = await apiClient.post<User>('/users', userData);
  * ```
  */
+
+export type DeclarationType = 'IMPORT' | 'EXPORT';
+export type DeclarationStatus = 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CLEARED';
+
 class ApiClient {
   /** Axios 인스턴스 */
   private client: AxiosInstance;
@@ -74,11 +78,10 @@ class ApiClient {
     this.client = axios.create({
       /** API 서버의 기본 URL (환경변수 또는 기본값 사용) */
       baseURL: process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1` : 'http://localhost:8080/api/v1',
-      /** 요청 타임아웃 (10초) */
-      timeout: 10000,
+      /** 요청 타임아웃 (100초) */
+      timeout: 100000,
       /** 기본 HTTP 헤더 */
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
     });
@@ -182,7 +185,7 @@ class ApiClient {
   private getAuthToken(): string | null {
     // In a real app, this would get the token from localStorage, cookies, or auth store
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth_token');
+      return localStorage.getItem('jwtToken');
     }
     return null;
   }
@@ -190,7 +193,7 @@ class ApiClient {
   private handleUnauthorized() {
     // Clear auth token and redirect to login
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('jwtToken');
       window.location.href = '/login';
     }
   }
@@ -220,7 +223,7 @@ class ApiClient {
    */
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<ApiResponse<T>>(url, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   /**
@@ -252,7 +255,7 @@ class ApiClient {
    */
   async post<T, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<ApiResponse<T>>(url, data, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   /**
@@ -282,7 +285,7 @@ class ApiClient {
    */
   async put<T, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<ApiResponse<T>>(url, data, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   /**
@@ -310,7 +313,7 @@ class ApiClient {
    */
   async patch<T, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<ApiResponse<T>>(url, data, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   /**
@@ -337,7 +340,7 @@ class ApiClient {
    */
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<ApiResponse<T>>(url, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   // File upload
@@ -358,7 +361,7 @@ class ApiClient {
     };
 
     const response = await this.client.post<ApiResponse<T>>(url, formData, config);
-    return response.data.data;
+    return response.data as T;
   }
 
   // Download file
@@ -388,19 +391,6 @@ class ApiClient {
 // Create singleton instance
 export const apiClient = new ApiClient();
 
-// Additional API functions for report generation
-
-// Declaration types for report generation
-export interface DeclarationCreateRequest {
-  declarationNumber: string;
-  declarationType: 'IMPORT' | 'EXPORT';
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-  importerName: string;
-  hsCode?: string;
-  totalAmount?: number;
-  declarationDetails?: string;
-}
-
 export interface OcrAnalysisRequest {
   files: File[];
   analysisType: 'invoice' | 'packing_list' | 'bill_of_lading' | 'certificate_of_origin';
@@ -411,64 +401,6 @@ export interface OcrAnalysisResult {
   structuredData: any;
   confidence: number;
 }
-
-// API base URL configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-/**
- * Create a new declaration with file uploads
- */
-export const createDeclaration = async (
-  declarationData: DeclarationCreateRequest,
-  files?: {
-    invoiceFile?: File;
-    packingListFile?: File;
-    billOfLadingFile?: File;
-    certificateOfOriginFile?: File;
-  }
-): Promise<any> => {
-  try {
-    const formData = new FormData();
-    
-    // Add declaration data to form
-    Object.entries(declarationData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value.toString());
-      }
-    });
-    
-    // Add files to form data
-    if (files) {
-      if (files.invoiceFile) {
-        formData.append('invoice_file', files.invoiceFile);
-      }
-      if (files.packingListFile) {
-        formData.append('packing_list_file', files.packingListFile);
-      }
-      if (files.billOfLadingFile) {
-        formData.append('bill_of_lading_file', files.billOfLadingFile);
-      }
-      if (files.certificateOfOriginFile) {
-        formData.append('certificate_of_origin_file', files.certificateOfOriginFile);
-      }
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/v1/declaration`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    return await response.json();
-  } catch (error: any) {
-    console.error('Declaration creation error:', error);
-    throw new Error(error.message || 'Failed to create declaration');
-  }
-};
 
 /**
  * Perform OCR analysis on uploaded files (mock implementation)

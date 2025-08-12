@@ -1,156 +1,87 @@
+/**
+ * 통합 타입 정의 — backend 엔티티(Declaration, Attachment) 및 enum에 맞춤
+ * 참고: Declaration.java의 내부 enum — DeclarationType{IMPORT,EXPORT}, DeclarationStatus{DRAFT,UPDATED,SUBMITTED,APPROVED,REJECTED}
+ * 업로드된 엔티티 파일이 일부 생략(...)되어 있어 필드는 안전한 최소 필드 집합 + 선택 필드로 정의했습니다.
+ * 실제 필드명이 다를 가능성이 있으므로 필요 시 후속 커밋에서 맞춤 보정하세요.
+ */
+
+export type ID = number;
+
+/** 신고 유형 */
+export enum DeclarationType {
+  IMPORT = 'IMPORT',
+  EXPORT = 'EXPORT',
+}
+
+/** 신고 상태 */
+export enum DeclarationStatus {
+  DRAFT = 'DRAFT',
+  UPDATED = 'UPDATED',
+  SUBMITTED = 'SUBMITTED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+/** XML 문서 타입 (Controller: /{id}/xml?docType=import|export) */
+export type XmlDocType = 'import' | 'export';
+
+/** 첨부 파일 엔티티 — Attachment.java 기반(일부 필드는 업로드본에서 생략되어 optional 처리) */
+export interface Attachment {
+  id: ID;
+  declarationId: ID;
+  filename: string;
+  originalFilename?: string;
+  filePath?: string;
+  fileSize?: number;
+  contentType?: string;
+  uploadedBy?: ID;
+  createdAt?: string; // ISO
+  updatedAt?: string; // ISO
+  /** 확장 필드 수용 */
+  [key: string]: any;
+}
+
+/** 신고 엔티티 — Declaration.java 기반(필드 일부는 optional) */
 export interface Declaration {
-  id: number;
-  declarationNumber: string;
+  id: ID;
+  declarationNumber?: string;
   declarationType: DeclarationType;
   status: DeclarationStatus;
-  companyName: string;
-  declarantName: string;
-  declarantEmail: string;
-  declarantPhone: string;
-  goodsDescription: string;
-  totalValue: number;
-  currency: string;
-  weight: number;
-  quantity: number;
-  hsCode?: string;
-  originCountry: string;
-  destinationCountry: string;
-  portOfEntry: string;
-  expectedArrival?: Date;
-  submittedAt: Date;
-  processedAt?: Date;
-  completedAt?: Date;
-  notes?: string;
-  attachments?: DeclarationAttachment[];
-  fees?: DeclarationFee[];
-  history?: DeclarationHistory[];
-  createdAt: Date;
-  updatedAt: Date;
+  // 추정/관례 필드 (업로드본에서 BaseEntity 언급) → optional로 안전 처리
+  details?: Record<string, any> | null; // Map/JSON 등 상세정보 컨테이너
+  remarks?: string | null;
+  createdAt?: string; // ISO
+  updatedAt?: string; // ISO
+  createdBy?: string;
+  updatedBy?: string;
+  /** 확장 필드 수용 */
+  [key: string]: any;
 }
 
-export type DeclarationType = 'IMPORT' | 'EXPORT' | 'TRANSIT';
-
-export type DeclarationStatus = 
-  | 'DRAFT'
-  | 'SUBMITTED' 
-  | 'UNDER_REVIEW'
-  | 'PENDING_DOCUMENTS'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'CLEARED';
-
-export interface DeclarationAttachment {
-  id: number;
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  uploadedAt: Date;
-  url: string;
-}
-
-export interface DeclarationFee {
-  id: number;
-  feeType: string;
-  amount: number;
-  currency: string;
-  status: 'PENDING' | 'PAID' | 'WAIVED';
-  dueDate?: Date;
-  paidAt?: Date;
-}
-
-export interface DeclarationHistory {
-  id: number;
-  action: string;
-  description: string;
-  performedBy: string;
-  performedAt: Date;
-  oldStatus?: DeclarationStatus;
-  newStatus?: DeclarationStatus;
-}
-
+/** 생성/수정 요청 DTO — Map<String,Object> 기반으로 오는 케이스를 수용 */
 export interface DeclarationRequestDto {
+  declarationNumber?: string;
   declarationType: DeclarationType;
-  companyName: string;
-  declarantName: string;
-  declarantEmail: string;
-  declarantPhone: string;
-  goodsDescription: string;
-  totalValue: number;
-  currency: string;
-  weight: number;
-  quantity: number;
-  hsCode?: string;
-  originCountry: string;
-  destinationCountry: string;
-  portOfEntry: string;
-  expectedArrival?: string;
-  notes?: string;
+  status?: DeclarationStatus; // 기본 DRAFT 가정
+  // 백엔드가 Map 기반으로 받는 값들을 유연 수용
+  [key: string]: any;
 }
 
-export interface DeclarationResponseDto {
-  id: number;
-  declarationNumber: string;
-  declarationType: DeclarationType;
-  status: DeclarationStatus;
-  companyName: string;
-  declarantName: string;
-  declarantEmail: string;
-  declarantPhone: string;
-  goodsDescription: string;
-  totalValue: number;
-  currency: string;
-  weight: number;
-  quantity: number;
-  hsCode?: string;
-  originCountry: string;
-  destinationCountry: string;
-  portOfEntry: string;
-  expectedArrival?: string;
-  submittedAt: string;
-  processedAt?: string;
-  completedAt?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
+/** 응답 DTO — Declaration + 확장 필드 */
+export interface DeclarationResponseDto extends Declaration {}
+
+/** 상세 조회 응답 — Controller가 Map<String,Object>로 내려줄 수 있어 유연하게 수용 */
+export interface DeclarationDetailResponse {
+  declaration?: Declaration;
+  attachments?: Attachment[];
+  [key: string]: any;
 }
 
-export interface DeclarationStatsDto {
-  totalDeclarations: number;
-  pendingDeclarations: number;
-  approvedDeclarations: number;
-  rejectedDeclarations: number;
-  totalValue: number;
-  averageProcessingTime: number;
-  statusDistribution: Record<DeclarationStatus, number>;
-  monthlyTrends: MonthlyTrend[];
-}
-
-export interface MonthlyTrend {
-  month: string;
-  count: number;
-  totalValue: number;
-}
-
-export interface DeclarationListParams {
-  page?: number;
-  size?: number;
-  sort?: string;
-  direction?: 'ASC' | 'DESC';
-  status?: DeclarationStatus;
-  declarationType?: DeclarationType;
-  search?: string;
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-export interface DeclarationListResponse {
-  content: DeclarationResponseDto[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  numberOfElements: number;
+/** 생성 시 파일 페이로드 타입 */
+export interface DeclarationCreateFiles {
+  invoiceFile?: File;
+  packingListFile?: File;
+  billOfLadingFile?: File;
+  certificateOfOriginFile?: File;
+  [key: string]: File | undefined;
 }

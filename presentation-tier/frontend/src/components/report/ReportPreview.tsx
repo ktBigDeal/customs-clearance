@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createDeclaration, type DeclarationCreateRequest } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -22,7 +21,7 @@ interface Report {
   id: number;
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   importerName: string;
   hsCode?: string;
   totalAmount?: number;

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { declarationsApi } from '@/lib/declarations-api';
-import { createDeclaration, performOcrAnalysis, type DeclarationCreateRequest } from '@/lib/api';
+import { DeclarationRequestDto, DeclarationType } from '@/types/declaration';
+
+
 
 interface ReportGenerationProps {
   onReportGenerated: (report: any) => void;
@@ -14,7 +16,7 @@ interface ReportGenerationProps {
 
 interface UploadedFile {
   file: File;
-  type: 'invoice' | 'packing_list' | 'bill_of_lading' | 'certificate_of_origin';
+  type: 'invoiceFile' | 'packingListFile' | 'billOfLadingFile' | 'certificateOfOriginFile';
   preview: string;
 }
 
@@ -25,6 +27,7 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
   const [generatedReport, setGeneratedReport] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
 
   // 파일 업로드 처리
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -33,7 +36,7 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
       reader.onload = () => {
         const newFile: UploadedFile = {
           file,
-          type: 'invoice', // 기본값, 사용자가 선택 가능
+          type: 'invoiceFile', // 기본값, 사용자가 선택 가능
           preview: reader.result as string
         };
         setUploadedFiles(prev => [...prev, newFile]);
@@ -76,85 +79,53 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
     setError(null);
 
     try {
-      // 1. OCR 처리
-      setProcessingStatus('문서를 스캔하고 텍스트를 추출하는 중...');
-      const ocrResult = await performOcrAnalysis({
-        files: uploadedFiles.map(f => f.file),
-        analysisType: uploadedFiles[0]?.type || 'invoice'
-      });
-
-      // 2. AI 분석
-      setProcessingStatus('AI가 문서 내용을 분석하는 중...');
-      const analysisResult = ocrResult;
-
-      // 3. 신고서 생성
-      setProcessingStatus('수출입 신고서를 생성하는 중...');
-      
-      // 분석 결과를 바탕으로 신고서 데이터 구성
-      const declarationData: DeclarationCreateRequest = {
+      setProcessingStatus('신고서 생성 준비 중...');            
+      // 1) (선택) 기본 신고서 데이터 구성
+      const declarationData: DeclarationRequestDto = {
         declarationNumber: `IMP${Date.now().toString().slice(-6)}`,
-        declarationType: 'IMPORT',
-        status: 'DRAFT',
-        importerName: analysisResult.structuredData?.companyInfo?.name || '추출된 업체명',
-        hsCode: analysisResult.structuredData?.goods?.[0]?.hsCode || '',
-        totalAmount: analysisResult.structuredData?.invoice?.amount || 0,
-        declarationDetails: JSON.stringify({
-          extractedData: analysisResult.structuredData,
-          ocrConfidence: analysisResult.confidence,
-          processedFiles: uploadedFiles.map(f => ({
-            name: f.file.name,
-            type: f.type,
-            size: f.file.size
-          }))
-        })
+        declarationType: DeclarationType.IMPORT,
+        // 필요 시 추가 필드: status, remarks 등
+        // status: 'DRAFT' as any,
       };
 
-      // 백엔드 API를 통해 신고서 생성
-      const createdDeclaration = await createDeclaration(
-        declarationData,
-        {
-          invoiceFile: uploadedFiles.find(f => f.type === 'invoice')?.file,
-          packingListFile: uploadedFiles.find(f => f.type === 'packing_list')?.file,
-          billOfLadingFile: uploadedFiles.find(f => f.type === 'bill_of_lading')?.file,
-          certificateOfOriginFile: uploadedFiles.find(f => f.type === 'certificate_of_origin')?.file,
-        }
-      );
+      // 2) 신고서 생성 API 호출 (파일 동봉)
+    setProcessingStatus('신고서를 생성하는 중...');
+    const created = await declarationsApi.createDeclaration(
+      declarationData,
+      {
+        invoiceFile: uploadedFiles.find(f => f.type === 'invoiceFile')?.file,
+        packingListFile: uploadedFiles.find(f => f.type === 'packingListFile')?.file,
+        billOfLadingFile: uploadedFiles.find(f => f.type === 'billOfLadingFile')?.file,
+        certificateOfOriginFile: uploadedFiles.find(f => f.type === 'certificateOfOriginFile')?.file,
+      }
+    );
 
-      // 생성된 신고서에 추출된 데이터 추가
-      const reportWithExtractedData = {
-        ...createdDeclaration,
-        extractedData: analysisResult.structuredData
-      };
+    console.log('created', JSON.stringify(created));
 
-      setGeneratedReport(reportWithExtractedData);
-      setStep('preview');
-      
-    } catch (err: any) {
-      console.error('문서 처리 오류:', err);
-      setError(err.message || '문서 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-      setStep('upload');
-    } finally {
-      setIsLoading(false);
-      setProcessingStatus('');
-    }
-  };
+    // 3) 결과 전달 (백엔드 응답 형태가 Declaration | { declaration: Declaration } 둘 다 대응)
+    const reportPayload = (created && (created as any).declaration)
+      ? (created as any).declaration
+      : created;
+
+    console.log(reportPayload);
+
+    setProcessingStatus('신고서 생성 완료!');
+    setGeneratedReport(reportPayload);
+    setStep('preview');
+  } catch (e: any) {
+    console.error(e);
+    setError(e?.message || '신고서 생성 중 오류가 발생했습니다.'); 
+  } finally {
+    setIsLoading(false);
+    setProcessingStatus('');
+  }
+};
 
   // 보고서 저장
   const saveReport = async () => {
     if (!generatedReport) return;
-
     setIsLoading(true);
     try {
-      // 백엔드 API 호출 (실제 구현시)
-      // const response = await fetch('/api/declarations', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(generatedReport)
-      // });
-
-      // 임시로 2초 대기
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       onReportGenerated(generatedReport);
       setStep('complete');
     } catch (err) {
@@ -173,12 +144,23 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
     setProcessingStatus('');
     setIsLoading(false);
   };
+  useEffect(() => {
+    console.log('[RG] mounted');
+    return () => console.log('[RG] unmounted');
+  }, []);
 
+  useEffect(() => {
+    console.log('[RG] step =', step);
+  }, [step]);
+
+  useEffect(() => {
+    console.log('[RG] has generatedReport =', !!generatedReport);
+  }, [generatedReport]);
   const fileTypeOptions = [
-    { value: 'invoice', label: '상업송장 (Commercial Invoice)' },
-    { value: 'packing_list', label: '포장명세서 (Packing List)' },
-    { value: 'bill_of_lading', label: '선하증권 (Bill of Lading)' },
-    { value: 'certificate_of_origin', label: '원산지증명서 (Certificate of Origin)' }
+    { value: 'invoiceFile', label: '상업송장 (Commercial Invoice)' },
+    { value: 'packingListFile', label: '포장명세서 (Packing List)' },
+    { value: 'billOfLadingFile', label: '선하증권 (Bill of Lading)' },
+    { value: 'certificateOfOriginFile', label: '원산지증명서 (Certificate of Origin)' }
   ];
 
   // 업로드 단계
@@ -296,75 +278,172 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
 
   // 미리보기 단계
   if (step === 'preview' && generatedReport) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">생성된 신고서 미리보기</h2>
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="font-medium">생성 완료</span>
-            </div>
-          </div>
+    // details 소스: mapper가 넣은 rawDetails가 있으면 우선 사용,
+    // 없으면 백엔드의 declaration_details(JSON 문자열)를 파싱
+    console.log('생성된 신고서 미리보기');
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-3">기본 정보</h3>
-              <div className="space-y-2 text-sm">
-                <div><strong>신고번호:</strong> {generatedReport.declarationNumber}</div>
-                <div><strong>신고 구분:</strong> {generatedReport.declarationType === 'IMPORT' ? '수입' : '수출'}</div>
-                <div><strong>수입업체:</strong> {generatedReport.importerName}</div>
-                <div><strong>HS코드:</strong> {generatedReport.hsCode}</div>
-                <div><strong>총 금액:</strong> ${generatedReport.totalAmount?.toLocaleString()}</div>
+    const details: any = (() => {
+      const candidate = (generatedReport as any)?.rawDetails;
+      if (candidate && typeof candidate === 'object') return candidate;
+      try {
+        const s = (generatedReport as any)?.declaration_details;
+        return typeof s === 'string' ? JSON.parse(s) : {};
+      } catch {
+        return {};
+      }
+    })();
+
+    const entries = Object.entries(details ?? {});
+
+    // 값 렌더링(배열/객체도 안전하게 처리)
+    const renderValue = (val: any) => {
+      if (val == null) return <span className="text-gray-400">-</span>;
+      if (Array.isArray(val)) {
+        if (val.length === 0) return <span>[]</span>;
+        const allObjects = val.every(v => v && typeof v === 'object' && !Array.isArray(v));
+        if (allObjects) {
+          // 배열의 모든 key를 합쳐 테이블 헤더 생성
+          const headerKeys = Array.from(
+            val.reduce<Set<string>>((set, row) => {
+              Object.keys(row || {}).forEach(k => set.add(k));
+              return set;
+            }, new Set<string>())
+          );
+
+          return (
+            <details className="group">
+              <summary className="cursor-pointer text-blue-600 hover:underline">
+                {val.length}개 항목 보기
+              </summary>
+              <div className="mt-2 overflow-x-auto border rounded">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-1 text-left">#</th>
+                      {headerKeys.map(h => (
+                        <th key={h} className="px-2 py-1 text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {val.map((row: any, idx: number) => (
+                      <tr key={idx} className="border-t">
+                        <td className="px-2 py-1">{idx + 1}</td>
+                        {headerKeys.map(h => (
+                          <td key={h} className="px-2 py-1 whitespace-pre-wrap break-words">
+                            {formatPrimitive(row?.[h])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </details>
+          );
+        }
+        // 배열이지만 원시/혼합 타입인 경우
+        return <span>{JSON.stringify(val)}</span>;
+      }
+      if (typeof val === 'object') {
+        return (
+          <details className="group">
+            <summary className="cursor-pointer text-blue-600 hover:underline">객체 열기</summary>
+            <pre className="mt-2 p-2 bg-gray-50 border rounded text-xs overflow-auto">
+              {JSON.stringify(val, null, 2)}
+            </pre>
+          </details>
+        );
+      }
+      return formatPrimitive(val);
+    };
 
-            <div>
-              <h3 className="text-lg font-medium mb-3">추출된 데이터</h3>
-              <div className="space-y-2 text-sm">
-                <div><strong>사업자번호:</strong> {generatedReport.extractedData?.companyInfo?.businessNumber}</div>
-                <div><strong>주소:</strong> {generatedReport.extractedData?.companyInfo?.address}</div>
-                <div><strong>송장번호:</strong> {generatedReport.extractedData?.invoice?.invoiceNumber}</div>
-                <div><strong>송장일자:</strong> {generatedReport.extractedData?.invoice?.date}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-amber-800">검토 필요</p>
-                <p className="text-amber-700 mt-1">
-                  AI가 추출한 정보를 검토하고 필요시 수정해주세요. 
-                  저장 전 모든 정보가 정확한지 확인하시기 바랍니다.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-between">
-            <Button variant="outline" onClick={resetProcess}>
-              새로 시작하기
-            </Button>
-            <div className="flex gap-3">
-              <Button variant="outline">수정하기</Button>
-              <Button onClick={saveReport} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    저장 중...
-                  </>
-                ) : (
-                  '저장하기'
-                )}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
+  function formatPrimitive(v: any) {
+    if (typeof v === 'number') return v.toLocaleString();
+    return String(v);
   }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold">생성된 신고서 미리보기</h2>
+          <div className="flex items-center gap-2 text-green-600">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-medium">생성 완료</span>
+          </div>
+        </div>
+
+        {/* 상단 기본 메타 정보(프론트 공통 필드) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">기본 정보</h3>
+            <div className="space-y-2 text-sm">
+              <div><strong>신고번호:</strong> {generatedReport.declarationNumber ?? ''}</div>
+              <div><strong>신고 구분:</strong> {generatedReport.declarationType === 'IMPORT' ? '수입' : '수출'}</div>
+              <div><strong>상태:</strong> {generatedReport.status ?? 'DRAFT'}</div>
+              <div><strong>생성일:</strong> {generatedReport.createdAt ? new Date(generatedReport.createdAt).toLocaleString() : '-'}</div>
+              <div><strong>수정일:</strong> {generatedReport.updatedAt ? new Date(generatedReport.updatedAt).toLocaleString() : '-'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* JSON Key/Value 전체 출력 */}
+        <div className="mt-8">
+          <h3 className="text-lg font-medium mb-3">상세 데이터 (JSON)</h3>
+          {entries.length === 0 ? (
+            <p className="text-sm text-gray-500">표시할 데이터가 없습니다.</p>
+          ) : (
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+              {entries.map(([key, value]) => (
+                <div key={key} className="flex flex-col">
+                  <dt className="text-xs font-medium text-gray-500">{key}</dt>
+                  <dd className="text-sm text-gray-900 whitespace-pre-wrap break-words">
+                    {renderValue(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+
+        {/* 안내 메시지 */}
+        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800">검토 필요</p>
+              <p className="text-amber-700 mt-1">
+                JSON의 key/value를 그대로 표시했습니다. 저장 전에 필드들을 확인하고 필요 시 보정하세요.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 버튼들 */}
+        <div className="mt-6 flex justify-between">
+          <Button variant="outline" onClick={resetProcess}>
+            새로 시작하기
+          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline">수정하기</Button>
+            <Button onClick={saveReport} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  저장 중...
+                </>
+              ) : (
+                '저장하기'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 
   // 완료 단계
   if (step === 'complete') {
