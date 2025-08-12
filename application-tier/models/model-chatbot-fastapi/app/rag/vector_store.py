@@ -135,23 +135,29 @@ class LangChainVectorStore:
         """임베딩을 이용한 유사도 검색 (기존 호환성)"""
         try:
             # LangChain은 직접 임베딩 검색을 지원하지 않으므로
-            # 임베딩을 텍스트로 변환하는 더미 검색 사용
-            # 실제 사용에서는 query string을 사용해야 함
-            results = self.vectorstore.similarity_search("", k=top_k, filter=where)
+            # ChromaDB 클라이언트를 직접 사용하여 임베딩 기반 검색 수행
+            collection = self.vectorstore._collection
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k,
+                where=where
+            )
             
             # 결과를 딕셔너리 형태로 변환
             formatted_results = []
-            for doc in results:
+            for i in range(len(results['documents'][0])):
                 formatted_results.append({
-                    "content": doc.page_content,
-                    "metadata": doc.metadata,
-                    "similarity": 0.8,  # 더미 유사도
-                    "id": doc.metadata.get("id", f"doc_{hash(doc.page_content)}")
+                    "content": results['documents'][0][i],
+                    "metadata": results['metadatas'][0][i] if results['metadatas'][0] else {},
+                    "similarity": 1.0 - results['distances'][0][i] if results['distances'][0] else 0.8,  # distance를 similarity로 변환
+                    "id": results['ids'][0][i]
                 })
             
+            logger.debug(f"Found {len(formatted_results)} similar documents using direct ChromaDB client")
             return formatted_results
+            
         except Exception as e:
-            logger.error(f"Embedding similarity search failed: {e}")
+            logger.error(f"Direct ChromaDB embedding search failed: {e}")
             return []
 
 
@@ -272,21 +278,30 @@ class ChromaVectorStore:
             # LangChain은 직접 임베딩 검색을 지원하지 않으므로
             # 임베딩을 텍스트로 변환하는 더미 검색 사용
             # 실제 사용에서는 query string을 사용해야 함
-            results = self.vectorstore.similarity_search("", k=top_k, filter=where)
+            collection = self.vectorstore._collection
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k,
+                where=where
+            )
             
-            # 결과를 딕셔너리 형태로 변환
             formatted_results = []
-            for doc in results:
+            for i in range(len(results['documents'][0])):
+                doc = Document(
+                    page_content=results['documents'][0][i],
+                    metadata=results['metadatas'][0][i]
+                )
                 formatted_results.append({
                     "content": doc.page_content,
                     "metadata": doc.metadata,
-                    "similarity": 0.8,  # 더미 유사도
-                    "id": doc.metadata.get("id", f"doc_{hash(doc.page_content)}")
+                    "similarity": 1.0 - results['distances'][0][i],  # distance를 similarity로 변환
+                    "id": results['ids'][0][i]
                 })
-            
+
             return formatted_results
+
         except Exception as e:
-            logger.error(f"Embedding similarity search failed: {e}")
+            logger.error(f"Direct ChromaDB query failed: {e}")
             return []
     
     def get_statistics(self) -> Dict[str, Any]:
