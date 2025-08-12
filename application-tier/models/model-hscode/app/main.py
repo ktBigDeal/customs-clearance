@@ -19,10 +19,10 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / "src"))
 
-from .api.v1.api import api_router
-from .core.config import get_settings
-from .core.recommender import RecommenderService
-from .schemas.response import HealthResponse, StatusResponse
+from app.api.v1.api import api_router
+from app.core.config import get_settings
+from app.core.recommender import RecommenderService
+from app.schemas.response import HealthResponse, StatusResponse
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -153,10 +153,10 @@ def get_recommender_service() -> RecommenderService:
     return recommender_service
 
 # 의존성 등록 (다른 모듈에서 사용)
-from .api.v1.endpoints.recommend import get_recommender_service as recommend_get_service
-from .api.v1.endpoints.search import get_recommender_service as search_get_service  
-from .api.v1.endpoints.health import get_recommender_service as health_get_service
-from .api.v1.endpoints.cache import get_recommender_service as cache_get_service
+from app.api.v1.endpoints.recommend import get_recommender_service as recommend_get_service
+from app.api.v1.endpoints.search import get_recommender_service as search_get_service  
+from app.api.v1.endpoints.health import get_recommender_service as health_get_service
+from app.api.v1.endpoints.cache import get_recommender_service as cache_get_service
 
 app.dependency_overrides[recommend_get_service] = get_recommender_service
 app.dependency_overrides[search_get_service] = get_recommender_service

@@ -1,7 +1,6 @@
 'use client';
 
 import { Users, FileText, Activity, AlertTriangle } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import StatsCard from '@/components/admin/StatsCard';
 import ChartSection from '@/components/admin/ChartSection';
 import ActivityLog from '@/components/admin/ActivityLog';
@@ -44,7 +43,7 @@ export default function AdminDashboardPage() {
 
   return (
     <ProtectedRoute requiredRole="ADMIN">
-      <DashboardLayout isAdmin={true}>
+      <div>
         <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
@@ -84,7 +83,7 @@ export default function AdminDashboardPage() {
         </div>
         </div>
       
-      </DashboardLayout>
+      </div>
     </ProtectedRoute>
   );
 }

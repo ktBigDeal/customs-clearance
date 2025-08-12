@@ -52,7 +52,6 @@ public class KcsExportXmlMapper {
         String 총중량Raw     = S(root.get("총중량"));            // "441KG"
         String 총포장개수    = S(root.get("총포장개수"));         // "81"
         String 결제금액Raw    = S(root.get("결제금액"));          // "CIFUSD2400.54"
-        String 순중량헤더     = S(root.get("순중량"));            // "275.00KG" (참조용)
 
         // 수출대행자 / 제조자 / 구매자
         Party 수출대행자 = parseExporterParty(S(root.get("수출대행자"))); // 상호, 주소/우편, 대표자, 구분코드 추출
@@ -178,7 +177,6 @@ public class KcsExportXmlMapper {
         for (int i = 0; i < items.size(); i++) {
             Map<String, Object> it = items.get(i);
 
-            String 물품상태  = S(it.get("물품상태")); // N/O/M
             String 품명     = S(it.get("품명"));
             String 거래품명  = S(it.get("거래품명"));
             String 상표명    = S(it.get("상표명"));
@@ -406,8 +404,8 @@ public class KcsExportXmlMapper {
         String md = parts.size()>=4? parts.get(3) : "";
         return new Payment(ic, cc, am, md);
     }
-    private static class Payment { final String incoterm, currency, amount, method;
-        Payment(String i,String c,String a,String m){incoterm=i;currency=c;amount=a;method=m;} }
+    private static class Payment { final String incoterm, amount, method;
+        Payment(String i,String c,String a,String m){incoterm=i;amount=a;method=m;} }
 
     private static class TotalWeight { final String value, unit;
         TotalWeight(String v,String u){value=v;unit=u;} }
@@ -474,8 +472,8 @@ public class KcsExportXmlMapper {
 
     // 제조자: "상호, 통관고유부호(또는 미상), 일련번호, 우편, 산업단지부호"
     private static class Manufacturer {
-        final String name, code, serial, postcode, industryCode;
-        Manufacturer(String n,String c,String s,String p,String i){name=n;code=c;serial=s;postcode=p;industryCode=i;}
+        final String name, postcode;
+        Manufacturer(String n,String c,String s,String p,String i){name=n;postcode=p;}
     }
     // "상호, 미상, 0000, 51312, 미상" 같은 자유형을 안전 파싱
     private Manufacturer parseManufacturer(String raw){

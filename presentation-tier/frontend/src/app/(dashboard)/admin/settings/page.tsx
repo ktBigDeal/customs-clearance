@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Save, RefreshCw, Shield, Database, Bell, Mail, Globe, Server, Key, Users } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -132,7 +131,7 @@ export default function SettingsPage() {
 
   return (
     <ProtectedRoute requiredRole="ADMIN">
-      <DashboardLayout isAdmin={true}>
+      <div>
         <div className="space-y-6">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -451,7 +450,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-      </DashboardLayout>
+      </div>
     </ProtectedRoute>
   );
 }

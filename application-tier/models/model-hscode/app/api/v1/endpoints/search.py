@@ -7,9 +7,9 @@ from typing import Optional
 import time
 import logging
 
-from ....core.recommender import RecommenderService
-from ....schemas.request import SearchRequest
-from ....schemas.response import SearchResponse, HSCodeRecommendation, SearchInfo
+from app.core.recommender import RecommenderService
+from app.schemas.request import SearchRequest
+from app.schemas.response import SearchResponse, HSCodeRecommendation, SearchInfo
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

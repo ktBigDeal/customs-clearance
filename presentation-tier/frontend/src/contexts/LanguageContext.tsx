@@ -53,6 +53,10 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'sidebar.dashboard.desc': '시스템 현황 및 주요 지표',
         'sidebar.chat': 'AI 상담',
         'sidebar.chat.desc': '통관 전문 AI 상담 서비스',
+        'sidebar.report': '보고서 생성',
+        'sidebar.report.desc': '수출입 신고서 생성 및 관리',
+        'sidebar.hscode': 'HS코드 추천',
+        'sidebar.hscode.desc': 'AI 기반 HS코드 분류 및 추천',
         'sidebar.quickActions': '빠른 작업',
         'sidebar.newDeclaration': '새 신고서 작성',
         'sidebar.uploadDoc': '서류 업로드',
@@ -136,6 +140,25 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'chat.help': '도움말',
         'chat.helpDesc': '더 정확한 답변을 위해 구체적인 상황과 함께 질문해 주세요.',
 
+        // 고객센터 페이지 번역
+        'customerService.title': '고객센터',
+        'customerService.subtitle': '궁금한 점이나 문제가 있으시면 언제든지 문의해주세요',
+        'customerService.phone': '전화 상담',
+        'customerService.phoneDesc': '전문 상담사와 직접 통화',
+        'customerService.email': '이메일 문의',
+        'customerService.emailDesc': '상세한 문의 내용 전송',
+        'customerService.liveChat': '실시간 채팅',
+        'customerService.liveChatDesc': '즉시 답변 받기',
+        'customerService.startChat': '채팅 시작하기',
+        'customerService.inquiry': '1:1 문의하기',
+        'customerService.inquiryDesc': '구체적인 문의사항을 남겨주시면 빠르게 답변드리겠습니다',
+        'customerService.faq': '자주 묻는 질문',
+        'customerService.faqDesc': '다른 사용자들이 자주 묻는 질문들을 확인해보세요',
+
+        // 사용자 가이드 페이지 번역
+        'userGuide.title': '사용자 가이드',
+        'userGuide.subtitle': '시스템을 효율적으로 활용하는 방법을 배워보세요',
+
         // 관리자 페이지 번역
         'admin.dashboard': '관리자 대시보드',
         'admin.userManagement': '사용자 관리',
@@ -173,6 +196,10 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'sidebar.dashboard.desc': 'System status and key metrics',
         'sidebar.chat': 'AI Consultation',
         'sidebar.chat.desc': 'Professional AI consultation service',
+        'sidebar.report': 'Report Generation',
+        'sidebar.report.desc': 'Import/Export declaration creation and management',
+        'sidebar.hscode': 'HS Code Recommendation',
+        'sidebar.hscode.desc': 'AI-based HS code classification and recommendation',
         'sidebar.quickActions': 'Quick Actions',
         'sidebar.newDeclaration': 'New Declaration',
         'sidebar.uploadDoc': 'Upload Documents',
@@ -254,6 +281,25 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'chat.recentChats': 'Recent Chats',
         'chat.help': 'Help',
         'chat.helpDesc': 'For more accurate answers, please provide specific details with your question.',
+
+        // Customer Service page translations
+        'customerService.title': 'Customer Service',
+        'customerService.subtitle': 'Contact us anytime if you have questions or issues',
+        'customerService.phone': 'Phone Support',
+        'customerService.phoneDesc': 'Direct call with professional consultants',
+        'customerService.email': 'Email Inquiry',
+        'customerService.emailDesc': 'Send detailed inquiry',
+        'customerService.liveChat': 'Live Chat',
+        'customerService.liveChatDesc': 'Get instant answers',
+        'customerService.startChat': 'Start Chat',
+        'customerService.inquiry': '1:1 Inquiry',
+        'customerService.inquiryDesc': 'Leave your specific questions and we will respond quickly',
+        'customerService.faq': 'Frequently Asked Questions',
+        'customerService.faqDesc': 'Check questions frequently asked by other users',
+
+        // User Guide page translations
+        'userGuide.title': 'User Guide',
+        'userGuide.subtitle': 'Learn how to use the system efficiently',
 
         // Admin pages translations
         'admin.dashboard': 'Admin Dashboard',

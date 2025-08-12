@@ -101,10 +101,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setTimeout(() => {
           if (currentUser.role === 'ADMIN') {
             console.log('🔄 관리자 대시보드로 리다이렉션...');
-            router.push('/admin/dashboard');
+            router.replace('/admin/dashboard');
           } else {
             console.log('🔄 사용자 대시보드로 리다이렉션...');
-            router.push('/dashboard');
+            router.replace('/dashboard');
           }
         }, 100);
         

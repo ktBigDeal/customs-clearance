@@ -22,7 +22,7 @@ export function Sidebar({ isOpen = true, onClose, className, isAdmin = false }: 
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -39,15 +39,7 @@ export function Sidebar({ isOpen = true, onClose, className, isAdmin = false }: 
       >
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
-          <div className="flex h-16 items-center justify-between border-b px-4">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-md bg-customs-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">KCS</span>
-              </div>
-              <span className="font-semibold text-sm">
-                {isAdmin ? t('admin.systemTitle') : t('sidebar.title')}
-              </span>
-            </div>
+          <div className="flex h-16 items-center justify-end border-b px-4">
             {/* Close button for mobile */}
             <Button
               variant="ghost"
@@ -71,37 +63,7 @@ export function Sidebar({ isOpen = true, onClose, className, isAdmin = false }: 
                 <MainNav onItemClick={onClose} isAdmin={isAdmin} />
               </div>
 
-              {/* Quick Actions - Only show for regular users */}
-              {!isAdmin && (
-                <div>
-                  <h3 className="mb-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('sidebar.quickActions')}
-                  </h3>
-                  <div className="space-y-1">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-sm font-normal"
-                      onClick={onClose}
-                    >
-                      {t('sidebar.newDeclaration')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-sm font-normal"
-                      onClick={onClose}
-                    >
-                      {t('sidebar.uploadDoc')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-sm font-normal"
-                      onClick={onClose}
-                    >
-                      {t('sidebar.checkStatus')}
-                    </Button>
-                  </div>
-                </div>
-              )}
+            
 
               {/* Help & Support */}
               <div>
@@ -112,21 +74,30 @@ export function Sidebar({ isOpen = true, onClose, className, isAdmin = false }: 
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
+                    onClick={() => {
+                      window.location.href = '/user-guide';
+                      onClose?.();
+                    }}
                   >
                     {t('sidebar.userGuide')}
                   </Button>
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
+                    onClick={() => {
+                      window.location.href = '/customer-service';
+                      onClose?.();
+                    }}
                   >
                     {t('sidebar.customerService')}
                   </Button>
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-sm font-normal"
-                    onClick={onClose}
+                    onClick={() => {
+                      window.location.href = '/faq';
+                      onClose?.();
+                    }}
                   >
                     {t('sidebar.faq')}
                   </Button>

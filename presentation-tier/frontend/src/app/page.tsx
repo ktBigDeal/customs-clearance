@@ -2,28 +2,28 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkAuthStatus = () => {
-      try {
-        const authToken = localStorage.getItem('auth_token');
-        
-        if (authToken) {
-          router.replace('/dashboard');
+    if (!isLoading) {
+      if (user) {
+        // 사용자 역할에 따른 리다이렉션
+        if (user.role === 'ADMIN') {
+          console.log('관리자 사용자 - 관리자 대시보드로 리다이렉션');
+          router.replace('/admin/dashboard');
         } else {
-          router.replace('/login');
+          console.log('일반 사용자 - 사용자 대시보드로 리다이렉션');
+          router.replace('/dashboard');
         }
-      } catch (error) {
-        console.error('Auth check error:', error);
+      } else {
         router.replace('/login');
       }
-    };
-
-    checkAuthStatus();
-  }, [router]);
+    }
+  }, [user, isLoading, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">

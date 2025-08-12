@@ -32,10 +32,10 @@ export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProp
       description: t('sidebar.dashboard.desc'),
     },
     {
-      title: '보고서 생성',
+      title: t('sidebar.report'),
       href: '/report',
       icon: ClipboardList,
-      description: '수출입 신고서 생성 및 관리',
+      description: t('sidebar.report.desc'),
     },
     {
       title: t('sidebar.chat'),
@@ -44,10 +44,10 @@ export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProp
       description: t('sidebar.chat.desc'),
     },
     {
-      title: 'HS코드 추천',
+      title: t('sidebar.hscode'),
       href: '/hscode',
       icon: Hash,
-      description: 'AI 기반 HS코드 분류 및 추천',
+      description: t('sidebar.hscode.desc'),
     },
   ];
 

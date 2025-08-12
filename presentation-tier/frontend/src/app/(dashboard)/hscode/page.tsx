@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 interface HSCodeRecommendation {
   hs_code: string;
@@ -171,8 +171,8 @@ export default function HSCodePage() {
   ];
 
   return (
-    <DashboardLayout>
-      <div className="h-[calc(100vh-8rem)]">
+    <ProtectedRoute requiredRole="USER">
+      <div className="h-full">
         <Card className="h-full overflow-hidden">
           <div className="flex h-full">
             {/* Main Content */}
@@ -527,6 +527,6 @@ export default function HSCodePage() {
           </div>
         </Card>
       </div>
-    </DashboardLayout>
+    </ProtectedRoute>
   );
 }

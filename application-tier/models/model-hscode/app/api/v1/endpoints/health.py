@@ -5,8 +5,8 @@
 from fastapi import APIRouter, Depends
 import logging
 
-from ....core.recommender import RecommenderService
-from ....schemas.response import HealthResponse
+from app.core.recommender import RecommenderService
+from app.schemas.response import HealthResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

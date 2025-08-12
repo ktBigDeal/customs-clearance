@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Plus, Edit, Trash2, Shield, ShieldCheck } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -53,6 +52,7 @@ export default function UsersPage() {
           ...user,
           id: String(user.id), // ID를 문자열로 변환
           role: user.role.toUpperCase() as 'ADMIN' | 'USER', // 역할을 대문자로 변환
+          lastLogin: user.lastLogin || user.lastLoginDate || null, // 마지막 로그인 정보 처리
         }));
         setUsers(typedUsers);
       } else {
@@ -174,7 +174,7 @@ export default function UsersPage() {
 
   return (
     <ProtectedRoute requiredRole="ADMIN">
-      <DashboardLayout isAdmin={true}>
+      <div>
         <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -344,7 +344,7 @@ export default function UsersPage() {
           userEmail={deleteModal.user?.email || ''}
           isLoading={isDeleting}
         />
-      </DashboardLayout>
+      </div>
     </ProtectedRoute>
   );
 }

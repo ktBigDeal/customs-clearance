@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Upload, Download, Eye, Edit, Trash2, Plus, Filter, Search } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
+
 import ReportGeneration from '@/components/report/ReportGeneration';
 import ReportHistory from '@/components/report/ReportHistory';
 import ReportPreview from '@/components/report/ReportPreview';
@@ -101,8 +101,7 @@ export default function ReportPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -205,7 +204,6 @@ export default function ReportPage() {
           </Button>
         </Card>
       )}
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }

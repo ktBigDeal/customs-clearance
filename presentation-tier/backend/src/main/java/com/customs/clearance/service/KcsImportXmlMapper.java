@@ -308,10 +308,6 @@ public class KcsImportXmlMapper {
     }
 
     private static String S(Object o){ return o==null? "" : String.valueOf(o).trim(); }
-    private static Object coalesce(Map<String,Object> map, String... keys){
-        for (String k: keys){ Object v = map.get(k); if (v!=null) return v; }
-        return null;
-    }
     private static boolean isBlank(String s){
         if (s == null) return true;
         String t = s.trim();
@@ -383,8 +379,8 @@ public class KcsImportXmlMapper {
         String company  = t.size()>=3 ? t.get(2) : "";
         return new Payer(postcode, address, company, "", "", "");
     }
-    private static class Payer { final String postcode,address,company,phone,email,person;
-        Payer(String p,String a,String c,String ph,String em,String pe){postcode=p;address=a;company=c;phone=ph;email=em;person=pe;} }
+    private static class Payer { final String postcode,address,company,person;
+        Payer(String p,String a,String c,String ph,String em,String pe){postcode=p;address=a;company=c;person=pe;} }
 
     // 해외공급자: 코드(영숫자 8~20) + 국가(2자리) + 나머지 이름.
     // "Motec Technology Co., Ltd.KR CNTOSHIN12347" 처럼 붙은 국가코드도 제거.

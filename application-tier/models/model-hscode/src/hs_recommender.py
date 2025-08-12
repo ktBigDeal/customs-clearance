@@ -6,6 +6,11 @@ import os
 
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+# .env 파일 로드
+project_root = Path(__file__).parent.parent
+load_dotenv(project_root / ".env")
 
 # 프로젝트 루트를 sys.path에 추가 (model-hscode 폴더)
 project_root = Path(__file__).parent.parent
@@ -53,29 +58,43 @@ class HSCodeRecommender:
             return False
         
         try:
-            api_file = SYSTEM_CONFIG.get('openai_api_file', 'openai_api.txt')
+            api_key = None
             
-            if os.path.exists(api_file):
-                with open(api_file, 'r', encoding='utf-8') as f:
-                    api_key = f.read().strip()
-                
-                self.openai_client = openai.OpenAI(api_key=api_key)
-                
-                # 간단한 테스트 호출
-                test_response = self.openai_client.chat.completions.create(
-                    model="gpt-4.1-mini",
-                    messages=[{"role": "user", "content": "안녕하세요"}],
-                    max_tokens=10
-                )
-                
-                print("OpenAI API 초기화 성공")
-                return True
+            # 1. 환경변수에서 API 키 확인 (우선순위)
+            env_api_key = os.getenv('OPENAI_API_KEY')
+            if env_api_key:
+                api_key = env_api_key.strip()
+                print("환경변수에서 OpenAI API 키 로드")
             else:
-                print(f"API 키 파일이 없습니다: {api_file}")
+                # 2. 파일에서 API 키 확인 (대체)
+                api_file = SYSTEM_CONFIG.get('openai_api_file', 'openai_api.txt')
+                if os.path.exists(api_file):
+                    with open(api_file, 'r', encoding='utf-8') as f:
+                        api_key = f.read().strip()
+                    print(f"파일에서 OpenAI API 키 로드: {api_file}")
+                else:
+                    print(f"환경변수 OPENAI_API_KEY와 API 키 파일 {api_file} 모두 없습니다")
+                    return False
+            
+            if not api_key:
+                print("유효한 OpenAI API 키를 찾을 수 없습니다")
                 return False
+                
+            self.openai_client = openai.OpenAI(api_key=api_key)
+            
+            # 간단한 테스트 호출
+            test_response = self.openai_client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": "안녕하세요"}],
+                max_tokens=10
+            )
+            
+            print("OpenAI API 초기화 성공")
+            return True
                 
         except Exception as e:
             print(f"OpenAI API 초기화 실패: {e}")
+            self.openai_client = None
             return False
     
     def load_data(self, force_rebuild: bool = False) -> bool:

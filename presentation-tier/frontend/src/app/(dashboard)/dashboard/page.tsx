@@ -13,7 +13,6 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -141,8 +140,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute requiredRole="USER">
-      <DashboardLayout>
-        <div className="space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-foreground">
@@ -295,8 +293,7 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
-        </div>
-      </DashboardLayout>
+      </div>
     </ProtectedRoute>
   );
 }

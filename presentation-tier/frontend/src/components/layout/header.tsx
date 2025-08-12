@@ -38,7 +38,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, ChevronDown, Globe, LogOut, Settings, User } from 'lucide-react';
+import { Bell, ChevronDown, Globe, LogOut, Settings, User, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -63,6 +63,8 @@ import {
 interface HeaderProps {
   /** 모바일 환경에서 사이드바 메뉴를 토글하는 함수 */
   onMenuToggle?: () => void;
+  /** 메뉴 클릭 핸들러 */
+  onMenuClick?: () => void;
 }
 
 /**
@@ -84,7 +86,7 @@ interface HeaderProps {
  * <Header onMenuToggle={() => setMobileMenuOpen(true)} />
  * ```
  */
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header({ onMenuToggle, onMenuClick }: HeaderProps) {
   /** Next.js 라우터 인스턴스 */
   const router = useRouter();
   
@@ -96,6 +98,35 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
   /** 프로필 모달 상태 */
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  /**
+   * 사용자 이름 마스킹 처리 함수
+   */
+  const maskUserName = (name: string | undefined) => {
+    if (!name) return '사용자';
+    if (name.length === 1) return '*';
+    if (name.length === 2) return name[0] + '*';
+    if (name.length === 3) return name[0] + '*' + name[2];
+    return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
+  };
+
+  /**
+   * 이메일 마스킹 처리 함수
+   */
+  const maskEmail = (email: string | undefined) => {
+    if (!email) return 'user@example.com';
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return 'user@example.com';
+    
+    let maskedLocal;
+    if (local.length <= 2) {
+      maskedLocal = local;
+    } else {
+      maskedLocal = local[0] + '*'.repeat(Math.min(local.length - 2, 4)) + local[local.length - 1];
+    }
+    
+    return maskedLocal + '@' + domain;
+  };
 
   /**
    * 언어 변경 핸들러
@@ -121,10 +152,21 @@ export function Header({ onMenuToggle }: HeaderProps) {
   };
 
   return (
-    <header className="z-30 w-full border-b bg-background shrink-0">
-      <div className="flex h-16 items-center px-4 lg:px-6">
+    <header className="fixed top-0 left-0 right-0 z-30 w-full border-b bg-background shrink-0">
+      <div className="flex h-16 items-center px-4 lg:px-6 lg:pl-72">
         {/* Logo and Title */}
         <div className="flex items-center gap-4">
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="lg:hidden"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-md bg-customs-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">KCS</span>
@@ -176,12 +218,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 text-xs"></span>
-            <span className="sr-only">{t('header.notifications')}</span>
-          </Button>
+      
 
           {/* User Menu */}
           <DropdownMenu>
@@ -191,7 +228,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   <User className="h-4 w-4 text-customs-600" />
                 </div>
                 <span className="hidden sm:inline text-sm font-medium">
-                  {user?.name || '사용자'}
+                  {maskUserName(user?.name)}
                 </span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -199,9 +236,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.name || '사용자'}</p>
+                  <p className="text-sm font-medium">{maskUserName(user?.name)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user?.email || 'user@example.com'}
+                    {maskEmail(user?.email)}
                   </p>
                   <p className="text-xs text-blue-600">
                     {user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}
@@ -212,10 +249,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
                 <User className="mr-2 h-4 w-4" />
                 프로필
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => alert('설정 페이지는 개발 중입니다.')}>
-                <Settings className="mr-2 h-4 w-4" />
-                설정
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600">
@@ -228,9 +261,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       {/* Profile Modal */}
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
       />
     </header>
   );
