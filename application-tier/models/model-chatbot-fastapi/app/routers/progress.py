@@ -25,7 +25,7 @@ class ProgressManager:
         """새 진행상황 연결 추가"""
         self.active_connections.add(conversation_id)
         self.progress_queues[conversation_id] = asyncio.Queue()
-        logger.info(f"📡 Progress connection added: {conversation_id}")
+        logger.info(f"📡 Progress connection added: {conversation_id} (총 {len(self.active_connections)}개 연결)")
         return self.progress_queues[conversation_id]
     
     async def remove_connection(self, conversation_id: str):
@@ -33,7 +33,7 @@ class ProgressManager:
         self.active_connections.discard(conversation_id)
         if conversation_id in self.progress_queues:
             del self.progress_queues[conversation_id]
-        logger.info(f"🔌 Progress connection removed: {conversation_id}")
+        logger.info(f"🔌 Progress connection removed: {conversation_id} (남은 연결: {len(self.active_connections)}개)")
     
     async def send_progress(self, conversation_id: str, step: str, message: str, details: str = ""):
         """특정 대화에 진행상황 전송"""
@@ -72,6 +72,7 @@ async def stream_progress(conversation_id: str, request: Request):
     
     async def generate():
         """진행상황 데이터 생성기"""
+        logger.info(f"🚀 SSE 스트림 시작: {conversation_id}")
         # 연결 추가
         queue = await progress_manager.add_connection(conversation_id)
         
@@ -91,7 +92,7 @@ async def stream_progress(conversation_id: str, request: Request):
                 try:
                     # 클라이언트 연결 상태 확인
                     if await request.is_disconnected():
-                        logger.info(f"🔌 Client disconnected: {conversation_id}")
+                        logger.info(f"🔌 클라이언트 연결 끊김: {conversation_id}")
                         break
                     
                     # 큐에서 진행상황 데이터 대기 (타임아웃 5초)

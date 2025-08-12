@@ -119,15 +119,7 @@ async def chat_with_langgraph(
         is_new_conversation = False
         conversation_id = request.conversation_id
         
-        # 진행상황: 대화 세션 준비
-        await progress_manager.send_progress(
-            conversation_id or "new", 
-            "대화 준비", 
-            "대화 세션을 준비하고 있습니다...",
-            ""
-        )
-        
-        # 새 대화 생성
+        # 새 대화 생성 (진행상황 전송 전에 실제 ID 확보)
         if not conversation_id:
             conversation = await service.create_conversation(
                 user_id=request.user_id,
@@ -135,8 +127,17 @@ async def chat_with_langgraph(
             )
             conversation_id = conversation.id
             is_new_conversation = True
-            
-            # 진행상황: 새 대화 생성 완료
+        
+        # 진행상황: 대화 세션 준비 (실제 conversation_id로 전송)
+        await progress_manager.send_progress(
+            conversation_id, 
+            "대화 준비", 
+            "대화 세션을 준비하고 있습니다...",
+            f"대화 ID: {conversation_id}"
+        )
+        
+        # 새 대화 생성 완료 알림
+        if is_new_conversation:
             await progress_manager.send_progress(
                 conversation_id, 
                 "대화 생성", 

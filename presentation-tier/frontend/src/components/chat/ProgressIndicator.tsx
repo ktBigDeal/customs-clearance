@@ -110,6 +110,8 @@ export function ProgressIndicator({
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   /** EventSource 참조 */
   const eventSourceRef = useRef<EventSource | null>(null);
+  /** 현재 연결 중인 conversation_id (ref로 관리하여 리렌더링 방지) */
+  const activeConnectionIdRef = useRef<string | null>(null);
   /** 진행상황 컨테이너 참조 (자동 스크롤용) */
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -117,16 +119,25 @@ export function ProgressIndicator({
    * 진행상황 스트림 연결 시작
    */
   const connectToProgressStream = () => {
-    if (!conversationId || !isVisible) return;
+    console.log(`[Progress] === 연결 시작 === conversationId: ${conversationId}`);
+    
+    if (!conversationId || !isVisible) {
+      console.log(`[Progress] ❌ 조건 미충족 - conversationId: ${conversationId}, isVisible: ${isVisible}`);
+      return;
+    }
 
-    // 기존 연결이 있으면 종료
+    // 기존 연결 무조건 종료 (단순화)
     if (eventSourceRef.current) {
+      console.log(`[Progress] 🔌 기존 연결 종료`);
       eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
 
     setConnectionStatus('connecting');
     setSteps([]); // 이전 단계들 초기화
 
+    console.log(`[Progress] 🚀 새 EventSource 생성: http://localhost:8004/api/v1/progress/stream/${conversationId}`);
+    
     // model-chatbot-fastapi SSE 엔드포인트에 연결
     const eventSource = new EventSource(
       `http://localhost:8004/api/v1/progress/stream/${conversationId}`
@@ -134,8 +145,9 @@ export function ProgressIndicator({
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
-      console.log('[Progress] SSE connection opened');
+      console.log(`[Progress] ✅ 연결 성공: ${conversationId}`);
       setConnectionStatus('connected');
+      activeConnectionIdRef.current = conversationId;
     };
 
     eventSource.onmessage = (event) => {
@@ -159,6 +171,12 @@ export function ProgressIndicator({
         // 완료 단계에서 콜백 호출
         if (progressData.step === '완료' && onComplete) {
           setTimeout(() => {
+            // 연결 정리
+            if (eventSourceRef.current) {
+              eventSourceRef.current.close();
+              eventSourceRef.current = null;
+              activeConnectionIdRef.current = null;
+            }
             onComplete();
           }, 2000); // 2초 후 완료 처리
         }
@@ -169,23 +187,17 @@ export function ProgressIndicator({
     };
 
     eventSource.onerror = (error) => {
-      console.error('[Progress] SSE error:', error);
+      console.error('[Progress] ❌ SSE 연결 오류:', error);
+      console.error('[Progress] EventSource readyState:', eventSource.readyState);
       setConnectionStatus('error');
       
       if (onError) {
         onError('진행상황 연결에 문제가 발생했습니다');
       }
-
-      // 연결 재시도 (3초 후)
-      setTimeout(() => {
-        if (isVisible && conversationId) {
-          connectToProgressStream();
-        }
-      }, 3000);
     };
 
     eventSource.addEventListener('close', () => {
-      console.log('[Progress] SSE connection closed');
+      console.log('[Progress] 🔌 SSE 연결 종료');
       setConnectionStatus('disconnected');
     });
   };
@@ -194,13 +206,17 @@ export function ProgressIndicator({
    * 컴포넌트 마운트/언마운트 및 상태 변경 시 연결 관리
    */
   useEffect(() => {
+    console.log(`[Progress] === useEffect === isVisible: ${isVisible}, conversationId: ${conversationId}`);
+    
     if (isVisible && conversationId) {
+      console.log(`[Progress] 🔄 연결 시작 요청`);
       connectToProgressStream();
     } else {
-      // 연결 종료
+      console.log(`[Progress] 🛑 연결 정리 - isVisible: ${isVisible}, conversationId: ${conversationId}`);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
+        activeConnectionIdRef.current = null;
       }
       setConnectionStatus('disconnected');
       setSteps([]);
@@ -209,8 +225,10 @@ export function ProgressIndicator({
 
     // 컴포넌트 언마운트 시 정리
     return () => {
+      console.log(`[Progress] 🧹 useEffect cleanup`);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
+        activeConnectionIdRef.current = null;
       }
     };
   }, [isVisible, conversationId]);

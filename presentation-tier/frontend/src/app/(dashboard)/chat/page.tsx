@@ -126,6 +126,9 @@ export default function ChatPage() {
   /** 현재 대화 세션 ID */
   const [conversationId, setConversationId] = useState<string | null>(null);
   
+  /** 진행상황 표시용 대화 ID (API 호출과 동시에 설정) */
+  const [progressConversationId, setProgressConversationId] = useState<string | null>(null);
+  
   /** 사용자 ID (실제로는 인증 시스템에서 가져와야 함) */
   const [userId] = useState<number>(1); // TODO: 실제 인증된 사용자 ID로 교체
   
@@ -264,6 +267,17 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, userMessage]);
 
+    // ✅ 진행상황 ID 설정 개선: 기존 대화면 즉시, 신규 대화면 API 응답 후
+    if (conversationId) {
+      // 기존 대화: 즉시 progress 연결 시작
+      console.log(`[Chat] 기존 대화 - 즉시 progress 시작: ${conversationId}`);
+      setProgressConversationId(conversationId);
+    } else {
+      // 신규 대화: API 응답에서 실제 ID를 받을 때까지 대기
+      console.log('[Chat] 신규 대화 - API 응답 후 progress 시작 예정');
+      setProgressConversationId(null);
+    }
+
     // 2단계: 약간의 지연 후 타이핑 인디케이터 표시
     setTimeout(() => {
       const typingMessage: Message = {
@@ -277,7 +291,7 @@ export default function ChatPage() {
     }, 300);
 
     try {
-      // AI Gateway를 통한 실제 API 호출
+      // AI Gateway를 통한 실제 API 호출 (progress 연결과 동시 시작)
       const response: ChatbotResponse = await chatbotApiClient.sendMessage({
         message: messageContent,
         user_id: userId,
@@ -287,7 +301,15 @@ export default function ChatPage() {
 
       // 대화 세션 ID 업데이트 (새 대화인 경우)
       if (response.is_new_conversation && response.conversation_id) {
+        console.log(`[Chat] 새 대화 생성 완료 - 실제 ID로 progress 시작: ${response.conversation_id}`);
         setConversationId(response.conversation_id);
+        
+        // ✅ 신규 대화: 약간의 지연 후 실제 conversation_id로 progress 연결 시작
+        // 백엔드에서 progress 시스템이 준비될 시간을 제공
+        setTimeout(() => {
+          console.log(`[Chat] 지연된 progress 연결 시작: ${response.conversation_id}`);
+          setProgressConversationId(response.conversation_id);
+        }, 500); // 0.5초 지연
         
         // 새 대화 생성 시 대화 목록 새로고침
         setTimeout(() => {
@@ -311,6 +333,11 @@ export default function ChatPage() {
         is_new_conversation: response.is_new_conversation
       });
       
+      // ✅ API 응답을 받았으므로 로딩 종료 (progress는 추가 피드백일 뿐)
+      console.log('[Chat] ✅ API 응답 완료 - 로딩 즉시 종료');
+      setIsLoading(false);
+      setProgressConversationId(null);
+      
     } catch (error) {
       console.error('[Chat] API 호출 실패:', error);
       
@@ -327,9 +354,15 @@ export default function ChatPage() {
         ...prev.filter(msg => msg.id !== 'typing'),
         errorMessage
       ]);
+
+      // API 오류 시에는 즉시 로딩 종료
+      console.log('[Chat] ❌ API 오류 발생 - 로딩 즉시 종료');
+      setIsLoading(false);
+      setProgressConversationId(null);
       
     } finally {
-      setIsLoading(false);
+      // ✅ API 응답 완료 시 로딩 종료는 성공/실패 블록에서 처리됨
+      console.log('[Chat] API 호출 완료 - finally 블록');
     }
   };
 
@@ -712,21 +745,56 @@ export default function ChatPage() {
                   </div>
                 ))}
                 
-                {/* 진행상황 표시기 */}
-                {isLoading && (
-                  <div className="flex justify-center my-4">
-                    <ProgressIndicator
-                      conversationId={conversationId || "new"}
-                      isVisible={isLoading}
-                      onComplete={() => {
-                        console.log('[Chat] Progress completed');
-                      }}
-                      onError={(error) => {
-                        console.error('[Chat] Progress error:', error);
-                      }}
-                    />
-                  </div>
-                )}
+                {/* 진행상황 표시기 - 실제 conversation_id 확보 후 연결 시작 */}
+                {(() => {
+                  const shouldShowProgress = isLoading && progressConversationId;
+                  const shouldShowWaiting = isLoading && !progressConversationId;
+                  console.log(`[Chat] ProgressIndicator 렌더링 조건: isLoading=${isLoading}, progressConversationId=${progressConversationId}, shouldShow=${shouldShowProgress}`);
+                  
+                  if (shouldShowProgress) {
+                    return (
+                      <div className="flex justify-center my-4">
+                        <ProgressIndicator
+                          conversationId={progressConversationId}
+                          isVisible={isLoading}
+                          onComplete={() => {
+                            console.log('[Chat] ✅ Progress 완료 신호 수신 (피드백용)');
+                            // API 응답에서 이미 로딩이 종료되었으므로 추가 처리 불필요
+                          }}
+                          onError={(error) => {
+                            console.error('[Chat] ❌ Progress 오류:', error);
+                            // API 응답 전이라면 로딩 종료, 이미 종료됐다면 무시
+                            if (isLoading) {
+                              console.log('[Chat] Progress 오류로 로딩 강제 종료');
+                              setIsLoading(false);
+                              setProgressConversationId(null);
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  } else if (shouldShowWaiting) {
+                    return (
+                      <div className="flex justify-center my-4">
+                        <div className="w-full max-w-md mx-auto bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                          <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                              <h3 className="text-sm font-medium">대화 세션 준비 중</h3>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <div className="flex items-center space-x-3 text-gray-500">
+                              <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                              <span className="text-sm">AI 시스템 초기화 중...</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 
                 <div ref={messagesEndRef} />
               </div>
