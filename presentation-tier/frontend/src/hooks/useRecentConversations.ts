@@ -35,8 +35,8 @@ import { chatbotApiClient, ConversationList, ConversationSummary } from '@/lib/c
  * 최근 대화 목록 Hook 옵션
  */
 export interface UseRecentConversationsOptions {
-  /** 사용자 ID */
-  userId: number;
+  /** 사용자 ID (선택적, 미제공시 JWT에서 자동 추출) */
+  userId?: number;
   /** 조회할 대화 수 (기본: 10개) */
   limit?: number;
   /** 자동 refetch 활성화 (기본: true) */
@@ -84,8 +84,7 @@ export interface UseRecentConversationsReturn {
  *     isError,
  *     refetch 
  *   } = useRecentConversations({
- *     userId: 1,
- *     limit: 5
+ *     limit: 5  // userId는 JWT에서 자동 추출
  *   });
  *   
  *   if (isLoading) return <div>로딩 중...</div>;
@@ -126,14 +125,15 @@ export function useRecentConversations({
     refetch,
     isFetching,
   } = useQuery<ConversationList, Error>({
-    /** 쿼리 키: 사용자별, 조건별로 캐시 분리 */
-    queryKey: ['recentConversations', userId, limit],
+    /** 쿼리 키: 사용자별, 조건별로 캐시 분리 (userId는 동적으로 설정) */
+    queryKey: ['recentConversations', userId || 'current-user', limit],
     
     /** 데이터 페칭 함수 */
     queryFn: async (): Promise<ConversationList> => {
       console.log('[useRecentConversations] 대화 목록 조회 시작:', { userId, limit });
       
       try {
+        // chatbotApiClient에서 userId가 없으면 자동으로 JWT에서 추출함
         const result = await chatbotApiClient.getConversationList(userId, 1, limit);
         
         console.log('[useRecentConversations] 대화 목록 조회 성공:', {

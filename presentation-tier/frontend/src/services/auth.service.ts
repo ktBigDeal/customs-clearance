@@ -220,6 +220,45 @@ class AuthService {
   }
 
   /**
+   * 현재 로그인한 사용자의 ID를 가져오기
+   * JWT 토큰에서 username을 추출한 후, 백엔드 API를 통해 사용자 ID를 조회합니다.
+   * 
+   * @returns {Promise<number | null>} 사용자 ID 또는 null (인증되지 않은 경우)
+   * 
+   * @example
+   * ```typescript
+   * const userId = await authService.getCurrentUserId();
+   * if (userId) {
+   *   // 챗봇 API 호출 시 사용
+   *   const response = await chatbotApiClient.sendMessage({
+   *     message: '안녕하세요',
+   *     user_id: userId
+   *   });
+   * }
+   * ```
+   */
+  async getCurrentUserId(): Promise<number | null> {
+    const userInfo = this.getUserFromToken();
+    if (!userInfo) {
+      console.debug('[AuthService] JWT 토큰에서 사용자 정보를 가져올 수 없습니다');
+      return null;
+    }
+
+    try {
+      // username으로 사용자 프로필 조회해서 ID 가져오기
+      const profile = await this.getUserProfile(userInfo.username);
+      console.debug('[AuthService] 사용자 ID 조회 성공:', {
+        username: userInfo.username,
+        userId: profile.id
+      });
+      return profile.id;
+    } catch (error) {
+      console.error('[AuthService] 사용자 ID 조회 실패:', error);
+      return null;
+    }
+  }
+
+  /**
    * 로그아웃
    */
   logout(): void {

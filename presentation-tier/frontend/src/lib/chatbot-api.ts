@@ -23,6 +23,7 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
+import { authService } from '@/services/auth.service';
 
 /**
  * 챗봇 채팅 요청 데이터 구조
@@ -192,13 +193,18 @@ class ChatbotApiClient {
     this.client = axios.create({
       /** AI Gateway 베이스 URL */
       baseURL,
-      /** 요청 타임아웃 (30초 - AI 응답 대기 시간 고려) */
-      timeout: 30000,
+      /** 요청 타임아웃 (90초 - AI Gateway 60초 + 여유시간 30초) */
+      timeout: 90000,
       /** 기본 HTTP 헤더 */
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      /** 연결 안정성 및 재시도 설정 */
+      maxRedirects: 3,
+      maxContentLength: 50 * 1024 * 1024, // 50MB 응답 크기 제한
+      validateStatus: (status) => status < 500, // 500대 에러만 reject
+      /** HTTP/1.1 keep-alive는 브라우저가 자동 처리 */
     });
 
     this.setupInterceptors();
@@ -309,7 +315,6 @@ class ChatbotApiClient {
    * ```typescript
    * const response = await chatbotApiClient.sendMessage({
    *   message: 'HS코드 분류 방법을 알고 싶어요',
-   *   user_id: 1,
    *   conversation_id: 'conv_123', // 기존 대화 계속
    *   include_history: true
    * });
@@ -321,6 +326,21 @@ class ChatbotApiClient {
    * @throws {Error} API 호출 실패 시
    */
   async sendMessage(request: ChatbotRequest): Promise<ChatbotResponse> {
+    // JWT 토큰에서 현재 사용자 ID 동적 추출
+    if (!request.user_id) {
+      try {
+        const userId = await authService.getCurrentUserId();
+        if (!userId) {
+          throw new Error('사용자 인증이 필요합니다. 로그인해주세요.');
+        }
+        request.user_id = userId;
+        console.debug('[Chatbot API] 사용자 ID 자동 설정:', userId);
+      } catch (error) {
+        console.error('[Chatbot API] 사용자 ID 조회 실패:', error);
+        throw new Error('사용자 인증을 확인할 수 없습니다.');
+      }
+    }
+
     const response = await this.client.post<ChatbotResponse>(
       '/api/v1/chatbot/chat',
       request
@@ -334,13 +354,17 @@ class ChatbotApiClient {
    * 특정 대화 세션의 메시지 히스토리를 조회합니다.
    * 
    * @param {string} conversationId - 대화 세션 ID
-   * @param {number} userId - 사용자 ID
+   * @param {number} [userId] - 사용자 ID (선택적, 미제공시 JWT에서 자동 추출)
    * @param {number} [limit=50] - 조회할 메시지 수
    * @param {number} [offset=0] - 메시지 오프셋
    * @returns {Promise<ConversationHistory>} 대화 히스토리 데이터
    * 
    * @example
    * ```typescript
+   * // 사용자 ID 자동 추출
+   * const history = await chatbotApiClient.getConversationHistory('conv_abc123');
+   * 
+   * // 직접 사용자 ID 제공 (선택적)
    * const history = await chatbotApiClient.getConversationHistory(
    *   'conv_abc123', 
    *   1, 
@@ -356,14 +380,29 @@ class ChatbotApiClient {
    */
   async getConversationHistory(
     conversationId: string,
-    userId: number,
+    userId?: number,
     limit: number = 50,
     offset: number = 0
   ): Promise<ConversationHistory> {
+    // JWT 토큰에서 현재 사용자 ID 동적 추출 (userId가 제공되지 않은 경우)
+    let finalUserId = userId;
+    if (!finalUserId) {
+      try {
+        finalUserId = await authService.getCurrentUserId();
+        if (!finalUserId) {
+          throw new Error('사용자 인증이 필요합니다. 로그인해주세요.');
+        }
+        console.debug('[Chatbot API] 대화 히스토리 조회 - 사용자 ID 자동 설정:', finalUserId);
+      } catch (error) {
+        console.error('[Chatbot API] 사용자 ID 조회 실패:', error);
+        throw new Error('사용자 인증을 확인할 수 없습니다.');
+      }
+    }
+
     const response = await this.client.get<ConversationHistory>(
       `/api/v1/chatbot/conversations/${conversationId}/messages`,
       {
-        params: { user_id: userId, limit, offset }
+        params: { user_id: finalUserId, limit, offset }
       }
     );
     return response.data;
@@ -374,13 +413,17 @@ class ChatbotApiClient {
    * 
    * 특정 사용자의 모든 대화 세션 목록을 조회합니다.
    * 
-   * @param {number} userId - 사용자 ID
+   * @param {number} [userId] - 사용자 ID (선택적, 미제공시 JWT에서 자동 추출)
    * @param {number} [page=1] - 페이지 번호 (1부터 시작)
    * @param {number} [limit=20] - 조회할 대화 수
    * @returns {Promise<ConversationList>} 대화 목록 데이터
    * 
    * @example
    * ```typescript
+   * // 사용자 ID 자동 추출
+   * const conversations = await chatbotApiClient.getConversationList(undefined, 1, 10);
+   * 
+   * // 직접 사용자 ID 제공 (선택적)
    * const conversations = await chatbotApiClient.getConversationList(1, 1, 10);
    * 
    * console.log(`총 ${conversations.total_conversations}개의 대화`);
@@ -390,12 +433,27 @@ class ChatbotApiClient {
    * ```
    */
   async getConversationList(
-    userId: number,
+    userId?: number,
     page: number = 1,
     limit: number = 20
   ): Promise<ConversationList> {
+    // JWT 토큰에서 현재 사용자 ID 동적 추출 (userId가 제공되지 않은 경우)
+    let finalUserId = userId;
+    if (!finalUserId) {
+      try {
+        finalUserId = await authService.getCurrentUserId();
+        if (!finalUserId) {
+          throw new Error('사용자 인증이 필요합니다. 로그인해주세요.');
+        }
+        console.debug('[Chatbot API] 대화 목록 조회 - 사용자 ID 자동 설정:', finalUserId);
+      } catch (error) {
+        console.error('[Chatbot API] 사용자 ID 조회 실패:', error);
+        throw new Error('사용자 인증을 확인할 수 없습니다.');
+      }
+    }
+
     const response = await this.client.get<ConversationList>(
-      `/api/v1/chatbot/conversations/user/${userId}`,
+      `/api/v1/chatbot/conversations/user/${finalUserId}`,
       {
         params: { page, limit }
       }
@@ -436,13 +494,18 @@ class ChatbotApiClient {
    * 대화가 비활성화되고 목록에서 제외됩니다.
    * 
    * @param {string} conversationId - 삭제할 대화 세션 ID
-   * @param {number} userId - 사용자 ID (권한 검증용)
+   * @param {number} [userId] - 사용자 ID (선택적, 미제공시 JWT에서 자동 추출)
    * @returns {Promise<void>} 삭제 성공 시 void, 실패 시 예외 발생
    * 
    * @example
    * ```typescript
    * try {
+   *   // 사용자 ID 자동 추출
+   *   await chatbotApiClient.deleteConversation('conv_abc123');
+   *   
+   *   // 직접 사용자 ID 제공
    *   await chatbotApiClient.deleteConversation('conv_abc123', 1);
+   *   
    *   console.log('대화가 성공적으로 삭제되었습니다');
    * } catch (error) {
    *   console.error('대화 삭제 실패:', error.message);
@@ -451,9 +514,24 @@ class ChatbotApiClient {
    * 
    * @throws {Error} 대화를 찾을 수 없거나 권한이 없는 경우
    */
-  async deleteConversation(conversationId: string, userId: number): Promise<void> {
+  async deleteConversation(conversationId: string, userId?: number): Promise<void> {
+    // JWT 토큰에서 현재 사용자 ID 동적 추출 (userId가 제공되지 않은 경우)
+    let finalUserId = userId;
+    if (!finalUserId) {
+      try {
+        finalUserId = await authService.getCurrentUserId();
+        if (!finalUserId) {
+          throw new Error('사용자 인증이 필요합니다. 로그인해주세요.');
+        }
+        console.debug('[Chatbot API] 대화 삭제 - 사용자 ID 자동 설정:', finalUserId);
+      } catch (error) {
+        console.error('[Chatbot API] 사용자 ID 조회 실패:', error);
+        throw new Error('사용자 인증을 확인할 수 없습니다.');
+      }
+    }
+
     await this.client.delete(`/api/v1/chatbot/conversations/${conversationId}`, {
-      params: { user_id: userId }
+      params: { user_id: finalUserId }
     });
   }
 
