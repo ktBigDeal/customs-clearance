@@ -121,7 +121,7 @@ Issues = "https://github.com/customs-clearance/chatbot-fastapi/issues"
 Changelog = "https://github.com/customs-clearance/chatbot-fastapi/blob/main/CHANGELOG.md"
 
 [project.scripts]
-chatbot-server = "main:app"
+start = "main:main"
 
 [build-system]
 requires = ["hatchling>=1.18.0"]

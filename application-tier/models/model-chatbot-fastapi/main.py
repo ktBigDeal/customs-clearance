@@ -304,8 +304,8 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# 메인 실행 (개발용)
-if __name__ == "__main__":
+def main():
+    """메인 실행 함수"""
     # 환경 변수 로드
     from dotenv import load_dotenv
     load_dotenv()
@@ -319,3 +319,8 @@ if __name__ == "__main__":
         log_level="info",
         access_log=True
     )
+
+
+# 메인 실행 (개발용)
+if __name__ == "__main__":
+    main()

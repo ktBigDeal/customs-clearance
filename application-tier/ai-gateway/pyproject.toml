@@ -1,7 +1,7 @@
 [project]
 name = "ai-gateway"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI Gateway for Korean Customs Clearance System"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -32,3 +32,6 @@ dependencies = [
     "structlog==23.2.0",
     "uvicorn[standard]==0.24.0",
 ]
+
+[project.scripts]
+start = "main:main"
