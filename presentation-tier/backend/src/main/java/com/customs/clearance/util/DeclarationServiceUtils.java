@@ -60,25 +60,24 @@ public class DeclarationServiceUtils {
         
         if (file == null || file.isEmpty()) {
            
-            // File emptyFile = new File(uploadDir, "empty.png");
-            // Path path = emptyFile.toPath();
+            File emptyFile = new File(uploadDir, "empty.png");
+            Path path = emptyFile.toPath();
 
-            // if (!Files.exists(path)) {
-            //     throw new FileNotFoundException("empty.png 없음");
-            // }
+            if (!Files.exists(path)) {
+                throw new FileNotFoundException("empty.png 없음");
+            }
 
-            // long fileSize = Files.size(path);
+            long fileSize = Files.size(path);
 
-            // return new ByteArrayResource(Files.readAllBytes(emptyFile.toPath())) {
-            //     @Override public String getFilename() {
-            //         return "empty.png";
-            //     }
+            return new ByteArrayResource(Files.readAllBytes(emptyFile.toPath())) {
+                @Override public String getFilename() {
+                    return "empty.png";
+                }
 
-            //     @Override public long contentLength() {
-            //         return fileSize;
-            //     }
-            // };
-            throw new FileNotFoundException("! 파일을 찾을 수 없음");
+                @Override public long contentLength() {
+                    return fileSize;
+                }
+            };
         }
 
         return new ByteArrayResource(file.getBytes()) {

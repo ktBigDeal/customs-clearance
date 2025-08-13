@@ -185,9 +185,8 @@ export default function ReportPage() {
         {activeTab === 'preview' && selectedReport && (
           <ReportPreview
             report={selectedReport}
-            onReportUpdate={handleReportUpdate}
             getStatusBadge={getStatusBadge}
-            getTypeLabel={getTypeLabel}
+            getTypeLabel={getTypeLabel} 
           />
         )}
       </div>
