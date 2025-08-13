@@ -434,6 +434,11 @@ export default function ReportHistory({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={async () => {
+                          const t = report.declarationType;
+                          const docType: 'import' | 'export' = t === 'EXPORT' ? 'export' : 'import';
+                          await declarationsApi.downloadXml(report.id, { docType });
+                        }}
                         className="text-gray-600 hover:text-gray-700"
                       >
                         <Download className="w-4 h-4" />
