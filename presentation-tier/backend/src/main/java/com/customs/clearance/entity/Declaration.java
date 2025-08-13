@@ -63,6 +63,5 @@ public class Declaration extends BaseEntity {
         SUBMITTED,
         APPROVED,
         REJECTED,
-        CLEARED // 기존 데이터베이스에 남아있는 데이터 get 위한 테스트용
     }
 }
