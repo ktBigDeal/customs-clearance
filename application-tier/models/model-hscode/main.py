@@ -49,7 +49,7 @@ def run_service(service_type):
         
         # app/main.py 실행
         subprocess.run([
-            sys.executable, "-m", "app.main"
+            sys.executable, str(project_root / "app" / "main.py")
         ], cwd=project_root)
         
     elif service_type == "convert":
@@ -61,7 +61,7 @@ def run_service(service_type):
         
         # src/us_main.py 실행
         subprocess.run([
-            sys.executable, "-m", "src.us_main"
+            sys.executable, str(project_root / "src" / "us_main.py")
         ], cwd=project_root)
 
     else:

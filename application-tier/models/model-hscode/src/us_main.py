@@ -8,8 +8,12 @@ from pathlib import Path
 import logging
 import re
 import os
+import sys
 from dotenv import load_dotenv
-# 상대 경로로 import 수정
+# 프로젝트 루트를 sys.path에 추가
+sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent))
+
 from us_ks_hs_converter_service import HSCodeConverterService, convert_numpy_types
 
 # 로깅 설정
