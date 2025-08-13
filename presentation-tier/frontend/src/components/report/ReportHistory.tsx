@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { declarationsApi } from '@/lib/declarations-api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,44 +119,42 @@ export default function ReportHistory({
   };
 
   // 필터링 및 정렬된 보고서 목록 (API 데이터 또는 prop 데이터 사용)
-  const currentReports = (apiReports && apiReports.length ? apiReports : reports) ?? [];
-  const filteredAndSortedReports = currentReports
-    .filter(report => {
-      const dn = (report?.declarationNumber ?? '').toLowerCase();
-      const im = (report?.importerName ?? '').toLowerCase();
-      const matchesSearch =
-        dn.includes(searchTerm.toLowerCase()) ||
-        im.includes(searchTerm.toLowerCase());
+// API가 오면 API 우선, 없으면 props.reports 사용 (참조를 useMemo로 고정)
+  const currentReports = useMemo<Report[]>(
+    () => (Array.isArray(apiReports) && apiReports.length ? apiReports : (reports ?? [])),
+    [apiReports, reports]
+  );  
+  const filteredAndSortedReports = useMemo(() => {
+    const input = Array.isArray(currentReports) ? currentReports : [];
 
-      const matchesStatus =
-        statusFilter === 'ALL' || report?.status === statusFilter;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'createdAt':
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
-          break;
-        case 'updatedAt':
-          aValue = new Date(a.updatedAt).getTime();
-          bValue = new Date(b.updatedAt).getTime();
-          break;
-        case 'declarationNumber':
-          aValue = a?.declarationNumber ?? '';
-          bValue = b?.declarationNumber ?? '';
-          break;
-        default:
-          return 0;
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+    // 보이지 않는 공백 때문에 전체 필터링되는 걸 방지
+    const term = (searchTerm ?? '').trim().toLowerCase();
+
+    const filtered = input.filter((r) => {
+      const dn = (r?.declarationNumber ?? '').toLowerCase();
+      const im = (r?.importerName ?? '').toLowerCase();
+
+      const matchesSearch = term === '' || dn.includes(term) || im.includes(term);
+      const matchesStatus = statusFilter === 'ALL' || r?.status === statusFilter;
+      const matchesType = typeFilter === 'ALL' || r?.declarationType === typeFilter;
+
+      return matchesSearch && matchesStatus && matchesType;
     });
+
+    const sorted = [...filtered].sort((a, b) => {
+      const pick = (x: Report) =>
+        sortBy === 'declarationNumber' ? (x?.declarationNumber ?? '')
+        : sortBy === 'updatedAt' ? (x?.updatedAt ?? '')
+        : (x?.createdAt ?? '');
+
+      const av = pick(a), bv = pick(b);
+      return sortOrder === 'asc' ? (av > bv ? 1 : av < bv ? -1 : 0) : (av < bv ? 1 : av > bv ? -1 : 0);
+    });
+
+    // 디버그 원하면 잠깐 켜두기
+    // console.log('[History] lens:', { input: input.length, filtered: filtered.length, sorted: sorted.length });
+    return sorted;
+  }, [currentReports, searchTerm, statusFilter, typeFilter, sortBy, sortOrder]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
