@@ -335,7 +335,7 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
       const candidate = (generatedReport as any)?.rawDetails;
       if (candidate && typeof candidate === 'object') return candidate;
       try {
-        const s = (generatedReport as any)?.declaration_details;
+        const s = (generatedReport as any)?.declarationDetails;
         return typeof s === 'string' ? JSON.parse(s) : {};
       } catch {
         return {};
@@ -431,11 +431,11 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
             <h3 className="text-lg font-medium mb-3">기본 정보</h3>
             <div className="space-y-2 text-sm">
               <div><strong>ID:</strong>{generatedReport.id ?? ''}</div>
-              <div><strong>신고번호:</strong> {generatedReport.declaration_number ?? ''}</div>
-              <div><strong>신고 구분:</strong> {generatedReport.declaration_type === 'IMPORT' ? '수입' : '수출'}</div>
+              <div><strong>신고번호:</strong> {generatedReport.declarationNumber ?? ''}</div>
+              <div><strong>신고 구분:</strong> {generatedReport.declarationType === 'IMPORT' ? '수입' : '수출'}</div>
               <div><strong>상태:</strong> {generatedReport.status ?? 'DRAFT'}</div>
-              <div><strong>생성일:</strong> {generatedReport.created_at ? new Date(generatedReport.created_at).toLocaleString() : '-'}</div>
-              <div><strong>수정일:</strong> {generatedReport.updated_at ? new Date(generatedReport.updated_at).toLocaleString() : '-'}</div>
+              <div><strong>생성일:</strong> {generatedReport.createdAt ? new Date(generatedReport.createdAt).toLocaleString() : '-'}</div>
+              <div><strong>수정일:</strong> {generatedReport.updatedAt ? new Date(generatedReport.updatedAt).toLocaleString() : '-'}</div>
             </div>
           </div>
         </div>
