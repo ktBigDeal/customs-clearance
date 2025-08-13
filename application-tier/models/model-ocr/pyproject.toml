@@ -1,7 +1,7 @@
 [project]
 name = "model-ocr"
 version = "0.1.0"
-description = "Add your description here"
+description = "Azure Document Intelligence 기반 OCR 서비스"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -30,3 +30,6 @@ dependencies = [
     "uvicorn==0.24.0",
     "yarl==1.20.1",
 ]
+
+[project.scripts]
+start = "main:main"
