@@ -19,6 +19,12 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    // 프로덕션에서는 직접 백엔드 API 호출 (Vercel에서는 rewrites 사용 안 함)
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+    
+    // 개발 환경에서만 rewrites 사용
     return [
       {
         source: '/api/:path*',
@@ -29,6 +35,7 @@ const nextConfig = {
   env: {
     BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:8080',
     API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:3000/api',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
