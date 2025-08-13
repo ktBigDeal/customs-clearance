@@ -612,14 +612,14 @@ class TradeInfoRetriever:
             # 1. LLM 의도 분석으로 필터 힌트 추출
             intent_info = self.query_normalizer.extract_intent(query)
             
-            # 2. 컨텍스트 기반 우선순위 필터 (search_context가 제공한 힌트 우선 적용)
+            # 2. 컨텍스트 기반 필터 (에이전트가 제공한 힌트)
             filters = self._apply_context_based_filters(search_context)
             
-            # 3. LLM 의도 분석을 통한 스마트 필터 매핑
-            smart_filters = self._generate_smart_filter_mapping(intent_info, query)
+            # 3. 🧠 컨텍스트를 고려한 지능적 LLM 분류
+            smart_filters = self._generate_context_aware_smart_mapping(intent_info, query, search_context)
             
-            # 4. 필터 병합 (컨텍스트 > 스마트 매핑 > 기본값 순)
-            final_filters = self._merge_filter_priorities(filters, smart_filters, search_context)
+            # 4. 필터 병합 (smart mapping이 컨텍스트를 이미 고려했으므로 균형잡힌 병합)
+            final_filters = self._merge_filter_intelligently(filters, smart_filters, search_context)
             
             # 5. 제품별 특화 필터 추가
             product_filters = self._extract_product_specific_filters(intent_info)
@@ -818,7 +818,6 @@ class TradeInfoRetriever:
         "hs_code_mentioned": true/false,
         "product_category": "추정 카테고리 또는 null"
     }},
-    "regulation_direction": "foreign_to_korea|korea_export|korea_import|unclear",
     "confidence": 0.0-1.0,
     "reasoning": "분류 근거 설명"
 }}
@@ -841,6 +840,8 @@ class TradeInfoRetriever:
                 messages=[{"role": "user", "content": classification_prompt}],
                 temperature=0.1,
                 max_tokens=300
+                # model="gpt-5-mini",
+                # max_completion_tokens=300
             )
             
             result_text = response.choices[0].message.content.strip()
@@ -1026,7 +1027,7 @@ class TradeInfoRetriever:
         """
         여러 소스의 필터를 우선순위에 따라 병합 (개선된 우선순위 로직)
         
-        🎯 NEW 우선순위: 스마트 매핑(LLM) > 컨텍스트 힌트 > 기본값
+        🎯 NEW 우선순위: 컨텍스트 힌트 > 스마트 매핑(LLM) > 기본값
         
         Args:
             context_filters: 컨텍스트 기반 필터
@@ -1036,7 +1037,7 @@ class TradeInfoRetriever:
         Returns:
             Dict[str, Any]: 우선순위 적용된 최종 필터
         """
-        # 🎯 1. 스마트 매핑(LLM)을 기본으로 시작 (가장 높은 우선순위)
+        # 🎯 1. 스마트 매핑(LLM)을 기본으로 시작 (기본 우선순위)
         merged = smart_filters.copy()
         
         # 2. 컨텍스트 필터는 스마트 필터가 없는 경우에만 적용
@@ -1044,6 +1045,11 @@ class TradeInfoRetriever:
             if key not in merged or not merged[key]:  # LLM이 분류하지 못한 경우만
                 merged[key] = value
                 logger.debug(f"🔧 컨텍스트 필터 보완: {key} = {value}")
+        
+        # 3. regulation_type_hint는 절대 우선순위 (외국 규제 등 중요한 힌트)
+        if search_context and search_context.get("regulation_type_hint"):
+            merged["regulation_type"] = search_context["regulation_type_hint"]
+            logger.info(f"🎯 컨텍스트 regulation_type 강제 적용: {merged['regulation_type']}")
         
         # 3. 최소한 data_type은 보장
         if "data_type" not in merged or not merged["data_type"]:
@@ -1681,4 +1687,148 @@ class TradeInfoRetriever:
                 break
         
         return selected_results[:target_count]
+    
+    def _generate_context_aware_smart_mapping(self, intent_info: Dict[str, Any], query: str, search_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        🧠 컨텍스트를 고려한 지능적 LLM 분류
+        
+        에이전트 타입을 LLM에게 알려주어 더 정확한 분류가 가능하도록 함
+        
+        Args:
+            intent_info: LLM이 추출한 의도 정보
+            query: 원본 질의
+            search_context: 에이전트별 검색 컨텍스트
+            
+        Returns:
+            Dict[str, Any]: 컨텍스트를 고려한 지능형 필터
+        """
+        try:
+            agent_type = search_context.get("agent_type") if search_context else None
+            domain_hints = search_context.get("domain_hints", []) if search_context else []
+            
+            # 에이전트 컨텍스트를 LLM에게 제공하여 더 정확한 분류
+            enhanced_query = self._enhance_query_with_context(query, agent_type, domain_hints)
+            
+            # 컨텍스트 정보를 포함한 LLM 분류 실행
+            llm_classification = self._classify_query_with_agent_context(enhanced_query, agent_type, search_context)
+            
+            # fallback 처리
+            if llm_classification.get("fallback_needed") or llm_classification.get("confidence", 0) < 0.3:
+                logger.warning(f"🔄 컨텍스트 기반 LLM 분류 실패, 기본값 사용")
+                return self._get_agent_default_filters(agent_type)
+            
+            return llm_classification
+            
+        except Exception as e:
+            logger.error(f"컨텍스트 기반 스마트 매핑 실패: {e}")
+            return self._get_agent_default_filters(agent_type)
+    
+    def _enhance_query_with_context(self, query: str, agent_type: Optional[str], domain_hints: List[str]) -> str:
+        """질의에 에이전트 컨텍스트 정보 추가"""
+        if not agent_type:
+            return query
+        
+        context_mapping = {
+            "consultation_agent": "실무 상담 절차 가이드",
+            "regulation_agent": "무역 규제 법령 정보"
+        }
+        
+        agent_context = context_mapping.get(agent_type, "")
+        domain_context = " ".join(domain_hints[:3])  # 상위 3개 힌트만
+        
+        enhanced = f"{query}"
+        if agent_context:
+            enhanced += f" [{agent_context} 관점에서 답변]"
+        if domain_context:
+            enhanced += f" [관련 영역: {domain_context}]"
+            
+        return enhanced
+    
+    def _classify_query_with_agent_context(self, enhanced_query: str, agent_type: Optional[str], search_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """에이전트 컨텍스트를 고려한 LLM 분류"""
+        try:
+            # consultation_agent의 경우 data_type을 consultation_case로 고정하고 세부 분류만 LLM이 수행
+            if agent_type == "consultation_agent":
+                logger.info("🤖 Consultation agent - 실무 상담 분야에서 세부 분류 수행")
+                
+                # 실무 상담 관련 세부 분류 (예: 통관절차, 서류작성, 비용문의 등)
+                consultation_classification = self._classify_consultation_subcategory(enhanced_query)
+                
+                return {
+                    "data_type": "consultation_case",
+                    "sub_category": consultation_classification.get("sub_category", "일반상담"),
+                    "confidence": consultation_classification.get("confidence", 0.8),
+                    "reasoning": f"상담 에이전트 - {consultation_classification.get('reasoning', '')}"
+                }
+            
+            # regulation_agent의 경우 기존 규제 분류 수행 (data_type: trade_regulation)
+            elif agent_type == "regulation_agent":
+                logger.info("🤖 Regulation agent - 무역 규제 분야에서 상세 분류 수행")
+                return self._classify_regulation_query_with_llm(enhanced_query)
+            
+            # 기본 경우
+            else:
+                return self._classify_regulation_query_with_llm(enhanced_query)
+                
+        except Exception as e:
+            logger.error(f"에이전트 컨텍스트 기반 분류 실패: {e}")
+            return {"fallback_needed": True}
+    
+    def _classify_consultation_subcategory(self, query: str) -> Dict[str, Any]:
+        """상담 사례 세부 카테고리 분류"""
+        # 간단한 키워드 기반 분류 (추후 LLM으로 확장 가능)
+        categories = {
+            "통관절차": ["통관", "신고", "절차", "방법", "과정"],
+            "서류작성": ["서류", "문서", "양식", "작성", "제출"],
+            "비용문의": ["비용", "수수료", "요금", "얼마", "가격"],
+            "기간문의": ["기간", "시간", "소요", "언제", "며칠"],
+            "면세관련": ["면세", "무관세", "감면", "할인"]
+        }
+        
+        query_lower = query.lower()
+        for category, keywords in categories.items():
+            if any(keyword in query_lower for keyword in keywords):
+                return {
+                    "sub_category": category,
+                    "confidence": 0.8,
+                    "reasoning": f"키워드 매칭: {category}"
+                }
+        
+        return {
+            "sub_category": "일반상담",
+            "confidence": 0.6,
+            "reasoning": "기본 카테고리"
+        }
+    
+    def _get_agent_default_filters(self, agent_type: Optional[str]) -> Dict[str, Any]:
+        """에이전트별 기본 필터"""
+        defaults = {
+            "consultation_agent": {"data_type": "consultation_case"},
+            "regulation_agent": {"data_type": "trade_regulation"},
+        }
+        return defaults.get(agent_type, {"data_type": "trade_regulation"})
+    
+    def _merge_filter_intelligently(self, context_filters: Dict[str, Any], smart_filters: Dict[str, Any], search_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        🧠 지능적 필터 병합 - 컨텍스트와 LLM 분류의 균형
+        
+        data_type은 LLM이 에이전트 컨텍스트를 고려해서 결정했으므로 존중
+        세부 분류(data_source, regulation_type)는 LLM과 컨텍스트 힌트를 조합
+        """
+        # LLM 분류를 기본으로 시작 (이미 컨텍스트를 고려함)
+        merged = smart_filters.copy()
+        
+        # 컨텍스트에서 누락된 부분만 보완
+        for key, value in context_filters.items():
+            if key not in merged or not merged[key]:
+                merged[key] = value
+                logger.debug(f"🔧 컨텍스트로 보완: {key} = {value}")
+        
+        # regulation_type_hint는 여전히 강제 적용 (외국 규제 등 중요한 힌트)
+        if search_context and search_context.get("regulation_type_hint"):
+            merged["regulation_type"] = search_context["regulation_type_hint"]
+            logger.info(f"🎯 중요 컨텍스트 힌트 적용: regulation_type = {merged['regulation_type']}")
+        
+        logger.info(f"🧠 지능적 필터 병합 완료: {merged}")
+        return merged
     
