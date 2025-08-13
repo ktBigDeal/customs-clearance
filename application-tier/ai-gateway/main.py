@@ -159,7 +159,8 @@ async def root() -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
+def main():
+    """메인 실행 함수"""
     uvicorn.run(
         "main:app",
         host=settings.HOST,
@@ -167,3 +168,7 @@ if __name__ == "__main__":
         reload=settings.DEBUG,
         log_config=None  # Use our custom logging config
     )
+
+
+if __name__ == "__main__":
+    main()

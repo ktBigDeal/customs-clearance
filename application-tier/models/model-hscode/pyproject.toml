@@ -19,10 +19,14 @@ dependencies = [
     "pydantic-settings>=2.10.1",
     "python-dotenv>=1.1.1",
     "dotenv>=0.9.9",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
 ]
 
 [project.scripts]
-hs-recommend = "main:main"
+main = "main:main"
+hs-recommend = "app.main:main"
+hs-converter = "src.us_main:main"
 hs-ui = "ui_app:main"
 
 [tool.uv]
