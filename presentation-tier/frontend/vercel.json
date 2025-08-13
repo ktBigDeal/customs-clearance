@@ -1,25 +1,8 @@
 {
-  "name": "customs-clearance-frontend",
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/next"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@api_url",
-    "NEXT_PUBLIC_ENVIRONMENT": "production"
-  },
-  "functions": {
-    "app/**": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
