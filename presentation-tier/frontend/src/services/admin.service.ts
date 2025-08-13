@@ -77,7 +77,8 @@ export interface CreateLogRequest {
  * 관리자 서비스 클래스
  */
 class AdminService {
-  private readonly BASE_URL = '/admin';
+  private readonly BASE_URL = '/api/v1/admin';
+
 
   /**
    * 시스템 로그 목록 조회 (POST 방식 - 복잡한 검색 조건)

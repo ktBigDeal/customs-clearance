@@ -10,7 +10,7 @@
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-purple.svg)](https://www.trychroma.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-RAG-orange.svg)](https://langchain.com/)
 
-## 📋 목차
+## 📋 목차 
 
 - [🎯 프로젝트 개요](#🎯-프로젝트-개요)
 - [🏗️ 시스템 아키텍처](#🏗️-시스템-아키텍처)
