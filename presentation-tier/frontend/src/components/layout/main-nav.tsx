@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, FileText, Home, Settings, MessageCircle, Shield, Users, Copy, History, Hash, ClipboardList } from 'lucide-react';
+import { BarChart3, FileText, Home, Settings, MessageCircle, Shield, Users, History, Hash, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -69,12 +69,6 @@ export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProp
       href: '/admin/documents',
       icon: FileText,
       description: '문서 처리 상태 관리',
-    },
-    {
-      title: t('admin.templateManagement'),
-      href: '/admin/templates',
-      icon: Copy,
-      description: '신고서 템플릿 관리',
     },
     {
       title: t('admin.systemSettings'),

@@ -12,7 +12,7 @@ type Report = {
   id: number;
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
-  status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
   importerName?: string;
   hsCode?: string;
   totalAmount?: number;
@@ -26,6 +26,7 @@ interface ReportPreviewProps {
   report: Report;
   getStatusBadge: (status: Report['status']) => JSX.Element;
   getTypeLabel: (type: Report['declarationType']) => string;
+  isAdminView?: boolean; // 관리자 보기 모드 (수정 버튼 숨김)
 }
 
 /* ====================== 유틸: 파서/표시 ====================== */
@@ -150,7 +151,7 @@ const pickFields = (
 
 /* ====================== 컴포넌트 ====================== */
 
-export default function ReportPreview({ report, getStatusBadge, getTypeLabel }: ReportPreviewProps) {
+export default function ReportPreview({ report, getStatusBadge, getTypeLabel, isAdminView = false }: ReportPreviewProps) {
   const router = useRouter();
 
   const [detailLoading, setDetailLoading] = useState(false);
@@ -337,10 +338,12 @@ export default function ReportPreview({ report, getStatusBadge, getTypeLabel }: 
               )}
             </Button>
 
-            <Button onClick={handleGoEdit} className="flex items-center gap-2">
-              <Edit className="w-4 h-4" />
-              수정
-            </Button>
+            {!isAdminView && (
+              <Button onClick={handleGoEdit} className="flex items-center gap-2">
+                <Edit className="w-4 h-4" />
+                수정
+              </Button>
+            )}
           </div>
         </div>
 

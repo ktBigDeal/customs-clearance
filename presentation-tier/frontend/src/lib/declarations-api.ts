@@ -111,6 +111,11 @@ export class DeclarationsApi {
     return apiClient.get<DeclarationResponseDto[]>(`${BASE}/admin`);
   }
 
+  /** 관리자 전체 목록 (listAdmin과 동일, 별칭) */
+  async listAll(): Promise<DeclarationResponseDto[]> {
+    return this.listAdmin();
+  }
+
   /** 관리자 목록(상태 필터) */
   async listAdminByStatus(status: DeclarationStatus): Promise<DeclarationResponseDto[]> {
     return apiClient.get<DeclarationResponseDto[]>(`${BASE}/admin/${status}`);

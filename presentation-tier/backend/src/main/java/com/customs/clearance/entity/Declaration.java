@@ -61,6 +61,7 @@ public class Declaration extends BaseEntity {
         DRAFT,
         UPDATED,
         SUBMITTED,
+        UNDER_REVIEW,
         APPROVED,
         REJECTED,
     }
