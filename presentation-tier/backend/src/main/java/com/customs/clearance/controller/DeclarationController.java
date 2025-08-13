@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.dto.DeclarationAdminDto;
 import com.customs.clearance.service.DeclarationService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -124,7 +125,7 @@ public class DeclarationController {
     }
 
     @GetMapping("/admin")
-    public List<Declaration> getAdminDeclarationList(
+    public List<DeclarationAdminDto> getAdminDeclarationList(
         HttpServletRequest request
     ) {
         
@@ -135,11 +136,11 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(null, token);
+        return declarationService.getAdminDeclarationList(null, token);
     }
 
     @GetMapping("/admin/{status}")
-    public List<Declaration> getAdminDeclarationListByStatus(
+    public List<DeclarationAdminDto> getAdminDeclarationListByStatus(
         @PathVariable String status,
         HttpServletRequest request
     ) {
@@ -151,7 +152,7 @@ public class DeclarationController {
             token = authHeader.substring(7);
         }
 
-        return declarationService.getDeclarationList(status, token);
+        return declarationService.getAdminDeclarationList(status, token);
     }
 
     @GetMapping("/attachment/{declarationId}")

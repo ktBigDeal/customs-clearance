@@ -4,6 +4,7 @@ import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
 import com.customs.clearance.entity.Declaration.DeclarationStatus;
 import com.customs.clearance.entity.User;
+import com.customs.clearance.dto.DeclarationAdminDto;
 import com.customs.clearance.repository.AttachmentRepository;
 import com.customs.clearance.repository.DeclarationRepository;
 import com.customs.clearance.repository.UserRepository;
@@ -319,5 +320,49 @@ public class DeclarationService {
         } catch (Exception e) {
             throw new RuntimeException("KCS XML 생성 실패", e);
         }
+    }
+
+    /**
+     * 관리자용 신고서 목록 조회 (사용자 정보 포함)
+     * 
+     * @param status 필터링할 상태 (null이면 전체)
+     * @param token 관리자 토큰
+     * @return 사용자 정보가 포함된 신고서 목록
+     */
+    public List<DeclarationAdminDto> getAdminDeclarationList(String status, String token) {
+        User user = getUserByToken(token);
+        
+        if (!user.getRole().equals("ADMIN")) {
+            throw new RuntimeException("관리자 권한 사용자만 조회할 수 있습니다.");
+        }
+        
+        List<Declaration> declarations;
+        if (status == null) {
+            declarations = declarationRepository.findAll();
+        } else {
+            try {
+                DeclarationStatus statusEnum = DeclarationStatus.valueOf(status.toUpperCase());
+                declarations = declarationRepository.findAllByStatus(statusEnum);
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("잘못된 상태값: " + status);
+            }
+        }
+        
+        List<DeclarationAdminDto> result = new ArrayList<>();
+        
+        for (Declaration declaration : declarations) {
+            DeclarationAdminDto dto = DeclarationAdminDto.fromEntity(declaration);
+            
+            // 사용자 정보 추가
+            if (declaration.getCreatedBy() != null) {
+                userRepository.findById(declaration.getCreatedBy()).ifPresent(creator -> {
+                    dto.withUserInfo(creator.getName(), creator.getEmail(), creator.getCompany());
+                });
+            }
+            
+            result.add(dto);
+        }
+        
+        return result;
     }
 }
