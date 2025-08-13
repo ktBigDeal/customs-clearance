@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle2, Loader2, X, Download } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { declarationsApi } from '@/lib/declarations-api';
 import { DeclarationRequestDto, DeclarationType } from '@/types/declaration';
 
 
+type DocType = 'IMPORT' | 'EXPORT';
 
 interface ReportGenerationProps {
   onReportGenerated: (report: any) => void;
@@ -22,12 +23,12 @@ interface UploadedFile {
 
 export default function ReportGeneration({ onReportGenerated }: ReportGenerationProps) {
   const [step, setStep] = useState<'upload' | 'processing' | 'preview' | 'complete'>('upload');
+  const [docType, setDocType] = useState<DocType | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [generatedReport, setGeneratedReport] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
 
   // 파일 업로드 처리
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -81,48 +82,61 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
     try {
       setProcessingStatus('신고서 생성 준비 중...');            
       // 1) (선택) 기본 신고서 데이터 구성
-      const declarationData: DeclarationRequestDto = {
-        declarationNumber: `IMP${Date.now().toString().slice(-6)}`,
-        declarationType: DeclarationType.IMPORT,
-        // 필요 시 추가 필드: status, remarks 등
-        // status: 'DRAFT' as any,
-      };
+      let declarationData: DeclarationRequestDto;
+      if(docType == 'IMPORT'){
+        declarationData = {
+          declarationNumber: `IMP${Date.now().toString().slice(-6)}`,
+          declarationType: DeclarationType.IMPORT,
+          // 필요 시 추가 필드: status, remarks 등
+          // status: 'DRAFT' as any,
+        };
+      }else{
+         declarationData = {
+          declarationNumber: `EXP${Date.now().toString().slice(-6)}`,
+          declarationType: DeclarationType.EXPORT,
+          // 필요 시 추가 필드: status, remarks 등
+          // status: 'DRAFT' as any,
+        };
+      }
 
       // 2) 신고서 생성 API 호출 (파일 동봉)
-    setProcessingStatus('신고서를 생성하는 중...');
-    const created = await declarationsApi.createDeclaration(
-      declarationData,
-      {
-        invoiceFile: uploadedFiles.find(f => f.type === 'invoiceFile')?.file,
-        packingListFile: uploadedFiles.find(f => f.type === 'packingListFile')?.file,
-        billOfLadingFile: uploadedFiles.find(f => f.type === 'billOfLadingFile')?.file,
-        certificateOfOriginFile: uploadedFiles.find(f => f.type === 'certificateOfOriginFile')?.file,
-      }
-    );
+      setProcessingStatus('신고서를 생성하는 중...');
+      const created = await declarationsApi.createDeclaration(
+        declarationData,
+        {
+          invoiceFile: uploadedFiles.find(f => f.type === 'invoiceFile')?.file,
+          packingListFile: uploadedFiles.find(f => f.type === 'packingListFile')?.file,
+          billOfLadingFile: uploadedFiles.find(f => f.type === 'billOfLadingFile')?.file,
+          certificateOfOriginFile: uploadedFiles.find(f => f.type === 'certificateOfOriginFile')?.file,
+        }
+      );
 
-    console.log('created', JSON.stringify(created));
+      console.log('created', JSON.stringify(created));
 
-    // 3) 결과 전달 (백엔드 응답 형태가 Declaration | { declaration: Declaration } 둘 다 대응)
-    const reportPayload = (created && (created as any).declaration)
-      ? (created as any).declaration
-      : created;
+      // 3) 결과 전달 (백엔드 응답 형태가 Declaration | { declaration: Declaration } 둘 다 대응)
+      const reportPayload = (created && (created as any).declaration)
+        ? (created as any).declaration
+        : created;
 
-    console.log(reportPayload);
+      console.log(reportPayload);
 
-    setProcessingStatus('신고서 생성 완료!');
-    setGeneratedReport(reportPayload);
-    setStep('preview');
-  } catch (e: any) {
-    console.error(e);
-    setError(e?.message || '신고서 생성 중 오류가 발생했습니다.'); 
-  } finally {
-    setIsLoading(false);
-    setProcessingStatus('');
-  }
-};
-
-  // 보고서 저장
-  const saveReport = async () => {
+      setProcessingStatus('신고서 생성 완료!');
+      setGeneratedReport(reportPayload);
+      setStep('preview');
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || '신고서 생성 중 오류가 발생했습니다.'); 
+    } finally {
+      setIsLoading(false);
+      setProcessingStatus('');
+    }
+  };
+  const handleChooseType = (t: DocType) => {
+      setDocType(t);
+      setError(null);
+  };
+  // 미리보기 끝내기
+  const exitPreview = async () => {
     if (!generatedReport) return;
     setIsLoading(true);
     try {
@@ -167,6 +181,41 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
   if (step === 'upload') {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* 1) 신고 유형 선택 */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">신고 유형 선택</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => handleChooseType('IMPORT')}
+              className={`w-full rounded-xl border p-5 text-left transition
+                ${docType === 'IMPORT' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}
+            >
+              <div className="flex items-center gap-3">
+                <Download className={`w-6 h-6 ${docType === 'IMPORT' ? 'text-blue-600' : 'text-gray-600'}`} />
+                <div>
+                  <div className="font-semibold">수입 신고</div>
+                  <div className="text-sm text-gray-600">인보이스/패킹리스트/선하증권 등을 업로드해 수입신고서를 생성합니다.</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleChooseType('EXPORT')}
+              className={`w-full rounded-xl border p-5 text-left transition
+                ${docType === 'EXPORT' ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}
+            >
+              <div className="flex items-center gap-3">
+                <Upload className={`w-6 h-6 ${docType === 'EXPORT' ? 'text-blue-600' : 'text-gray-600'}`} />
+                <div>
+                  <div className="font-semibold">수출 신고</div>
+                  <div className="text-sm text-gray-600">인보이스/패킹리스트 등 수출 관련 서류로 수출신고서를 생성합니다.</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </Card>
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">1단계: 문서 업로드</h2>
           
@@ -294,6 +343,8 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
     })();
 
     const entries = Object.entries(details ?? {});
+    const isArrayOfPlainObjects = (v: any) =>
+      Array.isArray(v) && v.length > 0 && v.every(x => x && typeof x === 'object' && !Array.isArray(x));
 
     // 값 렌더링(배열/객체도 안전하게 처리)
     const renderValue = (val: any) => {
@@ -379,11 +430,12 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
           <div>
             <h3 className="text-lg font-medium mb-3">기본 정보</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>신고번호:</strong> {generatedReport.declarationNumber ?? ''}</div>
-              <div><strong>신고 구분:</strong> {generatedReport.declarationType === 'IMPORT' ? '수입' : '수출'}</div>
+              <div><strong>ID:</strong>{generatedReport.id ?? ''}</div>
+              <div><strong>신고번호:</strong> {generatedReport.declaration_number ?? ''}</div>
+              <div><strong>신고 구분:</strong> {generatedReport.declaration_type === 'IMPORT' ? '수입' : '수출'}</div>
               <div><strong>상태:</strong> {generatedReport.status ?? 'DRAFT'}</div>
-              <div><strong>생성일:</strong> {generatedReport.createdAt ? new Date(generatedReport.createdAt).toLocaleString() : '-'}</div>
-              <div><strong>수정일:</strong> {generatedReport.updatedAt ? new Date(generatedReport.updatedAt).toLocaleString() : '-'}</div>
+              <div><strong>생성일:</strong> {generatedReport.created_at ? new Date(generatedReport.created_at).toLocaleString() : '-'}</div>
+              <div><strong>수정일:</strong> {generatedReport.updated_at ? new Date(generatedReport.updated_at).toLocaleString() : '-'}</div>
             </div>
           </div>
         </div>
@@ -395,14 +447,72 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
             <p className="text-sm text-gray-500">표시할 데이터가 없습니다.</p>
           ) : (
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-              {entries.map(([key, value]) => (
-                <div key={key} className="flex flex-col">
-                  <dt className="text-xs font-medium text-gray-500">{key}</dt>
-                  <dd className="text-sm text-gray-900 whitespace-pre-wrap break-words">
-                    {renderValue(value)}
-                  </dd>
-                </div>
-              ))}
+              {entries.map(([key, value], i) => {
+                const isItemTable = key === '품목별_결과' && isArrayOfPlainObjects(value);
+
+                if (isItemTable) {
+                  const headerKeys: string[] = Array.from(
+                    new Set((value as any[]).flatMap((row) => Object.keys(row ?? {})))
+                  );
+
+                  return (
+                    <div key={`${key}-${i}`} className="md:col-span-2">
+                      <dt className="text-xs font-medium text-gray-500 mb-2">{key}</dt>
+
+                      {/* 원하면 기본으로 펼쳐두고 싶으면 <details open> 으로 바꿔도 됨 */}
+                      <details open name='group'>
+                        <summary className="cursor-pointer text-blue-600 hover:underline">
+                          {(value as any[]).length}개 항목 보기
+                        </summary>
+
+                        <div className="mt-2 overflow-x-auto border rounded">
+                          <table className="min-w-[1100px] w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-2 py-1 text-left whitespace-nowrap">#</th>
+                                {headerKeys.map((h) => (
+                                  <th key={`head-${h}`} className="px-2 py-1 text-left whitespace-nowrap">
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(value as any[]).map((row, idx) => (
+                                <tr key={`row-${idx}`} className="border-t align-top">
+                                  <td className="px-2 py-1 whitespace-nowrap">{idx + 1}</td>
+                                  {headerKeys.map((h) => (
+                                    <td
+                                      key={`cell-${idx}-${h}`}
+                                      className="px-2 py-1 whitespace-pre-wrap break-words"
+                                    >
+                                      {row?.[h] == null
+                                        ? '-'
+                                        : typeof row[h] === 'object'
+                                        ? <code className="text-xs">{JSON.stringify(row[h])}</code>
+                                        : String(row[h])}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    </div>
+                  );
+                }
+
+                // 일반 Key/Value는 기존처럼 2열 그리드에 표시
+                return (
+                  <div key={`${key}-${i}`} className="flex flex-col">
+                    <dt className="text-xs font-medium text-gray-500">{key}</dt>
+                    <dd className="text-sm text-gray-900 whitespace-pre-wrap break-words">
+                      {renderValue(value)}
+                    </dd>
+                  </div>
+                );
+              })}
             </dl>
           )}
         </div>
@@ -414,7 +524,7 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
             <div className="text-sm">
               <p className="font-medium text-amber-800">검토 필요</p>
               <p className="text-amber-700 mt-1">
-                JSON의 key/value를 그대로 표시했습니다. 저장 전에 필드들을 확인하고 필요 시 보정하세요.
+                JSON의 key/value를 그대로 표시했습니다. 제출 전에 필드들을 확인하고 필요 시 보정하세요.
               </p>
             </div>
           </div>
@@ -427,14 +537,14 @@ export default function ReportGeneration({ onReportGenerated }: ReportGeneration
           </Button>
           <div className="flex gap-3">
             <Button variant="outline">수정하기</Button>
-            <Button onClick={saveReport} disabled={isLoading}>
+            <Button onClick={exitPreview} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  저장 중...
+                  목록으로 돌아가는 중 ...
                 </>
               ) : (
-                '저장하기'
+                '목록으로 돌아가기'
               )}
             </Button>
           </div>
