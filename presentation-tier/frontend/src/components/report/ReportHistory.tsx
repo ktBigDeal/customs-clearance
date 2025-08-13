@@ -21,8 +21,6 @@ interface Report {
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
   status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-  importerName: string;
-  totalAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,9 +130,8 @@ export default function ReportHistory({
 
     const filtered = input.filter((r) => {
       const dn = (r?.declarationNumber ?? '').toLowerCase();
-      const im = (r?.importerName ?? '').toLowerCase();
 
-      const matchesSearch = term === '' || dn.includes(term) || im.includes(term);
+      const matchesSearch = term === '' || dn.includes(term);
       const matchesStatus = statusFilter === 'ALL' || r?.status === statusFilter;
       const matchesType = typeFilter === 'ALL' || r?.declarationType === typeFilter;
 
@@ -181,7 +178,6 @@ export default function ReportHistory({
     rejected: currentReports.filter(r => r.status === 'REJECTED').length,
     import: currentReports.filter(r => r.declarationType === 'IMPORT').length,
     export: currentReports.filter(r => r.declarationType === 'EXPORT').length,
-    totalAmount: currentReports.reduce((sum, r) => sum + (r.totalAmount || 0), 0)
   };
 
   // Loading state
@@ -248,10 +244,12 @@ export default function ReportHistory({
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">총 거래액</p>
-              <p className="text-2xl font-bold">${stats.totalAmount.toLocaleString()}</p>
+              <p className="text-sm text-gray-600">수출 신고</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.export}</p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-600" />
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span className="text-blue-600 text-xs font-bold">OUT</span>
+            </div>
           </div>
         </Card>
       </div>
@@ -403,13 +401,13 @@ export default function ReportHistory({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{report.importerName}</div>
+                    <div className="text-sm text-gray-900">{}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(report.status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report.totalAmount ? `$${report.totalAmount.toLocaleString()}` : '-'}
+                    {'-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>{formatDate(report.createdAt)}</div>

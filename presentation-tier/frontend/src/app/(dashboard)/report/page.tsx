@@ -1,57 +1,83 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Download, Eye, Edit, Trash2, Plus, Filter, Search } from 'lucide-react';
-
+import { FileText, Plus } from 'lucide-react';
 import ReportGeneration from '@/components/report/ReportGeneration';
 import ReportHistory from '@/components/report/ReportHistory';
 import ReportPreview from '@/components/report/ReportPreview';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { declarationsApi } from '@/lib/declarations-api';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface Report {
+// ====== Types kept minimal to match components ======
+export interface Report {
   id: number;
   declarationNumber: string;
   declarationType: 'IMPORT' | 'EXPORT';
   status: 'DRAFT' | 'UPDATED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-  importerName: string;
-  hsCode?: string;
-  totalAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
+// Map backend DTO -> Report used by UI components
+function mapDtoToReport(dto: any): Report {
+  return {
+    id: dto?.id ?? dto?.declarationId ?? 0,
+    declarationNumber: dto?.declarationNumber ?? dto?.number ?? '-',
+    declarationType: (dto?.declarationType ?? dto?.type ?? 'IMPORT') as Report['declarationType'],
+    status: (dto?.status ?? 'DRAFT') as Report['status'],
+    createdAt: dto?.createdAt ?? dto?.created_at ?? new Date().toISOString(),
+    updatedAt: dto?.updatedAt ?? dto?.updated_at ?? dto?.createdAt ?? new Date().toISOString(),
+  };
+}
+
 export default function ReportPage() {
+  const queryClient = useQueryClient();
+
   const [activeTab, setActiveTab] = useState<'generate' | 'history' | 'preview'>('generate');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [reports, setReports] = useState<Report[]>([
-    {
-      id: 1,
-      declarationNumber: 'IMP2024001',
-      declarationType: 'IMPORT',
-      status: 'APPROVED',
-      importerName: '한국무역주식회사',
-      hsCode: '1234567890',
-      totalAmount: 50000,
-      createdAt: '2024-01-15T09:30:00Z',
-      updatedAt: '2024-01-15T14:20:00Z'
-    },
-    {
-      id: 2,
-      declarationNumber: 'EXP2024001',
-      declarationType: 'EXPORT',
-      status: 'SUBMITTED',
-      importerName: 'ABC Trading Co.',
-      hsCode: '0987654321',
-      totalAmount: 75000,
-      createdAt: '2024-01-14T11:15:00Z',
-      updatedAt: '2024-01-14T16:45:00Z'
-    }
-  ]);
 
+  // ====== Queries ======
+  const {
+    data: reports = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<Report[]>({
+    queryKey: ['reports'],
+    queryFn: async () => {
+      const list = await declarationsApi.listByUser();
+      return (list ?? []).map(mapDtoToReport);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (reportId: number) => declarationsApi.remove(reportId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+
+  // Keep preview tab sane if current selection disappears
+  useEffect(() => {
+    if (activeTab === 'preview' && selectedReport) {
+      const exists = reports.find((r) => r.id === selectedReport.id);
+      if (!exists) {
+        setSelectedReport(null);
+        setActiveTab('history');
+      }
+    }
+  }, [reports, activeTab, selectedReport]);
+
+  // ====== Callbacks ======
   const handleReportGenerated = (newReport: Report) => {
-    setReports(prev => [newReport, ...prev]);
-    setActiveTab('history');
+    // After creation, refresh list and show preview of the new one
+    queryClient.invalidateQueries({ queryKey: ['reports'] });
+    setSelectedReport(newReport);
+    setActiveTab('preview');
   };
 
   const handleReportSelect = (report: Report) => {
@@ -59,34 +85,33 @@ export default function ReportPage() {
     setActiveTab('preview');
   };
 
+  const handleReportDelete = (reportId: number) => {
+    deleteMutation.mutate(reportId);
+  };
+
   const handleReportUpdate = (updatedReport: Report) => {
-    setReports(prev => prev.map(r => r.id === updatedReport.id ? updatedReport : r));
+    // Optimistically update cache item shape
+    queryClient.setQueryData<Report[]>(['reports'], (old) =>
+      (old ?? []).map((r) => (r.id === updatedReport.id ? { ...r, ...updatedReport } : r))
+    );
     setSelectedReport(updatedReport);
   };
 
-  const handleReportDelete = (reportId: number) => {
-    setReports(prev => prev.filter(r => r.id !== reportId));
-    if (selectedReport?.id === reportId) {
-      setSelectedReport(null);
-      setActiveTab('history');
-    }
-  };
-
   const getStatusBadge = (status: Report['status']) => {
-    const styles = {
+    const styles: Record<Report['status'], string> = {
       DRAFT: 'bg-gray-100 text-gray-800',
       UPDATED: 'bg-gray-100 text-gray-800',
       SUBMITTED: 'bg-blue-100 text-blue-800',
       APPROVED: 'bg-green-100 text-green-800',
-      REJECTED: 'bg-red-100 text-red-800'
+      REJECTED: 'bg-red-100 text-red-800',
     };
 
-    const labels = {
+    const labels: Record<Report['status'], string> = {
       DRAFT: '초안',
       UPDATED: '수정됨',
       SUBMITTED: '제출됨',
       APPROVED: '승인됨',
-      REJECTED: '반려됨'
+      REJECTED: '반려됨',
     };
 
     return (
@@ -96,10 +121,9 @@ export default function ReportPage() {
     );
   };
 
-  const getTypeLabel = (type: Report['declarationType']) => {
-    return type === 'IMPORT' ? '수입신고서' : '수출신고서';
-  };
+  const getTypeLabel = (type: Report['declarationType']) => (type === 'IMPORT' ? '수입신고서' : '수출신고서');
 
+  // ====== Render ======
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -168,9 +192,7 @@ export default function ReportPage() {
 
       {/* 탭 내용 */}
       <div className="mt-6">
-        {activeTab === 'generate' && (
-          <ReportGeneration onReportGenerated={handleReportGenerated} />
-        )}
+        {activeTab === 'generate' && <ReportGeneration onReportGenerated={handleReportGenerated} />}
 
         {activeTab === 'history' && (
           <ReportHistory
@@ -183,16 +205,27 @@ export default function ReportPage() {
         )}
 
         {activeTab === 'preview' && selectedReport && (
-          <ReportPreview
-            report={selectedReport}
-            getStatusBadge={getStatusBadge}
-            getTypeLabel={getTypeLabel} 
-          />
-        )}
+          <ReportPreview report={selectedReport} getStatusBadge={getStatusBadge} getTypeLabel={getTypeLabel} />)
+        }
       </div>
 
-      {/* 빈 상태 메시지 */}
-      {activeTab === 'history' && reports.length === 0 && (
+      {/* 로딩/에러/빈 상태 */}
+      {isLoading && (
+        <Card className="p-8 text-center">
+          <p className="text-gray-600">목록을 불러오는 중…</p>
+        </Card>
+      )}
+
+      {isError && (
+        <Card className="p-8 text-center">
+          <p className="text-red-600">목록 조회 중 오류가 발생했습니다.</p>
+          <Button className="mt-3" onClick={() => refetch()}>
+            다시 시도
+          </Button>
+        </Card>
+      )}
+
+      {!isLoading && !isError && activeTab === 'history' && reports.length === 0 && (
         <Card className="p-8 text-center">
           <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">보고서가 없습니다</h3>
