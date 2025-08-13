@@ -26,22 +26,21 @@ public class User extends BaseEntity {
     @Column(name = "password", nullable = false)
     private String password;    // BCrypt 해시 저장
 
-    // 역할(Role)이나 추가 필드를 여기에 정의할 수 있습니다.
-
     /** 사용자 이름 */
     @Column(name = "name", nullable = false)
     private String name;
 
-    /** 사용자 역할 (예: ADMIN, OFFICER, USER 등) */
+    /** 사용자 역할 (예: ADMIN, USER 등) */
     @Column(name = "role", nullable = false)
-    private String role; // 예: ADMIN, OFFICER, USER 등
+    private String role;
 
     /** 사용자 이메일 */
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    /** 사용자 활성화 상태 */
     @Column(name = "enabled")
-    private boolean enabled = true; // 사용자 활성화 상태 (기본값: true)
+    private boolean enabled = true;
 
     /** 회사명 */
     @Column(name = "company")

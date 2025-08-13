@@ -131,7 +131,8 @@ export default function ChatPage() {
   const [progressConversationId, setProgressConversationId] = useState<string | null>(null);
   
 
-  /** 최근 대화 목록 훅 (JWT에서 자동으로 사용자 ID 추출) */
+  /** 사용자 ID (실제로는 인증 시스템에서 가져와야 함) */
+  const [userId] = useState<number>(1); // TODO: 실제 인증된 사용자 ID로 교체
 
   /** 메시지 목록 하단 참조 (자동 스크롤용) */
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -296,9 +297,10 @@ export default function ChatPage() {
     }, 300);
 
     try {
-      // AI Gateway를 통한 실제 API 호출 (JWT에서 자동으로 user_id 추출)
+      // AI Gateway를 통한 실제 API 호출 (progress 연결과 동시 시작)
       const response: ChatbotResponse = await chatbotApiClient.sendMessage({
         message: messageContent,
+        user_id: userId,
         conversation_id: conversationId || undefined,
         include_history: true,
       });
@@ -417,10 +419,10 @@ export default function ChatPage() {
         timestamp: new Date(),
       }]);
 
-      // 대화 히스토리 조회 (JWT에서 자동으로 userId 추출)
+      // 대화 히스토리 조회
       const history = await chatbotApiClient.getConversationHistory(
         selectedConversationId,
-        undefined, // userId 자동 추출
+        userId,
         50, // 최근 50개 메시지
         0
       );
@@ -519,8 +521,8 @@ export default function ChatPage() {
     try {
       setIsDeleting(true);
 
-      // API를 통한 대화 삭제 (JWT에서 자동으로 userId 추출)
-      await chatbotApiClient.deleteConversation(deleteModal.conversationId);
+      // API를 통한 대화 삭제
+      await chatbotApiClient.deleteConversation(deleteModal.conversationId, userId);
 
       // 성공 시 모달 닫기
       setDeleteModal({
@@ -577,7 +579,7 @@ export default function ChatPage() {
     '관세 계산 방법을 알고 싶어요'
   ];
 
-  /** 최근 대화 목록 데이터 가져오기 (JWT에서 자동으로 userId 추출) */
+  /** 최근 대화 목록 데이터 가져오기 */
   const {
     conversations: recentConversations,
     totalConversations,
@@ -585,6 +587,7 @@ export default function ChatPage() {
     isError: isConversationsError,
     refetch: refetchConversations
   } = useRecentConversations({
+    userId,
     limit: displayLimit, // 최근 3개 대화만 표시
     enabled: true
   });
@@ -595,6 +598,7 @@ export default function ChatPage() {
     isLoading: isAllConversationsLoading,
     refetch: refetchAllConversations
   } = useRecentConversations({
+    userId,
     limit: 20, // 모달에서는 20개 표시
     enabled: showAllChatsModal
   });

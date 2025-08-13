@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 /** * 사용자 정보를 응답하기 위한 DTO 클래스입니다.
  * <p>
  * 사용자 ID, 사용자명, 이름, 이메일, 역할 및 활성화 상태를 포함합니다.
@@ -21,5 +23,6 @@ public class UserResponseDto {
     private String role;
     private Boolean enabled;
     private String company;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime lastLogin;
 }

@@ -126,18 +126,26 @@ public class AuthController {
             throw new AccessDeniedException("관리자 권한이 필요합니다.");
         }
 
-        return userService.findAllUsers().stream()
-            .map(user -> new UserResponseDto(
-                user.getId(),
-                user.getUsername(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole(),
-                user.isEnabled(),
-                user.getCompany(),
-                user.getLastLogin()
-            ))
+        List<UserResponseDto> result = userService.findAllUsers().stream()
+            .map(user -> {
+                System.out.println("사용자: " + user.getUsername() + ", lastLogin: " + user.getLastLogin()); // 디버깅용
+                UserResponseDto dto = new UserResponseDto(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getName(),
+                    user.getEmail(),
+                    user.getRole(),
+                    user.isEnabled(),
+                    user.getCompany(),
+                    user.getLastLogin()
+                );
+                System.out.println("DTO 생성 후 - " + user.getUsername() + ", DTO lastLogin: " + dto.getLastLogin()); // 디버깅용
+                return dto;
+            })
             .collect(Collectors.toList());
+            
+        System.out.println("최종 응답 리스트 크기: " + result.size()); // 디버깅용
+        return result;
     }
     /** * 특정 사용자의 프로필 정보를 조회하는 엔드포인트입니다.
      * 본인만 자신의 정보를 조회할 수 있으며, 다른 사용자의 정보는 접근할 수 없습니다.

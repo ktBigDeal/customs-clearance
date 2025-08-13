@@ -77,6 +77,7 @@ class AuthService {
     }
 
     const token = await response.text();
+    this.setToken(token);
     return token;
   }
 
@@ -157,11 +158,18 @@ class AuthService {
     if (!token) return null;
 
     try {
-      // JWT 토큰 디코딩 (페이로드 부분)
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const parts = token.split('.');
+      if (parts.length !== 3 || !parts[1]) {  // parts[1] 존재 여부 확인
+        throw new Error('유효하지 않은 JWT 토큰 형식');
+      }
+      const payloadBase64Url = parts[1];
+      const base64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const decodedPayload = atob(base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4));
+      
+      const payload = JSON.parse(decodedPayload);
       return {
         username: payload.sub,
-        role: payload.role
+        role: payload.role,
       };
     } catch (error) {
       console.error('토큰 디코딩 실패:', error);
@@ -178,15 +186,22 @@ class AuthService {
     if (!token) return false;
 
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const parts = token.split('.');
+      if (parts.length !== 3 || !parts[1]) {
+        throw new Error('유효하지 않은 JWT 토큰 형식');
+      }
+      const payloadBase64Url = parts[1];
+      const base64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const decodedPayload = atob(base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4));
+
+      const payload = JSON.parse(decodedPayload);
       const currentTime = Date.now() / 1000;
-      
-      // 토큰 만료 확인
+
       if (payload.exp < currentTime) {
         this.logout();
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('토큰 검증 실패:', error);
@@ -211,7 +226,7 @@ class AuthService {
         role: profile.role,
         token: this.getToken()!,
         company: profile.company,
-        lastLogin: profile.lastLogin
+        lastLogin: profile.lastLogin,
       };
     } catch (error) {
       console.error('사용자 정보 조회 실패:', error);
@@ -273,10 +288,10 @@ class AuthService {
   hasRole(requiredRole: string): boolean {
     const userInfo = this.getUserFromToken();
     if (!userInfo) return false;
-    
+
     // ADMIN은 모든 권한 보유
     if (userInfo.role === 'ADMIN') return true;
-    
+
     return userInfo.role === requiredRole;
   }
 
@@ -286,9 +301,9 @@ class AuthService {
   async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = this.getToken();
     
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (token) {

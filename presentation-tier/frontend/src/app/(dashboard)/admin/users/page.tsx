@@ -47,13 +47,16 @@ export default function UsersPage() {
       
       if (response.ok) {
         const usersData = await response.json();
+        
         // 백엔드 데이터 타입을 프론트엔드 User 인터페이스에 맞게 변환
         const typedUsers = usersData.map((user: any) => ({
-          ...user,
-          id: String(user.id), // ID를 문자열로 변환
-          role: user.role.toUpperCase() as 'ADMIN' | 'USER', // 역할을 대문자로 변환
-          lastLogin: user.lastLogin || user.lastLoginDate || null, // 마지막 로그인 정보 처리
+            ...user,
+            id: String(user.id), // ID를 문자열로 변환
+            role: user.role.toUpperCase() as 'ADMIN' | 'USER', // 역할을 대문자로 변환
+            lastLogin: user.lastLogin || null, // 마지막 로그인 정보 처리
+          
         }));
+
         setUsers(typedUsers);
       } else {
         console.error('사용자 목록을 불러오는데 실패했습니다');
@@ -277,7 +280,25 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString('ko-KR') : '접속 기록 없음'}
+                        {user.lastLogin ? (
+                          <div>
+                            <div className="text-gray-900">
+                              {new Date(user.lastLogin).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {new Date(user.lastLogin).toLocaleTimeString('ko-KR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">접속 기록 없음</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">

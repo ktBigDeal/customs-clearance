@@ -86,7 +86,14 @@ public class UserService {
      * @return 사용자 목록
      */
     public List<User> findAllUsers() {
-    return userRepository.findAll();
+        List<User> users = userRepository.findAll();
+        // 디버깅: 각 사용자의 lastLogin 필드 상태 확인
+        for (User user : users) {
+            System.out.println("DB에서 조회한 사용자 " + user.getUsername() + 
+                " - lastLogin: " + user.getLastLogin() + 
+                " - ID: " + user.getId());
+        }
+        return users;
     }
 
     /**
