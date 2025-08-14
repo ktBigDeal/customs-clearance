@@ -81,29 +81,39 @@ SSE & Markdown | JWT Authentication | OpenAI GPT-4.1-mini | phpMyAdmin + pgAdmin
 
 ```mermaid
 graph TB
-    subgraph "Presentation Tier"
-        A[Next.js Frontend] --> B[Spring Boot Backend]
+    subgraph "🎨 Presentation Tier"
+        A["🌐 Next.js Frontend<br/>:3000<br/>관리자 패널 포함"] --> B["☕ Spring Boot Backend<br/>:8080<br/>REST API + JWT Auth"]
     end
     
-    subgraph "Application Tier"
-        B --> C[FastAPI AI Gateway]
-        C --> D[Document Classifier]
-        C --> E[Text Extractor]
-        C --> F[Risk Assessor]
+    subgraph "🧠 Application Tier - AI Services"
+        B --> C["🚪 AI Gateway<br/>:8000<br/>통합 API 게이트웨이"]
+        C --> D["🤖 RAG Chatbot<br/>:8004<br/>LangGraph + GPT-4.1-mini"]
+        C --> E["📄 OCR Service<br/>:8001<br/>Azure Form Recognizer"]
+        C --> F["📊 Report Generator<br/>:8002<br/>템플릿 기반 자동화"]
+        C --> G["🔍 HS Code Search<br/>:8003<br/>시맨틱 검색 + TF-IDF"]
+        C --> H["🔄 US Tariff Converter<br/>:8006<br/>한국↔미국 관세율 매핑"]
     end
     
-    subgraph "Data Tier"
-        B --> G[MySQL Primary]
-        C --> H[Redis Cache]
-        B --> I[File Storage]
+    subgraph "💾 Data Tier"
+        B --> I["🗄️ MySQL 8.0<br/>:3306<br/>메인 데이터베이스"]
+        D --> J["🐘 PostgreSQL<br/>:5433<br/>챗봇 대화 기록"]
+        D --> K["🧠 ChromaDB<br/>:8011<br/>벡터 데이터베이스"]
+        C --> L["⚡ Redis<br/>:6380<br/>캐시 + 세션"]
+        B --> M["📁 File Storage<br/>uploads/<br/>무역서류 파일"]
     end
     
-    subgraph "Infrastructure"
-        J[Load Balancer] --> A
-        J --> B
-        K[Monitoring] --> A
-        K --> B
-        K --> C
+    subgraph "🔧 Management Tools"
+        I --> N["🔧 phpMyAdmin<br/>:8081<br/>MySQL 관리"]
+        J --> O["🐘 pgAdmin<br/>:5050<br/>PostgreSQL 관리"]
+    end
+    
+    subgraph "☁️ Infrastructure"
+        P["🌐 Vercel Deploy<br/>Frontend"] --> A
+        Q["📊 AOP Logging<br/>SystemLogAspect"] --> B
+        R["🐳 Docker Compose<br/>Data Services"] --> I
+        R --> J
+        R --> K
+        R --> L
     end
 ```
 
