@@ -1,0 +1,10 @@
+[phases.setup]
+nixPkgs = ["jdk17", "maven"]
+
+[phases.build]
+cmds = [
+    "cd presentation-tier/backend && chmod +x mvnw && ./mvnw clean package -DskipTests"
+]
+
+[start]
+cmd = "cd presentation-tier/backend && java -Dserver.port=$PORT -jar target/*.jar"
