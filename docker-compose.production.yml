@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  # 데이터베이스 서비스들
+  mysql:
+    image: mysql:8.0
+    container_name: customs-mysql-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: customs_clearance
+      MYSQL_USER: customs_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-customs_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data-tier/mysql/config/my.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./data-tier/mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chatbot-postgres:
+    image: postgres:15-alpine
+    container_name: customs-chatbot-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: conversations
+      POSTGRES_USER: chatbot_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatbot_pass123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - chatbot_postgres_data:/var/lib/postgresql/data
+      - ./data-tier/chatbot/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatbot_user -d conversations"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: customs-chromadb-prod
+    restart: unless-stopped
+    environment:
+      - CHROMA_DB_IMPL=sqlite
+      - PERSIST_DIRECTORY=/data
+    ports:
+      - "8011:8000"
+    volumes:
+      - ./data-tier/chromadb/data/chroma_db:/data
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  chatbot-redis:
+    image: redis:7-alpine
+    container_name: customs-chatbot-redis-prod
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - chatbot_redis_data:/data
+      - ./data-tier/chatbot/redis/config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 백엔드 서비스
+  backend:
+    build:
+      context: ./presentation-tier/backend
+      dockerfile: Dockerfile
+    container_name: customs-backend-prod
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/customs_clearance?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=customs_user
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-customs_pass}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-make-it-long-and-secure}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AI Gateway
+  ai-gateway:
+    build:
+      context: ./application-tier/ai-gateway
+      dockerfile: Dockerfile
+    container_name: customs-ai-gateway-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_CHATBOT_URL=http://model-chatbot-fastapi:8004
+      - MODEL_OCR_URL=http://model-ocr:8001
+      - MODEL_REPORT_URL=http://model-report:8002
+      - MODEL_HSCODE_URL=http://model-hscode:8003
+    ports:
+      - "8000:8000"
+    depends_on:
+      - model-chatbot-fastapi
+      - model-ocr
+      - model-report
+      - model-hscode
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AI 모델 서비스들
+  model-chatbot-fastapi:
+    build:
+      context: ./application-tier/models/model-chatbot-fastapi
+      dockerfile: Dockerfile
+      target: production
+    container_name: customs-chatbot-fastapi-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CHROMADB_MODE=docker
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - DATABASE_URL=postgresql://chatbot_user:${POSTGRES_PASSWORD:-chatbot_pass123}@chatbot-postgres:5432/conversations
+      - REDIS_URL=redis://chatbot-redis:6379
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./application-tier/models/model-chatbot/data:/app/data
+    depends_on:
+      chromadb:
+        condition: service_healthy
+      chatbot-postgres:
+        condition: service_healthy
+      chatbot-redis:
+        condition: service_healthy
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  model-ocr:
+    build:
+      context: ./application-tier/models/model-ocr
+      dockerfile: Dockerfile
+    container_name: customs-ocr-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - AZURE_FORM_RECOGNIZER_ENDPOINT=${AZURE_FORM_RECOGNIZER_ENDPOINT}
+      - AZURE_FORM_RECOGNIZER_KEY=${AZURE_FORM_RECOGNIZER_KEY}
+    ports:
+      - "8001:8001"
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  model-report:
+    build:
+      context: ./application-tier/models/model-report
+      dockerfile: Dockerfile
+    container_name: customs-report-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8002:8002"
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  model-hscode:
+    build:
+      context: ./application-tier/models/model-hscode
+      dockerfile: Dockerfile
+    container_name: customs-hscode-prod
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./application-tier/models/model-hscode/data:/app/data:ro
+      - ./application-tier/models/model-hscode/cache:/app/cache
+    networks:
+      - customs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_data:
+  chatbot_postgres_data:
+  chatbot_redis_data:
+  backend_uploads:
+  backend_logs:
+
+networks:
+  customs-network:
+    driver: bridge
+    name: customs-network

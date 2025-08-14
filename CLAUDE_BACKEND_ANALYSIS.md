@@ -295,7 +295,7 @@ CREATE TABLE attachments (
 
 ### Spring Boot Backend (포트: 8080)
 ```bash
-cd presentation-tier/backend
+cd customs-clearance/presentation-tier/backend
 ./mvnw spring-boot:run
 # 또는 IDE에서 CustomsClearanceBackendApplication 실행
 # 접속: http://localhost:8080
@@ -304,14 +304,14 @@ cd presentation-tier/backend
 
 ### Frontend (포트: 3000)
 ```bash
-cd presentation-tier/frontend
+cd customs-clearance/presentation-tier/frontend
 npm run dev
 # 접속: http://localhost:3000
 ```
 
 ### AI Gateway (FastAPI) - 포트: 8000
 ```bash
-cd application-tier/ai-gateway
+cd customs-clearance/application-tier/ai-gateway
 uv sync
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 # 접속: http://localhost:8000/docs
@@ -320,23 +320,28 @@ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### AI 마이크로서비스들
 ```bash
 # 1. RAG 챗봇 (메인)
-cd application-tier/models/model-chatbot-fastapi
+cd customs-clearance/application-tier/models/model-chatbot-fastapi
+uv run main.py
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8004
 
 # 2. HS코드 추천
-cd application-tier/models/model-hscode
+cd customs-clearance/application-tier/models/model-hscode
+uv run main.py
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8003
 
 # 3. OCR 서비스
-cd application-tier/models/model-ocr
+cd customs-clearance/application-tier/models/model-ocr
+uv run main.py
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
 # 4. 리포트 생성
-cd application-tier/models/model-report
+cd customs-clearance/application-tier/models/model-report
+uv run main.py
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8002
 
 # 5. US 변환 서비스
-cd application-tier/models/model-hscode
+cd customs-clearance/application-tier/models/model-hscode
+uv run main.py
 uv run python src/us_main.py --port 8006
 ```
 

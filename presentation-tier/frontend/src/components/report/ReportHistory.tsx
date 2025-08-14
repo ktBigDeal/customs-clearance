@@ -425,13 +425,6 @@ export default function ReportHistory({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
                         onClick={async () => {
                           const t = report.declarationType;
                           const docType: 'import' | 'export' = t === 'EXPORT' ? 'export' : 'import';

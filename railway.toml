@@ -1,0 +1,132 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# 백엔드 서비스
+[[services]]
+name = "customs-backend"
+source = "presentation-tier/backend"
+
+[services.variables]
+SPRING_PROFILES_ACTIVE = "production"
+RAILWAY_STATIC_URL = "https://customs-backend-production.up.railway.app"
+JAVA_OPTS = "-Xmx512m -XX:+UseContainerSupport"
+
+[services.healthcheck]
+path = "/api/v1/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# AI Gateway 서비스  
+[[services]]
+name = "customs-ai-gateway"
+source = "application-tier/ai-gateway"
+
+[services.variables]
+PORT = "8000"
+ENVIRONMENT = "production"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# 챗봇 FastAPI 서비스
+[[services]]
+name = "customs-chatbot-fastapi"
+source = "application-tier/models/model-chatbot-fastapi"
+
+[services.variables]
+PORT = "8000"
+ENVIRONMENT = "production"
+CHROMADB_MODE = "docker"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# OCR 서비스
+[[services]]
+name = "customs-ocr"
+source = "application-tier/models/model-ocr"
+
+[services.variables]
+PORT = "8001"
+ENVIRONMENT = "production"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# 보고서 생성 서비스
+[[services]]
+name = "customs-report"
+source = "application-tier/models/model-report"
+
+[services.variables]
+PORT = "8002"
+ENVIRONMENT = "production"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# HS코드 추천 서비스
+[[services]]
+name = "customs-hscode"
+source = "application-tier/models/model-hscode"
+
+[services.variables]
+PORT = "8003"
+ENVIRONMENT = "production"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# 데이터베이스 서비스들
+[[services]]
+name = "customs-mysql"
+image = "mysql:8.0"
+
+[services.variables]
+MYSQL_ROOT_PASSWORD = "${{MYSQL_ROOT_PASSWORD}}"
+MYSQL_DATABASE = "customs_clearance"
+MYSQL_USER = "customs_user"  
+MYSQL_PASSWORD = "${{MYSQL_PASSWORD}}"
+
+[[services]]
+name = "customs-postgres"
+image = "postgres:15-alpine"
+
+[services.variables]
+POSTGRES_DB = "conversations"
+POSTGRES_USER = "chatbot_user"
+POSTGRES_PASSWORD = "${{POSTGRES_PASSWORD}}"
+
+[[services]]
+name = "customs-chromadb"
+image = "chromadb/chroma:latest"
+
+[services.variables]
+CHROMA_DB_IMPL = "sqlite"
+PERSIST_DIRECTORY = "/data"
+
+[[services]]
+name = "customs-redis"
+image = "redis:7-alpine"

@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # 데이터베이스 서비스들 (개발 환경)
+  mysql:
+    image: mysql:8.0
+    container_name: customs-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: customs_clearance
+      MYSQL_USER: customs_user
+      MYSQL_PASSWORD: customs_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data-tier/mysql/config/my.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./data-tier/mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - customs-network
+
+  chatbot-postgres:
+    image: postgres:15-alpine
+    container_name: customs-chatbot-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: conversations
+      POSTGRES_USER: chatbot_user
+      POSTGRES_PASSWORD: chatbot_pass123
+    ports:
+      - "5433:5432"
+    volumes:
+      - chatbot_postgres_data:/var/lib/postgresql/data
+      - ./data-tier/chatbot/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - customs-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: customs-chromadb-dev
+    restart: unless-stopped
+    environment:
+      - CHROMA_DB_IMPL=sqlite
+      - PERSIST_DIRECTORY=/data
+    ports:
+      - "8011:8000"
+    volumes:
+      - ./data-tier/chromadb/data/chroma_db:/data
+    networks:
+      - customs-network
+
+  chatbot-redis:
+    image: redis:7-alpine
+    container_name: customs-chatbot-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - chatbot_redis_data:/data
+      - ./data-tier/chatbot/redis/config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - customs-network
+
+  # 관리 도구들 (개발 환경에서만 사용)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: customs-phpmyadmin-dev
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: customs_user
+      PMA_PASSWORD: customs_pass
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - customs-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: customs-pgadmin-dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@customs-clearance.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./data-tier/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      - chatbot-postgres
+    networks:
+      - customs-network
+
+volumes:
+  mysql_data:
+  chatbot_postgres_data:
+  chatbot_redis_data:
+  pgadmin_data:
+
+networks:
+  customs-network:
+    driver: bridge
+    name: customs-network-dev

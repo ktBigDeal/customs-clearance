@@ -338,12 +338,6 @@ export default function ReportPreview({ report, getStatusBadge, getTypeLabel, is
               )}
             </Button>
 
-            {!isAdminView && (
-              <Button onClick={handleGoEdit} className="flex items-center gap-2">
-                <Edit className="w-4 h-4" />
-                수정
-              </Button>
-            )}
           </div>
         </div>
 
