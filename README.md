@@ -6,6 +6,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green.svg)](https://fastapi.tiangolo.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://www.mysql.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
 [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-purple.svg)](https://www.trychroma.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-RAG-orange.svg)](https://langchain.com/)
@@ -35,6 +36,8 @@
 - **LangGraph 오케스트레이션**: 멀티 에이전트 지능형 라우팅 시스템
 - **실시간 진행상황**: Server-Sent Events 기반 실시간 처리 과정 표시
 - **마크다운 렌더링**: 구조화된 AI 응답으로 향상된 사용자 경험
+- **지능형 HS코드 추천**: TF-IDF + 시맨틱 임베딩 혼합 검색 알고리즘
+- **US 관세율 변환**: 한국↔미국 관세율 실시간 자동 변환
 
 #### 📄 **전자 신고서 시스템**
 - **수입/수출 신고서**: 완전한 전자신고서 작성, 제출, 승인 프로세스
@@ -48,6 +51,8 @@
 - **Docker 컨테이너화**: 완전한 마이크로서비스 환경 구축
 - **Vector Database**: ChromaDB 기반 의미 검색 및 RAG 시스템
 - **실시간 모니터링**: 시스템 상태 및 성능 실시간 추적
+- **AOP 로깅 시스템**: 자동 시스템 로그 수집 및 분석
+- **Vercel 배포**: 프로덕션 준비 완료된 배포 환경
 
 ### 🎨 기술 스택
 
@@ -56,8 +61,8 @@
 Next.js 14.2 | Spring Boot 3.2.1 | FastAPI 0.104 | MySQL 8.0 | Docker Compose
 React 18 | Java 17 | Python 3.11 | PostgreSQL 5433 | ChromaDB 8011
 TypeScript | Spring Data JPA | LangChain | Redis 6380 | uv Package Manager
-Tailwind CSS | Flyway Migration | LangGraph | Vector Store | Flyway
-SSE & Markdown | JWT Authentication | OpenAI GPT-4.1-mini | phpMyAdmin 8081 | pgAdmin 5050
+Tailwind CSS | AOP Logging | LangGraph | Vector Store | Vercel Deploy
+SSE & Markdown | JWT Authentication | OpenAI GPT-4.1-mini | phpMyAdmin + pgAdmin | System Monitoring
 
 #### 🧠 **AI/ML 모델 아키텍처**
 
@@ -214,7 +219,7 @@ curl http://localhost:8006/health      # US Converter Service
 #### **사용자 인터페이스**
 | 서비스 | URL | 설명 |
 |--------|-----|------|
-| **메인 웹 포털** | <http://localhost:3000> | Next.js 프론트엔드 |
+| **메인 웹 포털** | <http://localhost:3000> | Next.js 프론트엔드 (관리자 패널 포함) |
 | **Spring Boot API** | <http://localhost:8080/swagger-ui> | 백엔드 API 문서 |
 | **phpMyAdmin** | <http://localhost:8081> | MySQL 웹 관리도구 |
 | **pgAdmin** | <http://localhost:5050> | PostgreSQL 웹 관리도구 |
@@ -914,7 +919,6 @@ style(frontend): improve button component styling
 ## 📞 지원 및 문의
 
 - **📱 이슈 트래킹**: [GitHub Issues](https://github.com/your-org/customs-clearance/issues)
-- **📖 위키**: [프로젝트 위키](https://github.com/your-org/customs-clearance/wiki)
   
 ---
 
