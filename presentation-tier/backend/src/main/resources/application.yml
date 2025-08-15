@@ -77,10 +77,11 @@ logging:
     
 springdoc:
   api-docs:
-    enabled: true
+    path: /api-docs
   swagger-ui:
-    enabled: true
-    path: /swagger-ui/
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
     
 # Custom application properties
 customs:
