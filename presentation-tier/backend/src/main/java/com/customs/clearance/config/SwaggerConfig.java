@@ -43,7 +43,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .servers(List.of(
-                        new Server().url("https://customs-backend-java.up.railway.app")
+                        new Server().url("https://customs-backend-java.up.railway.app/api/v1")
                 ));
     }
     
