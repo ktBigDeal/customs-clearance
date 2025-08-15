@@ -1,14 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
-  BarChart3,
   FileText,
   CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
-  Plus,
-  Eye,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -16,281 +15,213 @@ import { Card } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
+// 새로운 컴포넌트들 import
+import { CustomsHeroSection } from '@/components/dashboard/CustomsHeroSection';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { LineChart } from '@/components/dashboard/LineChart';
+import { DonutChart } from '@/components/dashboard/DonutChart';
+import { RealTimeDeclarationList } from '@/components/dashboard/RealTimeDeclarationList';
+import { AlertsCard } from '@/components/dashboard/AlertsCard';
+
+// API 연동
+import { 
+  declarationsApi, 
+  type DeclarationStats, 
+  type ChartData, 
+  type ProcessingTimeStats 
+} from '@/lib/declarations-api';
+
 export default function DashboardPage() {
   const { t } = useLanguage();
   
-  // Mock data for dashboard
-  const stats = [
+  // 상태 관리
+  const [stats, setStats] = useState<DeclarationStats | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [processingTime, setProcessingTime] = useState<ProcessingTimeStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 데이터 로딩 함수
+  const loadDashboardData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      // 병렬로 모든 데이터 로딩
+      const [statsData, chartDataResult, processingTimeData] = await Promise.all([
+        declarationsApi.getStats(),
+        declarationsApi.getChartData(),
+        declarationsApi.getProcessingTimeStats(),
+      ]);
+
+      setStats(statsData);
+      setChartData(chartDataResult);
+      setProcessingTime(processingTimeData);
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setError(err.message || '데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadDashboardData(true);
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // 통계 카드 데이터 생성
+  const statsCards = stats ? [
     {
-      title: t('dashboard.stats.totalDeclarations'),
-      value: '1,234',
+      title: '전체 신고서',
+      value: stats.totalDeclarations,
       change: '+12%',
-      trend: 'up',
+      trend: 'up' as const,
       icon: FileText,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
     },
     {
-      title: t('dashboard.stats.pendingDeclarations'),
-      value: '23',
+      title: '작성 중',
+      value: stats.pendingDeclarations,
       change: '-5%',
-      trend: 'down',
+      trend: 'down' as const,
       icon: Clock,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
     },
     {
-      title: t('dashboard.stats.approvedDeclarations'),
-      value: '1,156',
+      title: '승인',
+      value: stats.approvedDeclarations,
       change: '+8%',
-      trend: 'up',
+      trend: 'up' as const,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
     },
     {
-      title: t('dashboard.stats.rejectedDeclarations'),
-      value: '55',
-      change: '+2%',
-      trend: 'up',
-      icon: XCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
+      title: '제출 완료',
+      value: stats.clearedDeclarations,
+      change: '+5%',
+      trend: 'up' as const,
+      icon: TrendingUp,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
-  ];
+  ] : [];
 
-  const recentDeclarations = [
-    {
-      id: 'DEC-2024-001',
-      company: '(주)무역회사',
-      type: 'IMPORT',
-      status: 'UNDER_REVIEW',
-      date: '2024-01-15',
-      value: '₩125,000,000',
-    },
-    {
-      id: 'DEC-2024-002',
-      company: '글로벌 익스포트',
-      type: 'EXPORT',
-      status: 'APPROVED',
-      date: '2024-01-14',
-      value: '₩89,500,000',
-    },
-    {
-      id: 'DEC-2024-003',
-      company: '한국 트레이딩',
-      type: 'IMPORT',
-      status: 'PENDING_DOCUMENTS',
-      date: '2024-01-14',
-      value: '₩201,750,000',
-    },
-    {
-      id: 'DEC-2024-004',
-      company: '동서무역상사',
-      type: 'EXPORT',
-      status: 'CLEARED',
-      date: '2024-01-13',
-      value: '₩67,800,000',
-    },
-  ];
+  if (loading) {
+    return (
+      <ProtectedRoute requiredRole="USER">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="animate-pulse">
+            <div className="h-48 bg-gray-200 rounded-lg mb-6"></div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2 mb-6">
+              <div className="h-80 bg-gray-200 rounded-lg"></div>
+              <div className="h-80 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-      case 'CLEARED':
-        return 'bg-green-100 text-green-800';
-      case 'UNDER_REVIEW':
-        return 'bg-blue-100 text-blue-800';
-      case 'PENDING_DOCUMENTS':
-        return 'bg-orange-100 text-orange-800';
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return t('dashboard.status.approved');
-      case 'CLEARED':
-        return t('dashboard.status.cleared');
-      case 'UNDER_REVIEW':
-        return t('dashboard.status.underReview');
-      case 'PENDING_DOCUMENTS':
-        return t('dashboard.status.pendingDocuments');
-      case 'REJECTED':
-        return t('dashboard.status.rejected');
-      default:
-        return status;
-    }
-  };
-
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case 'IMPORT':
-        return t('dashboard.type.import');
-      case 'EXPORT':
-        return t('dashboard.type.export');
-      default:
-        return type;
-    }
-  };
+  if (error) {
+    return (
+      <ProtectedRoute requiredRole="USER">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <Card className="p-8 text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold mb-2">데이터 로딩 실패</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => loadDashboardData()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              다시 시도
+            </Button>
+          </Card>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute requiredRole="USER">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold text-foreground">
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-muted-foreground">
-            {t('dashboard.subtitle')}
-          </p>
-        </div>
+        {/* 🎯 1. 히어로 섹션 */}
+        <CustomsHeroSection
+          todayProcessed={stats?.clearedDeclarations || 0}
+          totalDeclarations={stats?.totalDeclarations || 0}
+          processingTime={processingTime?.thisMonth || 0}
+        />
 
-        {/* Stats Grid */}
+        {/* 📊 2. 통계 카드 섹션 */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">통계 현황</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            새로고침
+          </Button>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.title} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {stat.title}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          stat.trend === 'up'
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-red-100 text-red-600'
-                        }`}
-                      >
-                        {stat.change}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {statsCards.map((stat, index) => (
+            <StatsCard key={index} {...stat} />
+          ))}
         </div>
 
-        {/* Main Content Grid */}
+        {/* 📈 3. 차트 섹션 */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">월별 처리 현황</h3>
+            {chartData?.monthlyData ? (
+              <LineChart data={chartData.monthlyData} />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                차트 데이터 로딩 중...
+              </div>
+            )}
+          </Card>
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">상태별 분포</h3>
+            {chartData?.statusData ? (
+              <DonutChart data={chartData.statusData} />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                차트 데이터 로딩 중...
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* 🔄 4. 메인 콘텐츠 그리드 */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Recent Declarations */}
+          {/* 실시간 신고서 목록 */}
           <div className="lg:col-span-2">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">
-                  {t('dashboard.recentDeclarations')}
-                </h2>
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-2" />
-                  {t('dashboard.viewAllDeclarations')}
-                </Button>
-              </div>
-              <div className="space-y-4">
-                {recentDeclarations.map((declaration) => (
-                  <div
-                    key={declaration.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">
-                          {declaration.id}
-                        </p>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(
-                            declaration.status
-                          )}`}
-                        >
-                          {getStatusText(declaration.status)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {declaration.company}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {getTypeText(declaration.type)} •{' '}
-                        {declaration.date}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">
-                        {declaration.value}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <RealTimeDeclarationList />
           </div>
-
-          {/* Quick Actions */}
+          
+          {/* 사이드 패널 */}
           <div className="space-y-6">
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {t('dashboard.quickActions')}
-              </h2>
-              <div className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('dashboard.newDeclaration')}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <FileText className="h-4 w-4 mr-2" />
-                  {t('dashboard.viewDeclarations')}
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  {t('dashboard.monthlyReport')}
-                </Button>
-              </div>
-            </Card>
-
-            {/* Processing Time */}
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold">
-                  {t('dashboard.avgProcessingTime')}
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {t('dashboard.thisMonth')}
-                  </span>
-                  <span className="font-semibold">2.3일</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {t('dashboard.lastMonth')}
-                  </span>
-                  <span className="font-semibold text-muted-foreground">
-                    2.8일
-                  </span>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-green-600 font-medium">
-                      18% {t('dashboard.improvement')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            {/* 알림 센터 */}
+            <AlertsCard />
           </div>
         </div>
       </div>

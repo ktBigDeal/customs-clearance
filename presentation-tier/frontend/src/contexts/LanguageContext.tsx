@@ -161,6 +161,25 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
         // 관리자 페이지 번역
         'admin.dashboard': '관리자 대시보드',
+        'admin.systemOverview': '시스템 전체 현황 및 통계 관리',
+        'admin.permission': '관리자 권한',
+        'admin.fullAccess': '전체 접근',
+        'admin.systemOperational': '관리자 시스템 정상 운영 중',
+        'admin.systemStatistics': '시스템 통계',
+        'admin.systemHealth': '시스템 상태',
+        'admin.uptime': '가동률',
+        'admin.successRate': '성공률',
+        'admin.avgResponseTime': '평균 응답시간',
+        'admin.systemResources': '시스템 리소스',
+        'admin.memory': '메모리',
+        'admin.storage': '저장소',
+        'admin.live': '실시간',
+        'admin.quickStats': '빠른 통계',
+        'admin.onlineUsers': '접속 중인 사용자',
+        'admin.todayProcessed': '오늘 처리 건수',
+        'admin.apiCallsHour': '시간당 API 호출',
+        'admin.errorRate': '오류율',
+        'admin.systemLoad': '시스템 부하',
         'admin.userManagement': '사용자 관리',
         'admin.documentManagement': '문서 관리',
         'admin.templateManagement': '템플릿 관리',
@@ -176,6 +195,21 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'admin.processedDocs': '처리된 문서',
         'admin.apiCallsToday': '오늘 API 호출',
         'admin.errorCount': '오류 발생',
+        
+        // 대시보드 추가 번역
+        'dashboard.inProgress': '진행 중',
+        'dashboard.completed': '완료',
+        'dashboard.rejected': '반려',
+        'dashboard.monthlyProcessing': '월별 처리 현황',
+        'dashboard.statusDistribution': '상태별 분포',
+        
+        // 공통 추가 번역
+        'common.currentTime': '현재 시각',
+        'common.count': '건',
+        'common.dataLoadFailed': '데이터 로딩 실패',
+        'common.retry': '다시 시도',
+        'common.refresh': '새로고침',
+        'common.loadingChartData': '차트 데이터 로딩 중...',
       },
       en: {
         // Header
@@ -303,6 +337,25 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
         // Admin pages translations
         'admin.dashboard': 'Admin Dashboard',
+        'admin.systemOverview': 'System Overview and Statistics Management',
+        'admin.permission': 'Admin Permission',
+        'admin.fullAccess': 'Full Access',
+        'admin.systemOperational': 'Admin System Operational',
+        'admin.systemStatistics': 'System Statistics',
+        'admin.systemHealth': 'System Health',
+        'admin.uptime': 'Uptime',
+        'admin.successRate': 'Success Rate',
+        'admin.avgResponseTime': 'Avg Response Time',
+        'admin.systemResources': 'System Resources',
+        'admin.memory': 'Memory',
+        'admin.storage': 'Storage',
+        'admin.live': 'Live',
+        'admin.quickStats': 'Quick Stats',
+        'admin.onlineUsers': 'Online Users',
+        'admin.todayProcessed': 'Today Processed',
+        'admin.apiCallsHour': 'API Calls/Hour',
+        'admin.errorRate': 'Error Rate',
+        'admin.systemLoad': 'System Load',
         'admin.userManagement': 'User Management',
         'admin.documentManagement': 'Document Management',
         'admin.templateManagement': 'Template Management',
@@ -318,6 +371,21 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         'admin.processedDocs': 'Processed Documents',
         'admin.apiCallsToday': 'API Calls Today',
         'admin.errorCount': 'Error Count',
+        
+        // Dashboard additional translations
+        'dashboard.inProgress': 'In Progress',
+        'dashboard.completed': 'Completed',
+        'dashboard.rejected': 'Rejected',
+        'dashboard.monthlyProcessing': 'Monthly Processing',
+        'dashboard.statusDistribution': 'Status Distribution',
+        
+        // Common additional translations
+        'common.currentTime': 'Current Time',
+        'common.count': 'items',
+        'common.dataLoadFailed': 'Data Load Failed',
+        'common.retry': 'Retry',
+        'common.refresh': 'Refresh',
+        'common.loadingChartData': 'Loading chart data...',
       }
     };
 

@@ -31,4 +31,14 @@ public interface DeclarationRepository extends JpaRepository<Declaration, Long> 
 
     List<Declaration> findAllByStatus(DeclarationStatus status);
 
+    /**
+     * 최근 생성된 신고서 5개를 조회합니다.
+     */
+    List<Declaration> findTop5ByOrderByCreatedAtDesc();
+    
+    /**
+     * 특정 사용자의 신고서를 최신순으로 조회합니다.
+     */
+    List<Declaration> findAllByCreatedByOrderByCreatedAtDesc(Long createdBy);
+
 }
