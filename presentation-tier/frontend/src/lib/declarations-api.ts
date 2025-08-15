@@ -40,6 +40,35 @@ import {
   DeclarationCreateFiles,
 } from '@/types/declaration';
 
+// 대시보드용 인터페이스
+export interface DeclarationStats {
+  totalDeclarations: number;
+  pendingDeclarations: number;
+  underReviewDeclarations: number;
+  approvedDeclarations: number;
+  rejectedDeclarations: number;
+  clearedDeclarations: number;
+}
+
+export interface ChartData {
+  monthlyData: Array<{
+    month: string;
+    count: number;
+  }>;
+  statusData: Array<{
+    status: string;
+    count: number;
+    label: string;
+  }>;
+}
+
+export interface ProcessingTimeStats {
+  thisMonth: number;
+  lastMonth: number;
+  improvement: number;
+  trend: 'up' | 'down';
+}
+
 const BASE = '/declaration';
 
 /**
@@ -146,7 +175,118 @@ export class DeclarationsApi {
     const filename = `declaration-${declarationId}${options?.docType ? '-' + options.docType : ''}.xml`;
     return apiClient.downloadFile(url, filename);
   }
+
+  // ========== 대시보드용 API 메서드들 ==========
+
+  /**
+   * 대시보드 통계 데이터 조회
+   */
+  async getStats(): Promise<DeclarationStats> {
+    return apiClient.get<DeclarationStats>(`${BASE}/stats`);
+  }
+
+  /**
+   * 최근 신고서 목록 조회
+   */
+  async getRecent(limit: number = 5): Promise<DeclarationResponseDto[]> {
+    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/recent?limit=${limit}`);
+  }
+
+  /**
+   * 차트용 데이터 조회
+   */
+  async getChartData(): Promise<ChartData> {
+    return apiClient.get<ChartData>(`${BASE}/chart-data`);
+  }
+
+  /**
+   * 처리 시간 통계 조회
+   */
+  async getProcessingTimeStats(): Promise<ProcessingTimeStats> {
+    return apiClient.get<ProcessingTimeStats>(`${BASE}/processing-time`);
+  }
 }
 
 // Create singleton instance
 export const declarationsApi = new DeclarationsApi();
+
+// ========== 유틸리티 함수들 ==========
+
+/**
+ * 신고서 상태를 한국어로 변환
+ */
+export const getStatusKorean = (status: string): string => {
+  switch (status) {
+    case 'DRAFT':
+      return '초안';
+    case 'UPDATED':
+      return '수정됨';
+    case 'SUBMITTED':
+      return '제출됨';
+    case 'UNDER_REVIEW':
+      return '심사 중';
+    case 'APPROVED':
+      return '승인';
+    case 'REJECTED':
+      return '반려';
+    default:
+      return status;
+  }
+};
+
+/**
+ * 신고서 타입을 한국어로 변환
+ */
+export const getTypeKorean = (type: string): string => {
+  switch (type) {
+    case 'IMPORT':
+      return '수입';
+    case 'EXPORT':
+      return '수출';
+    default:
+      return type;
+  }
+};
+
+/**
+ * 상태별 색상 클래스 반환
+ */
+export const getStatusColorClass = (status: string): string => {
+  switch (status) {
+    case 'APPROVED':
+      return 'bg-green-100 text-green-800';
+    case 'SUBMITTED':
+      return 'bg-blue-100 text-blue-800';
+    case 'UNDER_REVIEW':
+      return 'bg-purple-100 text-purple-800';
+    case 'DRAFT':
+    case 'UPDATED':
+      return 'bg-orange-100 text-orange-800';
+    case 'REJECTED':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+/**
+ * 숫자를 한국 원화 형식으로 포맷
+ */
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency: 'KRW',
+  }).format(value);
+};
+
+/**
+ * 날짜를 한국 형식으로 포맷
+ */
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+};

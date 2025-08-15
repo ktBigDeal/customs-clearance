@@ -28,6 +28,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.time.LocalDateTime;
+
+import com.customs.clearance.dto.DeclarationStatsDto;
+import com.customs.clearance.service.KcsImportXmlMapper;
+import com.customs.clearance.service.KcsExportXmlMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -364,5 +370,124 @@ public class DeclarationService {
         }
         
         return result;
+    }
+
+    /**
+     * 대시보드용 통계 데이터 조회
+     */
+    public DeclarationStatsDto getDeclarationStats(String token) {
+        User user = getUserByToken(token);
+        List<Declaration> userDeclarations;
+        
+        if (user.getRole().equals("ADMIN")) {
+            // 관리자는 전체 통계
+            userDeclarations = declarationRepository.findAll();
+        } else {
+            // 일반 사용자는 본인 신고서만
+            userDeclarations = declarationRepository.findAllByCreatedBy(user.getId());
+        }
+        
+        long total = userDeclarations.size();
+        long pending = userDeclarations.stream()
+            .mapToLong(d -> d.getStatus() == DeclarationStatus.DRAFT || d.getStatus() == DeclarationStatus.UPDATED ? 1 : 0)
+            .sum();
+        long underReview = userDeclarations.stream()
+            .mapToLong(d -> d.getStatus() == DeclarationStatus.UNDER_REVIEW ? 1 : 0)
+            .sum();
+        long approved = userDeclarations.stream()
+            .mapToLong(d -> d.getStatus() == DeclarationStatus.APPROVED ? 1 : 0)
+            .sum();
+        long rejected = userDeclarations.stream()
+            .mapToLong(d -> d.getStatus() == DeclarationStatus.REJECTED ? 1 : 0)
+            .sum();
+        long cleared = userDeclarations.stream()
+            .mapToLong(d -> d.getStatus() == DeclarationStatus.SUBMITTED ? 1 : 0)
+            .sum();
+            
+        return new DeclarationStatsDto(total, pending, underReview, approved, rejected, cleared);
+    }
+
+    /**
+     * 대시보드용 최근 신고서 목록 조회
+     */
+    public List<Declaration> getRecentDeclarations(int limit, String token) {
+        User user = getUserByToken(token);
+        
+        if (user.getRole().equals("ADMIN")) {
+            // 관리자는 전체 최근 신고서
+            return declarationRepository.findTop5ByOrderByCreatedAtDesc()
+                .stream()
+                .limit(limit)
+                .toList();
+        } else {
+            // 일반 사용자는 본인 신고서만
+            return declarationRepository.findAllByCreatedByOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .limit(limit)
+                .toList();
+        }
+    }
+
+    /**
+     * 대시보드용 차트 데이터 조회
+     */
+    public Map<String, Object> getDashboardChartData(String token) {
+        User user = getUserByToken(token);
+        List<Declaration> userDeclarations;
+        
+        if (user.getRole().equals("ADMIN")) {
+            userDeclarations = declarationRepository.findAll();
+        } else {
+            userDeclarations = declarationRepository.findAllByCreatedBy(user.getId());
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // 월별 처리 건수 (최근 6개월)
+        List<Map<String, Object>> monthlyData = new ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            LocalDateTime monthStart = LocalDateTime.now().minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+            LocalDateTime monthEnd = monthStart.plusMonths(1).minusSeconds(1);
+            
+            long count = userDeclarations.stream()
+                .filter(d -> d.getCreatedAt().isAfter(monthStart) && d.getCreatedAt().isBefore(monthEnd))
+                .count();
+                
+            Map<String, Object> monthData = new HashMap<>();
+            monthData.put("month", monthStart.getMonth().toString());
+            monthData.put("count", count);
+            monthlyData.add(monthData);
+        }
+        result.put("monthlyData", monthlyData);
+        
+        // 상태별 분포
+        List<Map<String, Object>> statusData = new ArrayList<>();
+        for (DeclarationStatus status : DeclarationStatus.values()) {
+            long count = userDeclarations.stream()
+                .filter(d -> d.getStatus() == status)
+                .count();
+            if (count > 0) {
+                Map<String, Object> statusEntry = new HashMap<>();
+                statusEntry.put("status", status.name());
+                statusEntry.put("count", count);
+                statusEntry.put("label", getStatusKoreanName(status));
+                statusData.add(statusEntry);
+            }
+        }
+        result.put("statusData", statusData);
+        
+        return result;
+    }
+    
+    private String getStatusKoreanName(DeclarationStatus status) {
+        switch (status) {
+            case DRAFT: return "초안";
+            case UPDATED: return "수정됨";
+            case SUBMITTED: return "제출됨";
+            case UNDER_REVIEW: return "심사 중";
+            case APPROVED: return "승인";
+            case REJECTED: return "반려";
+            default: return status.name();
+        }
     }
 }

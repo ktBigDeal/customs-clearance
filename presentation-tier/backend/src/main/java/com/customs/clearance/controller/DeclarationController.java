@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+
+import com.customs.clearance.dto.DeclarationStatsDto;
 
 
 @RestController
@@ -218,5 +221,74 @@ public class DeclarationController {
                 .contentType(MediaType.APPLICATION_XML)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
                 .body(xml);
+    }
+
+    /**
+     * 대시보드용 통계 데이터 조회
+     */
+    @GetMapping("/stats")
+    public DeclarationStatsDto getDeclarationStats(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDeclarationStats(token);
+    }
+
+    /**
+     * 대시보드용 최근 신고서 목록 조회
+     */
+    @GetMapping("/recent")
+    public List<Declaration> getRecentDeclarations(
+            @RequestParam(value = "limit", defaultValue = "5") int limit,
+            HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getRecentDeclarations(limit, token);
+    }
+
+    /**
+     * 대시보드용 차트 데이터 조회
+     */
+    @GetMapping("/chart-data")
+    public Map<String, Object> getDashboardChartData(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        return declarationService.getDashboardChartData(token);
+    }
+
+    /**
+     * 대시보드용 처리 시간 통계 조회
+     */
+    @GetMapping("/processing-time")
+    public Map<String, Object> getProcessingTimeStats(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        // 임시 데이터 (실제 구현시 서비스에서 계산)
+        result.put("thisMonth", 2.3);
+        result.put("lastMonth", 2.8);
+        result.put("improvement", 18);
+        result.put("trend", "down");
+        
+        return result;
     }
 }
