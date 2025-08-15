@@ -18,7 +18,7 @@ RAILWAY_STATIC_URL = "https://customs-backend-production.up.railway.app"
 JAVA_OPTS = "-Xmx512m -XX:+UseContainerSupport"
 
 [services.healthcheck]
-path = "/api/v1/health"
+path = "/api/v1/actuator/health"
 interval = 30
 timeout = 10
 retries = 3

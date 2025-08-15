@@ -48,6 +48,7 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+      
 server:
   port: 8080
   servlet:
@@ -60,8 +61,8 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always  # 헬스체크를 인증 없이 가능하게 변경
-
+      show-details: when-authorized
+      
 logging:
   level:
     com.customs.clearance: INFO
@@ -76,12 +77,12 @@ logging:
     
 springdoc:
   api-docs:
-    enabled: true
     path: /api-docs
   swagger-ui:
-    enabled: true
-    path: /swagger-ui/
-
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    
 # Custom application properties
 customs:
   clearance:
@@ -98,7 +99,70 @@ customs:
         base-url: ${EXTERNAL_API_URL:http://localhost:9000}
         timeout: 10000
     file:
-      upload-dir: uploads
+     upload-dir: uploads
+        
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: dev
+#     import: optional:file:.env[.properties]
 
-# --- Profiles (optional) ---
-# dev, prod, test 설정은 필요시 주석 해제 후 사용 가능
+#   datasource:
+#     url: jdbc:mysql://localhost:3306/customs_clearance?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    
+#   jpa:
+#     hibernate:
+#       ddl-auto: update
+#     show-sql: true
+    
+# logging:
+#   level:
+#     com.customs.clearance: DEBUG
+#     root: INFO
+    
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: prod
+      
+#   datasource:
+#     url: jdbc:mysql://${DB_HOST:mysql-service}:${DB_PORT:3306}/${DB_NAME:customs_clearance_prod_db}?useSSL=true&serverTimezone=UTC
+    
+#   jpa:
+#     hibernate:
+#       ddl-auto: validate
+#     show-sql: false
+    
+# logging:
+#   level:
+#     com.customs.clearance: WARN
+#     root: WARN
+#   file:
+#     name: /app/logs/customs-clearance-backend.log
+    
+# server:
+#   port: ${SERVER_PORT:8080}
+  
+# ---
+# spring:
+#   config:
+#     activate:
+#       on-profile: test
+      
+#   datasource:
+#     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+#     username: sa
+#     password:
+#     driver-class-name: org.h2.Driver
+    
+#   jpa:
+#     hibernate:
+#       ddl-auto: create-drop
+#     show-sql: true
+#     database-platform: org.hibernate.dialect.H2Dialect
+    
+#   h2:
+#     console:
+#       enabled: true
