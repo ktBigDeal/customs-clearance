@@ -82,6 +82,7 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+    server-url: https://customs-backend-java.up.railway.app
     
 # Custom application properties
 customs:
