@@ -79,6 +79,7 @@ springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
+    url: https://customs-backend-java.up.railway.app/api-docs
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha

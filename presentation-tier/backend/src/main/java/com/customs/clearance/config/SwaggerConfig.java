@@ -2,8 +2,11 @@ package com.customs.clearance.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.servers.Server;
+
 import org.springframework.context.annotation.Configuration;
 
 /** * Swagger 설정을 위한 클래스입니다.
@@ -23,6 +26,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @OpenAPIDefinition(
+    info = @Info(title = "Customs API", version = "v1"),
+    servers = {
+        @Server(url = "https://customs-backend-java.up.railway.app")
+    },
     security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(
@@ -31,6 +38,6 @@ import org.springframework.context.annotation.Configuration;
     scheme = "bearer",
     bearerFormat = "JWT"
 )
-public class SwaggarConfig {
+public class SwaggerConfig {
     
 }
