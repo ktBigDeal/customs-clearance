@@ -82,6 +82,7 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+    url: /api-docs
     
 # Custom application properties
 customs:
