@@ -48,7 +48,7 @@ public class DeclarationController {
 
     @DeleteMapping("test")
     public boolean testFileDelete(
-        @RequestBody String filename
+        @RequestParam String filename
     ) throws IOException {
 
         File file = new File(uploadDir, filename);
