@@ -16,19 +16,18 @@ ENVIRONMENT = "production"
 # Railway 환경 식별
 RAILWAY_ENVIRONMENT = "true"
 
-# PostgreSQL 연결 설정
-# Railway에서 자동으로 DATABASE_URL을 제공하지만, 필요시 개별 설정 가능
-# POSTGRES_HOST = "your-postgres-host.railway.app"
-# POSTGRES_PORT = "5432"
-# POSTGRES_DB = "railway"
-# POSTGRES_USER = "postgres"
-# POSTGRES_PASSWORD = "your-password"
+# PostgreSQL 연결 설정 (Railway 환경변수를 현재 코드 형식으로 매핑)
+POSTGRES_HOST = "$PGHOST"
+POSTGRES_PORT = "$PGPORT"
+POSTGRES_DB = "$PGDATABASE"
+POSTGRES_USER = "$PGUSER"
+POSTGRES_PASSWORD = "$PGPASSWORD"
 
-# Redis 연결 설정
-# Railway에서 자동으로 REDIS_URL을 제공하지만, 필요시 개별 설정 가능
-# REDIS_HOST = "your-redis-host.railway.app"
-# REDIS_PORT = "6379"
-# REDIS_PASSWORD = "your-redis-password"
+# Redis 연결 설정 (Railway 환경변수를 현재 코드 형식으로 매핑)
+# Railway Redis 서비스 생성 시 자동으로 제공되는 환경변수들 사용
+# REDIS_HOST = "$REDIS_HOST"
+# REDIS_PORT = "$REDIS_PORT" 
+# REDIS_PASSWORD = "$REDIS_PASSWORD"
 
 # 연결 풀 최적화 (Railway 환경용)
 POSTGRES_POOL_SIZE = "3"

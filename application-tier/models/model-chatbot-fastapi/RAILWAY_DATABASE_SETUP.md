@@ -17,6 +17,22 @@ Railway 플랫폼에서 PostgreSQL과 Redis를 연결하는 방법을 설명합�
    PGPASSWORD=your-generated-password
    ```
 
+3. **환경변수 매핑 확인** (railway.toml에서 자동 처리):
+   ```toml
+   # Railway 환경변수를 현재 코드 형식으로 자동 매핑
+   POSTGRES_HOST = "$PGHOST"
+   POSTGRES_PORT = "$PGPORT" 
+   POSTGRES_DB = "$PGDATABASE"
+   POSTGRES_USER = "$PGUSER"
+   POSTGRES_PASSWORD = "$PGPASSWORD"
+   ```
+
+4. **연결 테스트** (선택사항):
+   ```bash
+   # Railway 환경에서 연결 테스트
+   python test_railway_connection.py
+   ```
+
 ### 2단계: Redis 서비스 생성
 
 1. **Railway Dashboard** → **Add Service** → **Database** → **Redis**
