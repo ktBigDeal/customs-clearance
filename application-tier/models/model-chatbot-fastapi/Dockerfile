@@ -1,168 +1,58 @@
-# 멀티 스테이지 Docker 빌드
-FROM python:3.11-slim as base
+# Railway 배포용 ChatBot FastAPI Dockerfile
+# RAG 기반 텍스트 챗봇 - 최소 의존성 버전
 
-# 시스템 업데이트 및 필수 패키지 설치
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    build-essential \
-    libpq-dev \
-    libmagic1 \
-    # OCR을 위한 tesseract
-    tesseract-ocr \
-    tesseract-ocr-kor \
-    # PDF 처리를 위한 poppler
-    poppler-utils \
-    # Java (tabula-py를 위해)
-    default-jre \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.11-slim
 
-# uv 설치
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
-
-# 작업 디렉토리 설정
-WORKDIR /app
-
-# 사용자 생성 (보안을 위해)
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Development Stage
-FROM base as development
-
-# 소스 코드 복사
-COPY . .
-
-# uv를 사용하여 의존성 설치 (개발 의존성 포함)
-RUN uv sync --dev
-
-# 포트 노출
-EXPOSE 8000
-
-# 개발 서버 실행
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-# Production Stage
-FROM base as production
-
-# 성능을 위한 추가 설정
+# Railway 포트 환경변수 지원
+ENV PORT=8000
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-# 소스 코드만 복사 (불필요한 파일 제외)
-COPY pyproject.toml uv.lock ./
-COPY app/ ./app/
-COPY main.py ./
-COPY src/ ./src/
+# 작업 디렉토리 설정
+WORKDIR /app
 
-# uv를 사용하여 프로덕션 의존성만 설치
+# 시스템 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 기본 도구
+    curl \
+    ca-certificates \
+    # PostgreSQL 클라이언트 라이브러리
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# uv 패키지 매니저 설치
+RUN pip install --no-cache-dir uv
+
+# 사용자 생성 (보안)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Railway용 프로젝트 설정 복사 (최소 의존성)
+COPY pyproject.railway.toml ./pyproject.toml
+COPY uv.lock* ./
+
+# Railway용 최소 의존성 설치
+# OCR, PDF 처리, Java 관련 패키지 제외
 RUN uv sync --frozen --no-dev
 
-# 로그 디렉토리 생성
+# 소스 코드 복사
+COPY app/ ./app/
+COPY main.py ./
+
+# 로그 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app
 
-# 포트 노출
-EXPOSE 8000
-
-# appuser로 전환
+# 비루트 사용자로 전환
 USER appuser
 
-# 헬스체크 설정
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# 프로덕션 서버 실행 (gunicorn + uvicorn workers)
-CMD ["uv", "run", "gunicorn", "main:app", \
-     "-w", "4", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
-
-# Testing Stage
-FROM development as testing
-
-# 테스트 실행
-RUN uv run pytest tests/ -v --cov=app --cov-report=term-missing
-
-# Builder Stage (CI/CD에서 사용)
-FROM base as builder
-
-# 소스 코드 복사
-COPY . .
-
-# 빌드 및 테스트
-RUN uv sync --dev
-RUN uv run pytest tests/ -v
-RUN uv run black --check app/ tests/
-RUN uv run isort --check-only app/ tests/
-RUN uv run flake8 app/ tests/
-RUN uv run mypy app/
-
-# 빌드 아티팩트 생성
-RUN uv build
-
-# Final production stage
-FROM python:3.11-slim as final
-
-# 필수 런타임 패키지만 설치
-RUN apt-get update && apt-get install -y \
-    curl \
-    libpq5 \
-    libmagic1 \
-    tesseract-ocr \
-    tesseract-ocr-kor \
-    poppler-utils \
-    default-jre-headless \
-    && rm -rf /var/lib/apt/lists/*
-
-# 사용자 생성
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# 작업 디렉토리 설정
-WORKDIR /app
-
-# uv 설치 (최소 설치)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
-
-# 빌드된 패키지 복사
-COPY --from=builder /app/dist/*.whl ./
-
-# 패키지 설치
-RUN uv pip install --system *.whl
-
-# 런타임 파일 복사
-COPY --from=production --chown=appuser:appuser /app/src ./src
-COPY --from=production --chown=appuser:appuser /app/main.py ./
-COPY --from=production --chown=appuser:appuser /app/logs ./logs
-
-# 환경 변수 설정
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
 # 포트 노출
-EXPOSE 8000
+EXPOSE $PORT
 
-# 헬스체크
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# 헬스체크 (Railway 호환)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health || exit 1
 
-# appuser로 전환
-USER appuser
-
-# 프로덕션 실행
-CMD ["gunicorn", "main:app", \
-     "-w", "4", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info", \
-     "--worker-timeout", "120", \
-     "--keep-alive", "5", \
-     "--max-requests", "1000", \
-     "--max-requests-jitter", "100"]
+# Railway 환경에서 실행
+# 단일 워커로 메모리 사용량 최소화
+CMD ["sh", "-c", "uv run uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
