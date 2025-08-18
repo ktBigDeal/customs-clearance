@@ -55,8 +55,14 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
         
         # 미국 관세율표 파일 경로 설정
         if not us_tariff_file:
-            project_root = Path(__file__).parent.parent
-            us_tariff_file = project_root / "관세청_미국 관세율표_20250714.xlsx"
+            # 환경변수에서 파일 경로 읽기
+            us_tariff_file_env = os.getenv("US_TARIFF_FILE")
+            if us_tariff_file_env:
+                us_tariff_file = us_tariff_file_env
+                logger.info(f"환경변수에서 파일 경로 로드: {us_tariff_file}")
+            else:
+                project_root = Path(__file__).parent.parent
+                us_tariff_file = project_root / "us_tariff_table_20250714.xlsx"
             
             # 디버깅 정보 출력
             logger.info(f"프로젝트 루트: {project_root}")

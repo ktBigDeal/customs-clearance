@@ -25,9 +25,9 @@ COPY main.py ./
 COPY config.py ./
 
 # Copy essential data files only
-COPY data/*.xlsx ./data/ 2>/dev/null || true
-COPY cache/ ./cache/ 2>/dev/null || true
-COPY *.xlsx ./ 2>/dev/null || true
+COPY data/ ./data/
+COPY cache/ ./cache/
+COPY us_tariff_table_20250714.xlsx ./
 
 # Create cache directory if it doesn't exist
 RUN mkdir -p cache/hs_code_cache

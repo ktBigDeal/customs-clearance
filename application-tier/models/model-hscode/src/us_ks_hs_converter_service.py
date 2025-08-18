@@ -1204,7 +1204,7 @@ def main():
         print("🤖 LLM 강화 모드로 실행합니다 (환경변수에서 OpenAI API 키 로드).")
     
     # 변환 시스템 초기화
-    us_tariff_file = project_root / "관세청_미국 관세율표_20250714.xlsx"
+    us_tariff_file = project_root / "us_tariff_table_20250714.xlsx"
     
     # 한국 추천 시스템 로드 시도
     korea_recommender = None
