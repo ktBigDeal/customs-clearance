@@ -8,7 +8,6 @@ import {
   Search, 
   Filter, 
   Eye, 
-  Edit, 
   Trash2, 
   Download, 
   MoreHorizontal,
@@ -421,13 +420,6 @@ export default function ReportHistory({
                         className="text-blue-600 hover:text-blue-700"
                       >
                         <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        <Edit className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Hash, Download, Edit, Loader2 } from 'lucide-react';
+import { FileText, Calendar, Hash, Download, Loader2 } from 'lucide-react';
 import { declarationsApi } from '@/lib/declarations-api';
 
 /* ====================== 타입 ====================== */
@@ -217,10 +217,6 @@ export default function ReportPreview({ report, getStatusBadge, getTypeLabel, is
     }
   };
 
-  // 수정 페이지로 이동
-  const handleGoEdit = () => {
-    //router.push(`/declaration/${report.id}/edit`);
-  };
 
   /* 신고구분별 필드/품목 정의 */
   const isImport = report.declarationType === 'IMPORT';
@@ -338,12 +334,6 @@ export default function ReportPreview({ report, getStatusBadge, getTypeLabel, is
               )}
             </Button>
 
-            {!isAdminView && (
-              <Button onClick={handleGoEdit} className="flex items-center gap-2">
-                <Edit className="w-4 h-4" />
-                수정
-              </Button>
-            )}
           </div>
         </div>
 

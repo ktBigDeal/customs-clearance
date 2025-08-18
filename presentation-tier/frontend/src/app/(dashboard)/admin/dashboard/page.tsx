@@ -35,6 +35,7 @@ import {
   type DeclarationStats, 
   type ChartData 
 } from '@/lib/declarations-api';
+import { adminService, SystemLog } from '@/services/admin.service';
 
 export default function AdminDashboardPage() {
   const { t } = useLanguage();
@@ -42,6 +43,7 @@ export default function AdminDashboardPage() {
   // 상태 관리
   const [stats, setStats] = useState<DeclarationStats | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [recentLogs, setRecentLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,13 +69,22 @@ export default function AdminDashboardPage() {
       setError(null);
 
       // 병렬로 모든 데이터 로딩 (관리자는 전체 시스템 데이터)
-      const [statsData, chartDataResult] = await Promise.all([
+      const [statsData, chartDataResult, logsData] = await Promise.all([
         declarationsApi.getStats(),
         declarationsApi.getChartData(),
+        adminService.getLogs({
+          keyword: '',
+          level: 'all',
+          source: 'all', 
+          dateFilter: 'today',
+          page: 0,
+          size: 5
+        }),
       ]);
 
       setStats(statsData);
       setChartData(chartDataResult);
+      setRecentLogs(logsData.logs || []);
     } catch (err: any) {
       console.error('Failed to load admin dashboard data:', err);
       setError(err.message || '데이터를 불러오는데 실패했습니다.');
@@ -379,27 +390,41 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-2 border-l-4 border-green-400 bg-green-50 rounded-r">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">사용자 로그인 성공</div>
-                      <div className="text-xs text-gray-600">admin@customs.go.kr • 2분 전</div>
+                  {recentLogs.length > 0 ? (
+                    recentLogs.map((log) => {
+                      const getLogIcon = (level: string, source: string) => {
+                        if (level === 'ERROR') return { icon: AlertTriangle, color: 'border-red-400 bg-red-50', iconColor: 'text-red-600' };
+                        if (level === 'WARN') return { icon: AlertTriangle, color: 'border-orange-400 bg-orange-50', iconColor: 'text-orange-600' };
+                        if (source === 'AUTH') return { icon: CheckCircle, color: 'border-green-400 bg-green-50', iconColor: 'text-green-600' };
+                        if (source === 'SYSTEM') return { icon: Database, color: 'border-blue-400 bg-blue-50', iconColor: 'text-blue-600' };
+                        return { icon: Activity, color: 'border-gray-400 bg-gray-50', iconColor: 'text-gray-600' };
+                      };
+                      
+                      const { icon: LogIcon, color, iconColor } = getLogIcon(log.level, log.source);
+                      const timeAgo = new Date(log.timestamp).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                      
+                      return (
+                        <div key={log.id} className={`flex items-start gap-3 p-2 border-l-4 ${color} rounded-r`}>
+                          <LogIcon className={`h-4 w-4 ${iconColor} mt-0.5`} />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{log.message}</div>
+                            <div className="text-xs text-gray-600">
+                              {log.userName ? `${log.userName} • ` : ''}{timeAgo}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      오늘 로그가 없습니다
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 border-l-4 border-blue-400 bg-blue-50 rounded-r">
-                    <Database className="h-4 w-4 text-blue-600 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">데이터베이스 백업 완료</div>
-                      <div className="text-xs text-gray-600">자동 백업 • 15분 전</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 border-l-4 border-orange-400 bg-orange-50 rounded-r">
-                    <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">API 응답 시간 증가</div>
-                      <div className="text-xs text-gray-600">3.2초 → 3.8초 • 1시간 전</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
