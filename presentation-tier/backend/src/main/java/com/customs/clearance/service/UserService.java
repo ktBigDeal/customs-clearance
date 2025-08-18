@@ -54,6 +54,7 @@ public class UserService {
         user.setEmail(registerRequest.getEmail());
         user.setRole(registerRequest.getRole());
         user.setCompany(registerRequest.getCompany());
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 
