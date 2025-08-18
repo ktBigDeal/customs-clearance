@@ -66,8 +66,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.error(f"❌ Missing required environment variables: {missing_vars}")
             raise RuntimeError(f"Missing environment variables: {missing_vars}")
         
+        # Railway 환경 감지
+        is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
+        
         # 데이터베이스 연결 초기화
-        await db_manager.initialize()
+        if is_railway:
+            # Railway 환경: 연결 실패해도 서비스 계속 시작
+            try:
+                await db_manager.initialize()
+                logger.info("✅ Database initialization completed")
+            except Exception as e:
+                logger.warning(f"⚠️ Railway database connection failed (service continues): {e}")
+        else:
+            # 로컬 환경: 기존대로 연결 필수
+            await db_manager.initialize()
         
         # 테이블 생성 (이미 존재하면 스킵)
         try:
@@ -170,13 +182,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(conversations_router)
 app.include_router(progress_router)
 
-# 데이터 초기화 라우터 (Railway 배포 후 초기 데이터 로딩용)
-try:
-    from app.routers.data_initialization import router as data_router
-    app.include_router(data_router)
-    logger.info("✅ Data initialization router loaded")
-except ImportError as e:
-    logger.warning(f"⚠️ Data initialization router not available: {e}")
+# 기본 라우터만 등록 (Railway 호환성)
 
 # Railway 헬스체크 엔드포인트 (단순함)
 @app.get("/health", tags=["health"])
