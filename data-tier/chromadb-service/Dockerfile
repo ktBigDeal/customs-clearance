@@ -1,4 +1,3 @@
-# ChromaDB 전용 Railway 배포 Dockerfile
 FROM chromadb/chroma:0.4.22
 
 # Railway 환경 설정
