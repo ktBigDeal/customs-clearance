@@ -138,9 +138,9 @@ public class DeclarationService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("declaration_type", declarationType.toLowerCase());
-        body.add("invoice_file", DeclarationServiceUtils.convertToResource(invoiceFile, uploadDir));
-        body.add("packing_list_file", DeclarationServiceUtils.convertToResource(packingListFile, uploadDir));
-        body.add("bill_of_lading_file", DeclarationServiceUtils.convertToResource(billOfLadingFile, uploadDir));
+        body.add("invoice_file", DeclarationServiceUtils.convertToResource(invoiceFile));
+        body.add("packing_list_file", DeclarationServiceUtils.convertToResource(packingListFile));
+        body.add("bill_of_lading_file", DeclarationServiceUtils.convertToResource(billOfLadingFile));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
