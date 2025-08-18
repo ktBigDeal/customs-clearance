@@ -31,51 +31,6 @@ public class DeclarationController {
 
     private final DeclarationService declarationService;
 
-    @Value("${customs.clearance.file.upload-dir}")
-    private String uploadDir;
-
-    @PostMapping(value = "/test", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public String testFileUpload(
-        @RequestParam("invoiceFile") MultipartFile invoiceFile
-    ) throws IOException {
-        if (invoiceFile == null || invoiceFile.isEmpty()) {
-            throw new IllegalArgumentException("파일이 비어있습니다.");
-        }
-
-        String path = DeclarationServiceUtils.saveFile(invoiceFile, "test", uploadDir);
-        return path;
-    }
-
-    @DeleteMapping("test")
-    public boolean testFileDelete(
-        @RequestParam String filename
-    ) throws IOException {
-
-        File file = new File(uploadDir, filename);
-
-        boolean deleted = false;
-        if (file.exists()) {
-            deleted = file.delete();
-
-            if (!deleted) {
-                System.err.println("파일 삭제 실패: " + file.getAbsolutePath());
-            }
-        }
-
-        return deleted;
-    }
-
-    @GetMapping("/test")
-    public List<String> listFiles() {
-        File dir = new File(uploadDir);
-        if (!dir.exists() || dir.listFiles() == null) {
-            return List.of("업로드 디렉토리가 비어있거나 존재하지 않습니다.");
-        }
-        return Arrays.stream(dir.listFiles())
-                    .map(File::getName)
-                    .toList();
-    }
-
     @PostMapping
     public Declaration postDeclaration(
         @ModelAttribute Declaration declaration,

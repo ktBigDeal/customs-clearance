@@ -91,6 +91,9 @@ public class AuthController {
 
         // 역할 검증
         User user = userService.findByUsername(username);
+        
+        System.out.println(user);
+
         String userRole = user.getRole();
         if (userRole == null || !userRole.equalsIgnoreCase(role)) {
             throw new org.springframework.security.access.AccessDeniedException("해당 역할로 로그인할 수 없습니다.");
