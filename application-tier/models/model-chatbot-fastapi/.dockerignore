@@ -78,10 +78,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 
-# 문서
+# 문서 (README.md는 빌드에 필요하므로 제외하지 않음)
 docs/
-*.md
-README*
 CHANGELOG*
 LICENSE*
 

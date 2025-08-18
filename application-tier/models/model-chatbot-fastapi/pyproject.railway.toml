@@ -2,7 +2,6 @@
 name = "chatbot-fastapi"
 version = "1.0.0"
 description = "Railway 배포용 LangGraph 기반 관세법 전문 챗봇 FastAPI 서비스"
-readme = "README.md"
 license = { text = "MIT" }
 authors = [
     { name = "관세 통관 시스템 개발팀", email = "dev@customs-clearance.com" }
@@ -10,7 +9,7 @@ authors = [
 keywords = ["fastapi", "langchain", "langgraph", "chatbot", "customs", "rag"]
 requires-python = ">=3.11"
 
-# Railway 배포용 최소 의존성 (OCR, PDF, Java 제외)
+# Railway 배포용 최소 의존성
 dependencies = [
     # FastAPI 및 웹 서버
     "fastapi>=0.104.1",
