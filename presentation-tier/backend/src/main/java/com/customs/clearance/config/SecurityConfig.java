@@ -71,6 +71,8 @@ public class SecurityConfig {
                 .requestMatchers("/user/login/**", "/user/register").permitAll() // 인증 관련 엔드포인트
                 .requestMatchers("/ai/**").permitAll()
                 .requestMatchers("/declaration/**").permitAll() // 신고서 관련 엔드포인트 - 임시로 인증 비활성화
+                .requestMatchers("/admin/**").permitAll() // 관리자 API - 임시로 인증 비활성화
+                .requestMatchers("/logs/**").permitAll() // 로그 API - 임시로 인증 비활성화
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui.html", "/api-docs/**","/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()

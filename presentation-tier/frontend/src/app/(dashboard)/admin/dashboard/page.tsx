@@ -385,19 +385,60 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="h-5 w-5 text-green-600" />
                   <h4 className="text-lg font-medium">{t('admin.recentActivity')}</h4>
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full ml-auto">
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                     {t('admin.live')}
                   </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (window.confirm('최근 활동 로그를 모두 삭제하시겠습니까?')) {
+                        try {
+                          await adminService.deleteAllLogs();
+                          alert('로그가 삭제되었습니다.');
+                          loadDashboardData(true); // 대시보드 새로고침
+                        } catch (error) {
+                          alert('로그 삭제 중 오류가 발생했습니다.');
+                        }
+                      }
+                    }}
+                    className="ml-auto text-xs gap-1"
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    로그 삭제
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   {recentLogs.length > 0 ? (
                     recentLogs.map((log) => {
                       const getLogIcon = (level: string, source: string) => {
+                        // 에러 레벨이 최우선
                         if (level === 'ERROR') return { icon: AlertTriangle, color: 'border-red-400 bg-red-50', iconColor: 'text-red-600' };
                         if (level === 'WARN') return { icon: AlertTriangle, color: 'border-orange-400 bg-orange-50', iconColor: 'text-orange-600' };
-                        if (source === 'AUTH') return { icon: CheckCircle, color: 'border-green-400 bg-green-50', iconColor: 'text-green-600' };
-                        if (source === 'SYSTEM') return { icon: Database, color: 'border-blue-400 bg-blue-50', iconColor: 'text-blue-600' };
-                        return { icon: Activity, color: 'border-gray-400 bg-gray-50', iconColor: 'text-gray-600' };
+                        
+                        // 소스별 아이콘 분류
+                        switch (source) {
+                          case 'AUTH':
+                            return { icon: Users, color: 'border-green-400 bg-green-50', iconColor: 'text-green-600' };
+                          case 'DECLARATION':
+                            return { icon: FileText, color: 'border-blue-400 bg-blue-50', iconColor: 'text-blue-600' };
+                          case 'HSCODE':
+                            return { icon: TrendingUp, color: 'border-purple-400 bg-purple-50', iconColor: 'text-purple-600' };
+                          case 'CHATBOT':
+                            return { icon: Activity, color: 'border-indigo-400 bg-indigo-50', iconColor: 'text-indigo-600' };
+                          case 'OCR':
+                            return { icon: Cpu, color: 'border-orange-400 bg-orange-50', iconColor: 'text-orange-600' };
+                          case 'REPORT':
+                            return { icon: FileText, color: 'border-teal-400 bg-teal-50', iconColor: 'text-teal-600' };
+                          case 'FILE':
+                            return { icon: HardDrive, color: 'border-yellow-400 bg-yellow-50', iconColor: 'text-yellow-600' };
+                          case 'ADMIN':
+                            return { icon: Shield, color: 'border-red-400 bg-red-50', iconColor: 'text-red-600' };
+                          case 'SYSTEM':
+                            return { icon: Database, color: 'border-blue-400 bg-blue-50', iconColor: 'text-blue-600' };
+                          default:
+                            return { icon: Activity, color: 'border-gray-400 bg-gray-50', iconColor: 'text-gray-600' };
+                        }
                       };
                       
                       const { icon: LogIcon, color, iconColor } = getLogIcon(log.level, log.source);

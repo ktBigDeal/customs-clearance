@@ -99,4 +99,14 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, Long> {
      * IP 주소별 로그 조회
      */
     Page<SystemLog> findByIpAddressOrderByTimestampDesc(String ipAddress, Pageable pageable);
+
+    /**
+     * 특정 날짜 이전의 로그 개수 조회
+     */
+    Long countByTimestampBefore(LocalDateTime cutoffDate);
+
+    /**
+     * 특정 날짜 이전의 로그 삭제
+     */
+    void deleteByTimestampBefore(LocalDateTime cutoffDate);
 }

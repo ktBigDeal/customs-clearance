@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Admin", description = "관리자 전용 API")
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/admin")
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
 public class AdminController {
@@ -160,6 +160,66 @@ public class AdminController {
         SystemLogDto.Response response = systemLogService.createLog(request);
         
         log.info("테스트 로그 생성 완료: id={}", response.getId());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 로그 전체 삭제
+     * 
+     * 시스템의 모든 로그를 삭제합니다. 
+     * 주의: 이 작업은 되돌릴 수 없으므로 신중하게 사용해야 합니다.
+     * 
+     * @return 삭제된 로그 개수
+     */
+    @Operation(
+        summary = "로그 전체 삭제", 
+        description = "시스템의 모든 로그를 삭제합니다. 주의: 이 작업은 되돌릴 수 없습니다."
+    )
+    @DeleteMapping("/logs/all")
+    public ResponseEntity<SystemLogDto.DeleteResponse> deleteAllLogs() {
+        
+        log.warn("관리자가 전체 로그 삭제를 요청했습니다.");
+        
+        long deletedCount = systemLogService.deleteAllLogs();
+        
+        log.warn("전체 로그 삭제 완료: {}개 로그가 삭제되었습니다.", deletedCount);
+        
+        SystemLogDto.DeleteResponse response = SystemLogDto.DeleteResponse.builder()
+                .deletedCount(deletedCount)
+                .message("전체 로그가 성공적으로 삭제되었습니다.")
+                .build();
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 기간 로그 삭제
+     * 
+     * 지정된 기간보다 오래된 로그를 삭제합니다.
+     * 
+     * @param days 삭제할 로그 기간 (며칠 전까지의 로그를 삭제할지)
+     * @return 삭제된 로그 개수
+     */
+    @Operation(
+        summary = "오래된 로그 삭제", 
+        description = "지정된 일수보다 오래된 로그를 삭제합니다."
+    )
+    @DeleteMapping("/logs/old")
+    public ResponseEntity<SystemLogDto.DeleteResponse> deleteOldLogs(
+            @Parameter(description = "삭제할 로그 기간 (일)") 
+            @RequestParam(defaultValue = "30") int days) {
+        
+        log.warn("관리자가 {}일 이전 로그 삭제를 요청했습니다.", days);
+        
+        long deletedCount = systemLogService.deleteOldLogs(days);
+        
+        log.warn("오래된 로그 삭제 완료: {}개 로그가 삭제되었습니다.", deletedCount);
+        
+        SystemLogDto.DeleteResponse response = SystemLogDto.DeleteResponse.builder()
+                .deletedCount(deletedCount)
+                .message(String.format("%d일 이전 로그가 성공적으로 삭제되었습니다.", days))
+                .build();
         
         return ResponseEntity.ok(response);
     }

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { logService } from '@/services/log.service';
 
 interface HSCodeRecommendation {
   hs_code: string;
@@ -99,6 +100,7 @@ export default function HSCodePage() {
   const handleRecommend = useCallback(async () => {
     if (!query.trim()) return;
 
+    const startTime = Date.now();
     setLoading(true);
     try {
       const response = await hsCodeAPI.recommendHSCode({
@@ -127,6 +129,14 @@ export default function HSCodePage() {
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+
+        // HS코드 추천 성공 로그 기록
+        await logService.logHSCodeRecommendation(
+          newQuery,
+          response.recommendations.length,
+          1, // TODO: 실제 사용자 ID로 변경
+          'test_user' // TODO: 실제 사용자명으로 변경
+        );
       }
     } catch (error) {
       console.error('HS 코드 추천 실패:', error);
@@ -141,6 +151,15 @@ export default function HSCodePage() {
       }
       
       alert(errorMessage);
+
+      // HS코드 추천 실패 로그 기록
+      await logService.logUserActivity({
+        action: `HS코드 추천 실패 (검색어: "${query.trim()}")`,
+        source: 'HSCODE',
+        userId: 1, // TODO: 실제 사용자 ID로 변경
+        userName: 'test_user', // TODO: 실제 사용자명으로 변경
+        details: `에러: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      });
     } finally {
       setLoading(false);
     }

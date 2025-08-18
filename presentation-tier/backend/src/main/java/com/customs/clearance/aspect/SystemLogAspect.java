@@ -85,8 +85,8 @@ public class SystemLogAspect {
             String userName = userInfo[1];
             
             systemLogService.logUserActivity(
-                "BUSINESS",
-                String.format("%s 작업 완료", getBusinessActionName(className, methodName)),
+                getLogSource(className, methodName),
+                String.format("%s 완료", getBusinessActionName(className, methodName)),
                 userId != null ? Long.parseLong(userId) : null,
                 userName,
                 ipAddress,
@@ -104,8 +104,8 @@ public class SystemLogAspect {
             long processingTime = System.currentTimeMillis() - startTime;
             
             systemLogService.logSystemEvent(
-                "BUSINESS_ERROR",
-                String.format("%s 작업 실패: %s", getBusinessActionName(className, methodName), e.getMessage()),
+                getLogSource(className, methodName) + "_ERROR",
+                String.format("%s 실패: %s", getBusinessActionName(className, methodName), e.getMessage()),
                 SystemLog.LogLevel.ERROR
             );
             
@@ -245,26 +245,103 @@ public class SystemLogAspect {
     }
 
     /**
-     * 비즈니스 액션명 생성
+     * 비즈니스 액션명 생성 - 구체적인 활동 내용을 표시
      */
     private String getBusinessActionName(String className, String methodName) {
         // 컨트롤러별로 의미있는 액션명 생성
         if (className.contains("Declaration")) {
             return switch (methodName) {
-                case "createDeclaration" -> "수출입 신고서 생성";
-                case "updateDeclaration" -> "수출입 신고서 수정";
+                case "postDeclaration" -> "수출입 신고서 생성";
+                case "putDeclaration" -> "수출입 신고서 수정";
                 case "deleteDeclaration" -> "수출입 신고서 삭제";
-                case "uploadAttachment" -> "첨부파일 업로드";
+                case "getDeclaration" -> "신고서 상세 조회";
+                case "getUserDeclarationList", "getUserDeclarationListByStatus" -> "신고서 목록 조회";
+                case "getAdminDeclarationList", "getAdminDeclarationListByStatus" -> "관리자 신고서 목록 조회";
+                case "getAttachmentListByDeclaration", "getAttachmentListByUser", "getAttachmentListByAdmin" -> "첨부파일 목록 조회";
+                case "downloadKcsXml" -> "신고서 XML 다운로드";
+                case "getDeclarationStats" -> "신고서 통계 조회";
+                case "getRecentDeclarations" -> "최근 신고서 조회";
+                case "getDashboardChartData" -> "신고서 차트 데이터 조회";
+                case "getProcessingTimeStats" -> "신고서 처리 시간 통계 조회";
                 default -> "신고서 관련 작업";
             };
         } else if (className.contains("Auth")) {
             return switch (methodName) {
                 case "updateUserInfo" -> "사용자 정보 수정";
                 case "changePassword" -> "비밀번호 변경";
+                case "getUserProfile" -> "사용자 프로필 조회";
                 default -> "계정 관리 작업";
             };
+        } else if (className.contains("HSCode") || className.contains("Hscode")) {
+            return switch (methodName) {
+                case "searchHSCode" -> "HS코드 검색";
+                case "getHSCodeRecommendations" -> "HS코드 추천 조회";
+                case "getHSCodeDetails" -> "HS코드 상세 정보 조회";
+                default -> "HS코드 관련 작업";
+            };
+        } else if (className.contains("Chat") || className.contains("Conversation")) {
+            return switch (methodName) {
+                case "sendMessage" -> "AI 챗봇 대화";
+                case "getConversations" -> "챗봇 대화 목록 조회";
+                case "getConversationHistory" -> "챗봇 대화 내역 조회";
+                case "createConversation" -> "새 챗봇 대화 시작";
+                default -> "AI 챗봇 서비스 이용";
+            };
+        } else if (className.contains("OCR")) {
+            return switch (methodName) {
+                case "extractText" -> "문서 OCR 텍스트 추출";
+                case "processDocument" -> "문서 자동 분석";
+                default -> "문서 처리 서비스 이용";
+            };
+        } else if (className.contains("Report")) {
+            return switch (methodName) {
+                case "generateReport" -> "보고서 생성";
+                case "downloadReport" -> "보고서 다운로드";
+                case "getReportHistory" -> "보고서 이력 조회";
+                default -> "보고서 관련 작업";
+            };
+        } else if (className.contains("File") || className.contains("Upload")) {
+            return switch (methodName) {
+                case "uploadFile" -> "파일 업로드";
+                case "downloadFile" -> "파일 다운로드";
+                case "deleteFile" -> "파일 삭제";
+                default -> "파일 관리 작업";
+            };
+        } else if (className.contains("Admin")) {
+            return switch (methodName) {
+                case "getUserList" -> "사용자 목록 관리";
+                case "updateUser" -> "사용자 정보 관리";
+                case "getSystemLogs" -> "시스템 로그 조회";
+                case "getSystemStats" -> "시스템 통계 조회";
+                default -> "관리자 시스템 관리";
+            };
         }
-        return className + "." + methodName;
+        // 알 수 없는 컨트롤러의 경우 기본 포맷
+        return className.replace("Controller", "") + " " + methodName + " 실행";
+    }
+
+    /**
+     * 로그 소스 분류 - 구체적인 서비스별로 분류
+     */
+    private String getLogSource(String className, String methodName) {
+        if (className.contains("Declaration")) {
+            return "DECLARATION";
+        } else if (className.contains("Auth")) {
+            return "AUTH";
+        } else if (className.contains("HSCode") || className.contains("Hscode")) {
+            return "HSCODE";
+        } else if (className.contains("Chat") || className.contains("Conversation")) {
+            return "CHATBOT";
+        } else if (className.contains("OCR")) {
+            return "OCR";
+        } else if (className.contains("Report")) {
+            return "REPORT";
+        } else if (className.contains("File") || className.contains("Upload")) {
+            return "FILE";
+        } else if (className.contains("Admin")) {
+            return "ADMIN";
+        }
+        return "SYSTEM";
     }
 
     /**

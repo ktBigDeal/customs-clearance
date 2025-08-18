@@ -140,4 +140,16 @@ public class SystemLogDto {
         private Integer statusCode;
         private Long processingTime;
     }
+
+    /**
+     * 로그 삭제 응답 DTO
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DeleteResponse {
+        private Long deletedCount;
+        private String message;
+    }
 }

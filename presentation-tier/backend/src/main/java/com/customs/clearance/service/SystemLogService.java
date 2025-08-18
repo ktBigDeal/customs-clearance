@@ -212,4 +212,30 @@ public class SystemLogService {
         
         systemLogRepository.save(log);
     }
+
+    /**
+     * 모든 로그 삭제
+     * 
+     * @return 삭제된 로그 개수
+     */
+    @Transactional
+    public long deleteAllLogs() {
+        long count = systemLogRepository.count();
+        systemLogRepository.deleteAll();
+        return count;
+    }
+
+    /**
+     * 오래된 로그 삭제
+     * 
+     * @param days 며칠 이전의 로그를 삭제할지
+     * @return 삭제된 로그 개수
+     */
+    @Transactional
+    public long deleteOldLogs(int days) {
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
+        long count = systemLogRepository.countByTimestampBefore(cutoffDate);
+        systemLogRepository.deleteByTimestampBefore(cutoffDate);
+        return count;
+    }
 }

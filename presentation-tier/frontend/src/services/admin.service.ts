@@ -77,7 +77,7 @@ export interface CreateLogRequest {
  * 관리자 서비스 클래스
  */
 class AdminService {
-  private readonly BASE_URL = '/api/v1/admin';
+  private readonly BASE_URL = '/admin';
 
 
   /**
@@ -244,6 +244,41 @@ class AdminService {
     } catch (error) {
       console.error('CSV 내보내기 실패:', error);
       throw new Error('CSV 파일 생성에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 모든 로그 삭제
+   * 
+   * @returns 삭제된 로그 개수와 메시지
+   */
+  async deleteAllLogs(): Promise<{ deletedCount: number; message: string }> {
+    try {
+      const response = await apiClient.delete<{ deletedCount: number; message: string }>(
+        `${this.BASE_URL}/logs/all`
+      );
+      return response;
+    } catch (error) {
+      console.error('전체 로그 삭제 실패:', error);
+      throw new Error('로그 삭제에 실패했습니다.');
+    }
+  }
+
+  /**
+   * 오래된 로그 삭제
+   * 
+   * @param days 삭제할 로그 기간 (일)
+   * @returns 삭제된 로그 개수와 메시지
+   */
+  async deleteOldLogs(days: number): Promise<{ deletedCount: number; message: string }> {
+    try {
+      const response = await apiClient.delete<{ deletedCount: number; message: string }>(
+        `${this.BASE_URL}/logs/old?days=${days}`
+      );
+      return response;
+    } catch (error) {
+      console.error('오래된 로그 삭제 실패:', error);
+      throw new Error('로그 삭제에 실패했습니다.');
     }
   }
 

@@ -43,6 +43,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ProgressIndicator } from '@/components/chat/ProgressIndicator';
 import { AIMessageRenderer } from '@/components/chat/MarkdownRenderer';
 import { useRecentConversations, formatConversationTime, generateConversationTitle } from '@/hooks/useRecentConversations';
+import { logService } from '@/services/log.service';
 
 
 /**
@@ -339,6 +340,16 @@ export default function ChatPage() {
         processing_time: response.processing_time,
         is_new_conversation: response.is_new_conversation
       });
+
+      // 챗봇 대화 성공 로그 기록
+      await logService.logChatbotConversation(
+        messageContent,
+        assistantMessage.content.length,
+        response.processing_time || 0,
+        1, // TODO: 실제 사용자 ID로 변경
+        'test_user' // TODO: 실제 사용자명으로 변경
+      );
+
    // ✅ API 응답을 받았으므로 로딩 종료 (progress는 추가 피드백일 뿐)
       console.log('[Chat] ✅ API 응답 완료 - 로딩 즉시 종료');
       setIsLoading(false);
@@ -359,6 +370,16 @@ export default function ChatPage() {
         ...prev.filter(msg => msg.id !== 'typing'),
         errorMessage
       ]);
+
+      // 챗봇 대화 실패 로그 기록
+      await logService.logUserActivity({
+        action: `AI 챗봇 대화 실패`,
+        source: 'CHATBOT',
+        userId: 1, // TODO: 실제 사용자 ID로 변경
+        userName: 'test_user', // TODO: 실제 사용자명으로 변경
+        details: `질문: ${messageContent}, 에러: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      });
+
   // API 오류 시에는 즉시 로딩 종료
       console.log('[Chat] ❌ API 오류 발생 - 로딩 즉시 종료');
       setIsLoading(false);
