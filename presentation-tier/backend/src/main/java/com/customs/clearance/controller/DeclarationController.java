@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import com.customs.clearance.dto.DeclarationStatsDto;
@@ -62,6 +63,17 @@ public class DeclarationController {
         }
 
         return deleted;
+    }
+
+    @GetMapping("/test")
+    public List<String> listFiles() {
+        File dir = new File(uploadDir);
+        if (!dir.exists() || dir.listFiles() == null) {
+            return List.of("업로드 디렉토리가 비어있거나 존재하지 않습니다.");
+        }
+        return Arrays.stream(dir.listFiles())
+                    .map(File::getName)
+                    .toList();
     }
 
     @PostMapping
