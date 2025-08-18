@@ -12,6 +12,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,6 +20,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 public class DeclarationServiceUtils {
 
@@ -56,36 +59,43 @@ public class DeclarationServiceUtils {
         return "";
     }
 
-    public static Resource convertToResource(MultipartFile file, String uploadDir) throws IOException {
-        
+    public static Resource convertToResource(MultipartFile file) throws IOException {
+
         if (file == null || file.isEmpty()) {
-           
-            File emptyFile = new File(uploadDir, "empty.png");
-            Path path = emptyFile.toPath();
+            // 빈 PNG 바이트 배열 (1x1 투명 PNG)
+            byte[] emptyPngBytes = new byte[]{
+                (byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, (byte)0xC4,
+                (byte)0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+                0x54, 0x78, (byte)0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+                0x05, 0x00, 0x01, (byte)0x0D, 0x0A, 0x2D, (byte)0xB4,
+                0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44,
+                (byte)0xAE, 0x42, 0x60, (byte)0x82
+            };
 
-            if (!Files.exists(path)) {
-                throw new FileNotFoundException("empty.png 없음");
-            }
-
-            long fileSize = Files.size(path);
-
-            return new ByteArrayResource(Files.readAllBytes(emptyFile.toPath())) {
-                @Override public String getFilename() {
+            return new ByteArrayResource(emptyPngBytes) {
+                @Override
+                public String getFilename() {
                     return "empty.png";
                 }
 
-                @Override public long contentLength() {
-                    return fileSize;
+                @Override
+                public long contentLength() {
+                    return emptyPngBytes.length;
                 }
             };
         }
 
         return new ByteArrayResource(file.getBytes()) {
-            @Override public String getFilename() {
+            @Override
+            public String getFilename() {
                 return file.getOriginalFilename();
             }
 
-            @Override public long contentLength() {
+            @Override
+            public long contentLength() {
                 return file.getSize();
             }
         };
