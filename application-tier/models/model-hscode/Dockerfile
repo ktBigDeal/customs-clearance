@@ -1,41 +1,48 @@
-# HS 코드 추천 API 서버 Dockerfile
 FROM python:3.11-slim
 
-# 작업 디렉토리 설정
 WORKDIR /app
 
-# 시스템 패키지 업데이트 및 필수 패키지 설치
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
+    gcc \
+    g++ \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 의존성 파일 복사 및 설치
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Install uv
+RUN pip install uv
 
-# 기존 모델 및 설정 파일 복사
-COPY config.py .
-COPY src/ ./src/
-COPY data/ ./data/
-COPY cache/ ./cache/
-COPY docs/ ./docs/
+# Copy dependency files first (for better caching)
+COPY pyproject.toml uv.lock ./
 
-# 애플리케이션 코드 복사
+# Install dependencies (no dev dependencies for production)
+RUN uv sync --no-dev --frozen
+
+# Copy only necessary application files
 COPY app/ ./app/
+COPY src/ ./src/
+COPY main.py ./
+COPY config.py ./
 
-# 환경 변수 설정
-ENV PYTHONPATH=/app:/app/src
+# Copy essential data files only
+COPY data/*.xlsx ./data/ 2>/dev/null || true
+COPY cache/ ./cache/ 2>/dev/null || true
+COPY *.xlsx ./ 2>/dev/null || true
+
+# Create cache directory if it doesn't exist
+RUN mkdir -p cache/hs_code_cache
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV UV_SYSTEM_PYTHON=1
 ENV ENVIRONMENT=production
 
-# 포트 설정
-EXPOSE 8003
+# Expose port
+EXPOSE $PORT
 
-# 헬스체크 설정
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8003/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-8003}/health || exit 1
 
-# 애플리케이션 실행
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+# Command to run the application  
+CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8003}"]

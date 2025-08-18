@@ -1,0 +1,33 @@
+[build]
+builder = "nixpacks"
+buildCommand = "uv sync --no-dev"
+
+[deploy]
+startCommand = "uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[env]
+PORT = "8003"
+ENVIRONMENT = "production"
+
+# OpenAI API (선택사항)
+OPENAI_API_KEY = { default = "" }
+
+# 서비스 메타데이터
+SERVICE_NAME = "HS Code Recommendation Service"
+SERVICE_VERSION = "1.0.0"
+SERVICE_DESCRIPTION = "한국 HS코드 검색 및 추천 API 서비스"
+
+# 캐시 및 데이터 경로
+CACHE_DIR = "/app/cache"
+DATA_DIR = "/app/data"
+
+# 로깅 설정
+LOG_LEVEL = "INFO"
+ENABLE_DOCS = "true"
+
+# uv 환경 설정
+UV_SYSTEM_PYTHON = "1"
