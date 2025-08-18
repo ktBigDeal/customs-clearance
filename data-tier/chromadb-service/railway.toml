@@ -1,0 +1,16 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/v1/heartbeat"
+healthcheckTimeout = 30
+restartPolicyType = "always"
+startCommand = ""
+
+[env]
+CHROMA_HOST = "0.0.0.0"
+CHROMA_LOG_LEVEL = "INFO"
+ANONYMIZED_TELEMETRY = "false"
+IS_PERSISTENT = "true"
+PERSIST_DIRECTORY = "/chroma/chroma"

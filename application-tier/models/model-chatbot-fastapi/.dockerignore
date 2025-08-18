@@ -1,0 +1,145 @@
+# Railway 배포용 .dockerignore
+# 불필요한 파일들을 제외하여 빌드 시간과 이미지 크기 최적화
+
+# Git 관련
+.git
+.gitignore
+.gitattributes
+
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 관련
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 관련
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+app.log
+
+# 데이터 파일 (로컬 ChromaDB 데이터)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# 테스트 관련
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# 문서
+docs/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# 설정 파일들
+.env.*
+*.env
+config/
+docker-compose*.yml
+
+# 백업 파일들
+*.backup
+*.bak
+backup/
+
+# 개발용 스크립트
+scripts/
+*.sh
+
+# ChromaDB 로컬 데이터
+chroma_db/
+*.chroma
+
+# PostgreSQL 데이터
+data/postgres/
+data/pgadmin/
+data/redis/
+
+# 임시 파일
+tmp/
+temp/
+*.tmp
+
+# 불필요한 Docker 파일들
+Dockerfile
+Dockerfile.*
+!Dockerfile.railway
+docker-compose.yml
+docker-compose.*.yml
+
+# 원본 pyproject.toml 제외 (Railway용만 사용)
+pyproject.toml
+!pyproject.railway.toml
+
+# 테스트 데이터
+test_data/
+fixtures/
+
+# 캐시 디렉토리
+.cache/
+cache/
+
+# Node.js (혹시 있다면)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 기타 개발 도구
+.mypy_cache/
+.dmypy.json
+dmypy.json

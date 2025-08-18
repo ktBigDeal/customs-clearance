@@ -1,0 +1,24 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.railway"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "always"
+startCommand = ""
+
+[env]
+# 기본 환경변수들
+PYTHONUNBUFFERED = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+ENVIRONMENT = "production"
+
+# ChromaDB 연결 설정 (Railway ChromaDB 서비스와 연결)
+CHROMADB_MODE = "docker"
+# CHROMADB_HOST = "your-chromadb-service.railway.app"
+# CHROMADB_PORT = "443"
+# CHROMADB_USE_SSL = "true"
+
+# OpenAI API 키는 Railway 대시보드에서 설정
+# OPENAI_API_KEY = "sk-..."
