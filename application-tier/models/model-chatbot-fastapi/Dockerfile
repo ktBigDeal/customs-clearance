@@ -33,7 +33,6 @@ COPY pyproject.railway.toml ./pyproject.toml
 COPY uv.lock* ./
 
 # Railway용 최소 의존성 설치
-# OCR, PDF 처리, Java 관련 패키지 제외
 RUN uv sync --frozen --no-dev
 
 # 소스 코드 복사
@@ -49,10 +48,5 @@ USER appuser
 # 포트 노출
 EXPOSE $PORT
 
-# 헬스체크 (Railway 호환)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
-
 # Railway 환경에서 실행
-# 단일 워커로 메모리 사용량 최소화
 CMD ["sh", "-c", "uv run uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
