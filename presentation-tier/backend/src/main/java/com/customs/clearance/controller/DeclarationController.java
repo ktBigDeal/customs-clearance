@@ -33,13 +33,15 @@ public class DeclarationController {
     @Value("${customs.clearance.file.upload-dir}")
     private String uploadDir;
 
-    @PostMapping("/test")
+    @PostMapping(value = "/test", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String testFileUpload(
-        @RequestPart(value = "invoiceFile", required = false) MultipartFile invoiceFile
+        @RequestParam("invoiceFile") MultipartFile invoiceFile
     ) throws IOException {
+        if (invoiceFile == null || invoiceFile.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
 
         String path = DeclarationServiceUtils.saveFile(invoiceFile, "test", uploadDir);
-
         return path;
     }
 
