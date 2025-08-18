@@ -63,9 +63,9 @@ async def initialize_converter_service(openai_api_key: str = None, us_tariff_fil
             else:
                 project_root = Path(__file__).parent.parent
                 us_tariff_file = project_root / "us_tariff_table_20250714.xlsx"
+                logger.info(f"프로젝트 루트: {project_root}")
             
             # 디버깅 정보 출력
-            logger.info(f"프로젝트 루트: {project_root}")
             logger.info(f"찾는 파일 경로: {us_tariff_file}")
             logger.info(f"파일 존재 여부: {os.path.exists(us_tariff_file)}")
             
