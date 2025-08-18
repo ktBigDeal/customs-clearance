@@ -42,7 +42,7 @@ public class DeclarationServiceUtils {
             }
         }
 
-        return "uploads/" + finalFilename;
+        return uploadDir + "/" + finalFilename;
     }
 
     public static String getExtension(MultipartFile file) {

@@ -1,5 +1,6 @@
 package com.customs.clearance.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -8,10 +9,12 @@ import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
 import com.customs.clearance.dto.DeclarationAdminDto;
 import com.customs.clearance.service.DeclarationService;
+import com.customs.clearance.util.DeclarationServiceUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,38 @@ import com.customs.clearance.dto.DeclarationStatsDto;
 public class DeclarationController {
 
     private final DeclarationService declarationService;
+
+    @Value("${customs.clearance.file.upload-dir}")
+    private String uploadDir;
+
+    @PostMapping("/test")
+    public String testFileUpload(
+        @RequestPart(value = "invoiceFile", required = false) MultipartFile invoiceFile
+    ) throws IOException {
+
+        String path = DeclarationServiceUtils.saveFile(invoiceFile, "test", uploadDir);
+
+        return path;
+    }
+
+    @DeleteMapping("test")
+    public boolean testFileDelete(
+        @RequestBody String filename
+    ) throws IOException {
+
+        File file = new File(uploadDir, filename);
+
+        boolean deleted = false;
+        if (file.exists()) {
+            deleted = file.delete();
+
+            if (!deleted) {
+                System.err.println("파일 삭제 실패: " + file.getAbsolutePath());
+            }
+        }
+
+        return deleted;
+    }
 
     @PostMapping
     public Declaration postDeclaration(
