@@ -77,7 +77,24 @@ railway up --service chatbot
 railway status --service chatbot
 ```
 
-### 6️⃣ 연결 테스트 (다섯 번째)
+### 6️⃣ 초기 데이터 로딩 (다섯 번째)
+```bash
+# 방법 1: API를 통한 초기 데이터 로딩 (추천)
+curl -X POST https://chatbot-production-yyyy.railway.app/api/v1/data/initialize \
+  -H "Content-Type: application/json" \
+  -d '{"collections": ["law", "trade", "consultation"], "force_reload": false}'
+
+# 데이터 로딩 상태 확인
+curl https://chatbot-production-yyyy.railway.app/api/v1/data/status
+
+# 방법 2: 로컬 데이터 마이그레이션 (대용량 데이터용)
+python migrate_data.py \
+  --source-path ../../application-tier/models/model-chatbot-fastapi/data/chroma_db \
+  --railway-url https://chromadb-production-xxxx.railway.app \
+  --batch-size 50
+```
+
+### 7️⃣ 연결 테스트 (여섯 번째)
 ```bash
 # ChromaDB 헬스체크
 curl https://chromadb-production-xxxx.railway.app/api/v1/heartbeat
@@ -85,10 +102,10 @@ curl https://chromadb-production-xxxx.railway.app/api/v1/heartbeat
 # 챗봇 헬스체크
 curl https://chatbot-production-yyyy.railway.app/health
 
-# 챗봇 API 테스트
+# 챗봇 API 테스트 (RAG 시스템 포함)
 curl -X POST https://chatbot-production-yyyy.railway.app/api/v1/conversations/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "안녕하세요", "user_id": 1}'
+  -d '{"message": "딸기 수입할 때 주의사항 알려주세요", "user_id": 1}'
 ```
 
 ## 🎯 서비스별 환경변수 매트릭스

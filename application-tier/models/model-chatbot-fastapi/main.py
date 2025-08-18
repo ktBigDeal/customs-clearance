@@ -170,6 +170,14 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(conversations_router)
 app.include_router(progress_router)
 
+# 데이터 초기화 라우터 (Railway 배포 후 초기 데이터 로딩용)
+try:
+    from app.routers.data_initialization import router as data_router
+    app.include_router(data_router)
+    logger.info("✅ Data initialization router loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Data initialization router not available: {e}")
+
 # Railway 헬스체크 엔드포인트 (단순함)
 @app.get("/health", tags=["health"])
 async def health_check():
