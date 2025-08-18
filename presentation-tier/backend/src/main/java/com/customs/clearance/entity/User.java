@@ -39,7 +39,7 @@ public class User extends BaseEntity {
     private String email;
 
     /** 사용자 활성화 상태 */
-    @Column(name = "enabled")
+    @Column(name = "enabled", columnDefinition = "TINYINT(1) default 1")
     private boolean enabled = true;
 
     /** 회사명 */
