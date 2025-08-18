@@ -170,74 +170,11 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(conversations_router)
 app.include_router(progress_router)
 
-# 헬스 체크 엔드포인트
+# Railway 헬스체크 엔드포인트 (단순함)
 @app.get("/health", tags=["health"])
 async def health_check():
-    """
-    Railway 헬스 체크 엔드포인트
-    기본 서비스 상태만 확인 (의존성 제외)
-    """
-    return {
-        "status": "healthy",
-        "service": "fastapi-chatbot",
-        "version": "1.0.0",
-        "environment": "railway"
-    }
-
-
-@app.get("/health/detailed", tags=["health"])
-async def detailed_health_check():
-    """
-    상세 헬스 체크 엔드포인트
-    모든 의존성 상태 확인
-    """
-    health_status = {
-        "service": "fastapi-chatbot",
-        "version": "1.0.0",
-        "status": "healthy",
-        "checks": {}
-    }
-    
-    # PostgreSQL 확인
-    try:
-        from sqlalchemy import text
-        async with db_manager.get_db_session() as session:
-            await session.execute(text("SELECT 1"))
-        health_status["checks"]["postgresql"] = {"status": "up", "response_time": "< 50ms"}
-    except Exception as e:
-        health_status["checks"]["postgresql"] = {"status": "down", "error": str(e)}
-        health_status["status"] = "degraded"
-    
-    # Redis 확인
-    try:
-        redis_client = await db_manager.get_redis()
-        await redis_client.ping()
-        health_status["checks"]["redis"] = {"status": "up", "response_time": "< 10ms"}
-    except Exception as e:
-        health_status["checks"]["redis"] = {"status": "down", "error": str(e)}
-        health_status["status"] = "degraded"
-    
-    # LangGraph 확인
-    try:
-        from app.rag.langgraph_factory import get_langgraph_factory
-        factory = get_langgraph_factory()
-        health_status["checks"]["langgraph"] = {"status": "up", "agents": "3"}
-    except Exception as e:
-        health_status["checks"]["langgraph"] = {"status": "down", "error": str(e)}
-        health_status["status"] = "degraded"
-    
-    # OpenAI API 확인 (선택적)
-    if os.getenv("OPENAI_API_KEY"):
-        health_status["checks"]["openai"] = {"status": "configured"}
-    else:
-        health_status["checks"]["openai"] = {"status": "not_configured"}
-        health_status["status"] = "degraded"
-    
-    status_code = status.HTTP_200_OK
-    if health_status["status"] == "degraded":
-        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    
-    return JSONResponse(status_code=status_code, content=health_status)
+    """Railway 헬스체크 엔드포인트 - 단순한 응답만"""
+    return {"status": "healthy"}
 
 
 # 전역 예외 처리기

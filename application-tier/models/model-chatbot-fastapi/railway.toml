@@ -13,6 +13,28 @@ PYTHONUNBUFFERED = "1"
 PYTHONDONTWRITEBYTECODE = "1"
 ENVIRONMENT = "production"
 
+# Railway 환경 식별
+RAILWAY_ENVIRONMENT = "true"
+
+# PostgreSQL 연결 설정
+# Railway에서 자동으로 DATABASE_URL을 제공하지만, 필요시 개별 설정 가능
+# POSTGRES_HOST = "your-postgres-host.railway.app"
+# POSTGRES_PORT = "5432"
+# POSTGRES_DB = "railway"
+# POSTGRES_USER = "postgres"
+# POSTGRES_PASSWORD = "your-password"
+
+# Redis 연결 설정
+# Railway에서 자동으로 REDIS_URL을 제공하지만, 필요시 개별 설정 가능
+# REDIS_HOST = "your-redis-host.railway.app"
+# REDIS_PORT = "6379"
+# REDIS_PASSWORD = "your-redis-password"
+
+# 연결 풀 최적화 (Railway 환경용)
+POSTGRES_POOL_SIZE = "3"
+POSTGRES_MAX_OVERFLOW = "7"
+REDIS_MAX_CONNECTIONS = "8"
+
 # ChromaDB 연결 설정 (Railway ChromaDB 서비스와 연결)
 CHROMADB_MODE = "docker"
 # CHROMADB_HOST = "your-chromadb-service.railway.app"

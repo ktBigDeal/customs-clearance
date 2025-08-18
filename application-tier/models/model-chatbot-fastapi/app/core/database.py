@@ -18,24 +18,96 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseConfig:
-    """데이터베이스 설정 관리"""
+    """데이터베이스 설정 관리 - Railway 및 로컬 환경 지원"""
     
     def __init__(self):
-        # PostgreSQL 설정
+        # 환경 감지
+        self.is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
+        self.environment = os.getenv("ENVIRONMENT", "development")
+        
+        # Railway PostgreSQL 설정 (자동 감지)
+        if self.is_railway:
+            self._setup_railway_postgres()
+        else:
+            self._setup_local_postgres()
+        
+        # Railway Redis 설정 (자동 감지)
+        if self.is_railway:
+            self._setup_railway_redis()
+        else:
+            self._setup_local_redis()
+        
+        # 연결 풀 설정 (환경별 최적화)
+        self._setup_connection_pools()
+        
+        logger.info(f"🔧 Database config initialized for {'Railway' if self.is_railway else 'Local'} environment")
+    
+    def _setup_railway_postgres(self):
+        """Railway PostgreSQL 설정"""
+        # Railway는 DATABASE_URL을 제공
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # DATABASE_URL 파싱 (Railway 표준)
+            from urllib.parse import urlparse
+            parsed = urlparse(database_url)
+            self.postgres_host = parsed.hostname
+            self.postgres_port = parsed.port or 5432
+            self.postgres_db = parsed.path[1:]  # 첫 번째 '/' 제거
+            self.postgres_user = parsed.username
+            self.postgres_password = parsed.password
+        else:
+            # 개별 환경변수 사용
+            self.postgres_host = os.getenv("PGHOST", os.getenv("POSTGRES_HOST", "localhost"))
+            self.postgres_port = int(os.getenv("PGPORT", os.getenv("POSTGRES_PORT", "5432")))
+            self.postgres_db = os.getenv("PGDATABASE", os.getenv("POSTGRES_DB", "conversations"))
+            self.postgres_user = os.getenv("PGUSER", os.getenv("POSTGRES_USER", "postgres"))
+            self.postgres_password = os.getenv("PGPASSWORD", os.getenv("POSTGRES_PASSWORD", "password"))
+    
+    def _setup_local_postgres(self):
+        """로컬 PostgreSQL 설정"""
         self.postgres_host = os.getenv("POSTGRES_HOST", "localhost")
-        self.postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
+        self.postgres_port = int(os.getenv("POSTGRES_PORT", "5433"))  # Docker는 5433
         self.postgres_db = os.getenv("POSTGRES_DB", "conversations")
         self.postgres_user = os.getenv("POSTGRES_USER", "postgres")
         self.postgres_password = os.getenv("POSTGRES_PASSWORD", "password")
-        
-        # Redis 설정
+    
+    def _setup_railway_redis(self):
+        """Railway Redis 설정"""
+        # Railway Redis URL 지원
+        redis_url = os.getenv("REDIS_URL")
+        if redis_url:
+            from urllib.parse import urlparse
+            parsed = urlparse(redis_url)
+            self.redis_host = parsed.hostname
+            self.redis_port = parsed.port or 6379
+            self.redis_password = parsed.password
+            self.redis_db = 0  # Railway Redis는 일반적으로 DB 0
+        else:
+            # 개별 환경변수 사용
+            self.redis_host = os.getenv("REDIS_HOST", "localhost")
+            self.redis_port = int(os.getenv("REDIS_PORT", "6379"))
+            self.redis_password = os.getenv("REDIS_PASSWORD", None)
+            self.redis_db = int(os.getenv("REDIS_DB", "0"))
+    
+    def _setup_local_redis(self):
+        """로컬 Redis 설정"""
         self.redis_host = os.getenv("REDIS_HOST", "localhost")
-        self.redis_port = int(os.getenv("REDIS_PORT", "6379"))
+        self.redis_port = int(os.getenv("REDIS_PORT", "6380"))  # Docker는 6380
+        self.redis_password = os.getenv("REDIS_PASSWORD", None)
         self.redis_db = int(os.getenv("REDIS_DB", "0"))
-        
-        # 연결 풀 설정
-        self.postgres_pool_size = int(os.getenv("POSTGRES_POOL_SIZE", "10"))
-        self.postgres_max_overflow = int(os.getenv("POSTGRES_MAX_OVERFLOW", "20"))
+    
+    def _setup_connection_pools(self):
+        """환경별 연결 풀 설정"""
+        if self.is_railway:
+            # Railway는 더 보수적인 풀 크기 사용
+            self.postgres_pool_size = int(os.getenv("POSTGRES_POOL_SIZE", "5"))
+            self.postgres_max_overflow = int(os.getenv("POSTGRES_MAX_OVERFLOW", "10"))
+            self.redis_max_connections = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
+        else:
+            # 로컬은 더 큰 풀 크기 사용 가능
+            self.postgres_pool_size = int(os.getenv("POSTGRES_POOL_SIZE", "10"))
+            self.postgres_max_overflow = int(os.getenv("POSTGRES_MAX_OVERFLOW", "20"))
+            self.redis_max_connections = int(os.getenv("REDIS_MAX_CONNECTIONS", "20"))
     
     @property
     def postgres_url(self) -> str:
@@ -90,14 +162,23 @@ class DatabaseManager:
                 command_timeout=30
             )
             
-            # Redis 연결
-            self.redis_client = redis.Redis(
-                host=self.config.redis_host,
-                port=self.config.redis_port,
-                db=self.config.redis_db,
-                decode_responses=True,
-                max_connections=20
-            )
+            # Redis 연결 (Railway/로컬 환경 대응)
+            redis_config = {
+                "host": self.config.redis_host,
+                "port": self.config.redis_port,
+                "db": self.config.redis_db,
+                "decode_responses": True,
+                "max_connections": self.config.redis_max_connections,
+                "retry_on_timeout": True,
+                "socket_timeout": 30,
+                "socket_connect_timeout": 10
+            }
+            
+            # Railway Redis 패스워드 지원
+            if hasattr(self.config, 'redis_password') and self.config.redis_password:
+                redis_config["password"] = self.config.redis_password
+            
+            self.redis_client = redis.Redis(**redis_config)
             
             # 연결 테스트
             await self._test_connections()
