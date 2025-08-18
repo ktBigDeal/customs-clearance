@@ -174,39 +174,15 @@ app.include_router(progress_router)
 @app.get("/health", tags=["health"])
 async def health_check():
     """
-    헬스 체크 엔드포인트
-    서비스 상태 및 의존성 확인
+    Railway 헬스 체크 엔드포인트
+    기본 서비스 상태만 확인 (의존성 제외)
     """
-    try:
-        # 데이터베이스 연결 확인
-        redis_client = await db_manager.get_redis()
-        await redis_client.ping()
-        
-        # PostgreSQL 연결 확인 (간단한 쿼리)
-        from sqlalchemy import text
-        async with db_manager.get_db_session() as session:
-            await session.execute(text("SELECT 1"))
-        
-        return {
-            "status": "healthy",
-            "service": "fastapi-chatbot",
-            "version": "1.0.0",
-            "database": "connected",
-            "redis": "connected",
-            "timestamp": "2025-01-06T10:30:00Z"
-        }
-        
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unhealthy",
-                "service": "fastapi-chatbot",
-                "error": str(e),
-                "timestamp": "2025-01-06T10:30:00Z"
-            }
-        )
+    return {
+        "status": "healthy",
+        "service": "fastapi-chatbot",
+        "version": "1.0.0",
+        "environment": "railway"
+    }
 
 
 @app.get("/health/detailed", tags=["health"])
