@@ -31,8 +31,6 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:$PORT/api/v1/heartbeat || exit 1
 
-# 데이터 볼륨 설정
-VOLUME ["/chroma/chroma"]
 
 # ChromaDB 실행 (Railway PORT 환경변수 사용)
 CMD ["sh", "-c", "uvicorn chromadb.app:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -21,6 +21,9 @@ railway init
 # ChromaDB 서비스 디렉토리로 이동
 cd data-tier/chromadb-service
 
+# Railway 볼륨 생성 (데이터 영속성 확보)
+railway volume create --name chromadb-data --mount-path /chroma/chroma --service chromadb
+
 # Railway에 배포
 railway up --service chromadb
 
@@ -31,6 +34,7 @@ railway status --service chromadb
 **배포 후 확인사항:**
 - ✅ 서비스 URL 획득: `https://chromadb-production-xxxx.railway.app`
 - ✅ 헬스체크 성공: `/api/v1/heartbeat`
+- ✅ Railway 볼륨 연결 확인: `railway volume list --service chromadb`
 - ✅ 서비스 로그 정상
 
 ### 3️⃣ 데이터 마이그레이션 (두 번째)
