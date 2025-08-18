@@ -10,8 +10,11 @@ import com.customs.clearance.service.UserService;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -81,29 +84,35 @@ public class AuthController {
      * @throws org.springframework.security.access.AccessDeniedException 역할 불일치 시
      */
     @PostMapping("/login/{role}")
-    public String loginByRole(@PathVariable String role,
+    public ResponseEntity<String> loginByRole(@PathVariable String role,
                               @RequestParam String username,
                               @RequestParam String password) {
-        // 기본 인증
-        Authentication authentication = authenticationManager.authenticate(
+        try {
+            Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 역할 검증
-        User user = userService.findByUsername(username);
-        
-        System.out.println(user);
+            User user = userService.findByUsername(username);
+            if(user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                    .body("사용자 없음");
+            }
 
-        String userRole = user.getRole();
-        if (userRole == null || !userRole.equalsIgnoreCase(role)) {
-            throw new org.springframework.security.access.AccessDeniedException("해당 역할로 로그인할 수 없습니다.");
+            if (!role.equalsIgnoreCase(user.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                    .body("역할 불일치");
+            }
+
+            userService.updateLastLogin(username);
+            String token = tokenProvider.generateToken(username, role);
+
+            return ResponseEntity.ok(token);
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("잘못된 비밀번호");
+        } catch (Exception e) {
+            e.printStackTrace(); // Railway 로그 확인용
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류");
         }
-        
-        // 로그인 성공시 마지막 로그인 시간 업데이트
-        userService.updateLastLogin(username);
-        
-        // 역할이 일치하면 역할 포함 JWT 발급
-        return tokenProvider.generateToken(username, role);
     }
 
     /**
