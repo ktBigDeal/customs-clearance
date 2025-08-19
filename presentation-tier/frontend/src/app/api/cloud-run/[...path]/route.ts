@@ -36,27 +36,27 @@ async function handleRequest(
   console.log(`🔍 환경변수 CLOUD_RUN_HSCODE_URL: ${process.env.CLOUD_RUN_HSCODE_URL}`);
   
   if (path.startsWith('chatbot') || path.startsWith('chat')) {
-    cloudRunUrl = process.env.CLOUD_RUN_CHATBOT_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_CHATBOT_URL || '';
   } else if (path.startsWith('ocr')) {
-    cloudRunUrl = process.env.CLOUD_RUN_OCR_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_OCR_URL || '';
   } else if (path.startsWith('report')) {
-    cloudRunUrl = process.env.CLOUD_RUN_REPORT_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_REPORT_URL || '';
   } else if (path.startsWith('hscode')) {
-    cloudRunUrl = process.env.CLOUD_RUN_HSCODE_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_HSCODE_URL || '';
     console.log(`✅ hscode 경로 매치! URL: ${cloudRunUrl}`);
     // hscode 접두사 제거하여 올바른 API 경로로 전달
     path = path.replace('hscode/', '');
     console.log(`🔄 변경된 경로: ${path}`);
   } else if (path.startsWith('us-convert')) {
-    cloudRunUrl = process.env.CLOUD_RUN_US_CONVERT_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_US_CONVERT_URL || '';
     // us-convert 접두사 제거하여 올바른 API 경로로 전달
     path = path.replace('us-convert/', '');
   } else if (path.startsWith('gateway') || path.startsWith('ai')) {
-    cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL || '';
   } else {
     // 기본값으로 게이트웨이 사용
     console.log(`⚠️ 기본 라우팅 사용: ${path}`);
-    cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL;
+    cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL || '';
   }
 
   if (!cloudRunUrl) {
