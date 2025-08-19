@@ -94,15 +94,10 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(
             Arrays.asList(
-                "http://customs-backend-java.up.railway.app",
-                "https://customs-backend-java.up.railway.app"
+                "https://customs-backend-java.up.railway.app",
+                    "https://customs-clearance-s3ro.vercel.app"
+
             ));
-        configuration.setAllowedOriginPatterns(
-            Arrays.asList(
-                "*", 
-                "http://customs-backend-java.up.railway.app/*",
-                "https://customs-backend-java.up.railway.app/*"
-                ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
