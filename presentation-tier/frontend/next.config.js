@@ -19,12 +19,7 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    // 프로덕션에서는 직접 백엔드 API 호출 (Vercel에서는 rewrites 사용 안 함)
-    if (process.env.NODE_ENV === 'production') {
-      return [];
-    }
-    
-    // 개발 환경에서만 rewrites 사용
+    // 개발/프로덕션 모두에서 rewrites 사용
     return [
       // 특정 API 경로들만 백엔드로 프록시 (cloud-run 제외)
       {
