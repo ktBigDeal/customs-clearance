@@ -41,7 +41,7 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private baseURL = 'http://localhost:8080/api/v1/user';
+  private baseURL = '/api/v1/user';
 
   /**
    * 회원가입

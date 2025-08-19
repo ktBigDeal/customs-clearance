@@ -39,7 +39,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:8080/api/v1/user/users', {
+      const response = await fetch('/api/v1/user/users', {
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,
         },
@@ -104,7 +104,7 @@ export default function UsersPage() {
       if (userFormModal.user) {
         // 수정 모드: PUT 요청
         const userId = parseInt(userFormModal.user.id, 10);
-        response = await fetch(`http://localhost:8080/api/v1/user/${userId}`, {
+        response = await fetch(`/api/v1/user/${userId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ export default function UsersPage() {
         });
       } else {
         // 추가 모드: POST 요청
-        response = await fetch('http://localhost:8080/api/v1/user/register', {
+        response = await fetch(`/api/v1/user/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
