@@ -609,9 +609,24 @@ class HSCodeRecommender:
             reranked_results = self._llm_rerank(query, material, usage, integrated_results.head(20))
             print(f"  LLM 재순위 분석: {len(reranked_results)}개 후보")
             
+            # 4.5. LLM 고득점 후보 우선 반영 (NEW!)
+            print(f"\n4.5. LLM 고득점 후보 우선 반영...")
+            final_results = self._boost_high_scoring_llm_candidates(llm_candidates, reranked_results, query, material, usage)
+            print(f"  고득점 후보 반영 완료: {len(final_results)}개 후보")
+            
             # 5. 최종 추천 결과 생성
             print(f"\n5. 최종 추천 결과 생성...")
-            recommendations = self._format_ultimate_recommendations(reranked_results, final_count)
+            
+            # 최종 정렬 상태 확인
+            print(f"    🏆 최종 후보 상위 10개:")
+            for i, (idx, row) in enumerate(final_results.head(10).iterrows()):
+                hs_code = row.get('HS_KEY') or row.get('HS부호', '')
+                ultimate_score = row.get('ultimate_score', 0)
+                llm_rerank_score = row.get('llm_rerank_score', 0)
+                match_type = row.get('match_type', '')
+                print(f"    {i+1:2d}. {hs_code}: {ultimate_score:.4f} (LLM재순위: {llm_rerank_score}, 유형: {match_type})")
+            
+            recommendations = self._format_ultimate_recommendations(final_results, final_count)
             
             return {
                 'query': query,
@@ -744,11 +759,26 @@ class HSCodeRecommender:
                 ]
                 
                 if not search_match.empty:
-                    # LLM + 검색 매칭: 높은 가중치
+                    # LLM + 검색 매칭: 개선된 균형 가중치
                     search_row = search_match.iloc[0]
                     hybrid_score = search_row.get('hybrid_score', 0)
                     confidence_score = llm_candidate['confidence'] / 10.0
-                    ultimate_score = (hybrid_score * 0.6) + (confidence_score * 0.4)
+                    
+                    # 개선된 가중치 로직: LLM 확신도에 따라 동적 조정
+                    if llm_candidate['confidence'] >= 8:
+                        # 고확신 LLM: LLM 점수 더 높은 비중
+                        llm_weight = 0.7
+                        search_weight = 0.3
+                    elif llm_candidate['confidence'] >= 6:
+                        # 중확신 LLM: 균형 잡힌 비중
+                        llm_weight = 0.5
+                        search_weight = 0.5
+                    else:
+                        # 저확신 LLM: 검색 점수 더 높은 비중
+                        llm_weight = 0.3
+                        search_weight = 0.7
+                    
+                    ultimate_score = (hybrid_score * search_weight) + (confidence_score * llm_weight)
                     
                     row['ultimate_score'] = ultimate_score
                     row['llm_confidence'] = llm_candidate['confidence']
@@ -756,11 +786,20 @@ class HSCodeRecommender:
                     row['match_type'] = 'llm_search_match'
                     row['hybrid_score'] = hybrid_score
                     
-                    print(f"    ✅ LLM+검색 매칭: {hs_code} (점수: {ultimate_score:.3f})")
+                    print(f"    ✅ LLM+검색 매칭: {hs_code} (점수: {ultimate_score:.3f}, LLM가중치: {llm_weight})")
                 else:
-                    # LLM 전용 후보: 중간 가중치
+                    # LLM 전용 후보: 확신도에 따른 동적 가중치
                     confidence_score = llm_candidate['confidence'] / 10.0
-                    ultimate_score = confidence_score * 0.7
+                    
+                    if llm_candidate['confidence'] >= 8:
+                        # 고확신: 높은 점수 부여
+                        ultimate_score = confidence_score * 0.9
+                    elif llm_candidate['confidence'] >= 6:
+                        # 중확신: 중간 점수
+                        ultimate_score = confidence_score * 0.75
+                    else:
+                        # 저확신: 낮은 점수
+                        ultimate_score = confidence_score * 0.6
                     
                     row['ultimate_score'] = ultimate_score
                     row['llm_confidence'] = llm_candidate['confidence']
@@ -900,8 +939,12 @@ class HSCodeRecommender:
             
             try:
                 import json
-                result = json.loads(response.choices[0].message.content)
+                llm_response_content = response.choices[0].message.content
+                print(f"    🤖 LLM 응답 원본: {llm_response_content[:200]}...")
+                
+                result = json.loads(llm_response_content)
                 rankings = result.get('rankings', [])
+                print(f"    📝 파싱된 rankings 수: {len(rankings)}")
                 
                 # 재순위 정보를 딕셔너리로 변환
                 rerank_info = {}
@@ -913,24 +956,88 @@ class HSCodeRecommender:
                         'llm_rerank_reason': rank_item.get('reason', '')
                     }
                 
+                print(f"    🔍 LLM이 평가한 HS코드들: {list(rerank_info.keys())}")
+                
                 # 원본 데이터에 재순위 정보 추가
                 reranked_candidates = candidates.copy()
+                matched_count = 0
+                unmatched_count = 0
                 
                 for idx, row in reranked_candidates.iterrows():
                     hs_code = row.get('HS_KEY') or row.get('HS부호', '')
                     
+                    # 1차 정확 매칭
                     if hs_code in rerank_info:
                         rerank_data = rerank_info[hs_code]
                         
-                        # 최종 점수 계산 (기존 점수 + LLM 재순위 점수)
+                        # 최종 점수 계산 (LLM 재순위를 더 높은 비중으로)
                         current_score = row.get('ultimate_score', 0)
                         llm_rerank_score = rerank_data['llm_rerank_score'] / 10.0
-                        final_score = (current_score * 0.6) + (llm_rerank_score * 0.4)
+                        
+                        # LLM 재순위 점수가 높을 때 더 큰 영향력 부여
+                        if rerank_data['llm_rerank_score'] >= 8.0:
+                            # 고득점: LLM 80% + 기존 20%
+                            final_score = (current_score * 0.2) + (llm_rerank_score * 0.8)
+                        elif rerank_data['llm_rerank_score'] >= 6.0:
+                            # 중간점수: LLM 60% + 기존 40%
+                            final_score = (current_score * 0.4) + (llm_rerank_score * 0.6)
+                        else:
+                            # 낮은점수: LLM 40% + 기존 60%
+                            final_score = (current_score * 0.6) + (llm_rerank_score * 0.4)
                         
                         reranked_candidates.at[idx, 'ultimate_score'] = final_score
                         reranked_candidates.at[idx, 'llm_rank'] = rerank_data['llm_rank']
                         reranked_candidates.at[idx, 'llm_rerank_score'] = rerank_data['llm_rerank_score']
                         reranked_candidates.at[idx, 'llm_rerank_reason'] = rerank_data['llm_rerank_reason']
+                        matched_count += 1
+                        print(f"    ✅ 정확 매칭: {hs_code} (점수: {rerank_data['llm_rerank_score']})")
+                    else:
+                        # 2차 유사 매칭 시도 (앞 8자리, 6자리 매칭)
+                        matched_similar = False
+                        
+                        for llm_hs_code, llm_data in rerank_info.items():
+                            # 8자리 매칭 (세번까지 동일)
+                            if len(hs_code) >= 8 and len(llm_hs_code) >= 8:
+                                if hs_code[:8] == llm_hs_code[:8]:
+                                    # 유사 매칭으로 낮은 가중치 적용
+                                    current_score = row.get('ultimate_score', 0)
+                                    llm_rerank_score = llm_data['llm_rerank_score'] / 10.0
+                                    final_score = (current_score * 0.8) + (llm_rerank_score * 0.2)  # 낮은 가중치
+                                    
+                                    reranked_candidates.at[idx, 'ultimate_score'] = final_score
+                                    reranked_candidates.at[idx, 'llm_rank'] = llm_data['llm_rank'] + 100  # 순위 페널티
+                                    reranked_candidates.at[idx, 'llm_rerank_score'] = llm_data['llm_rerank_score'] * 0.7  # 점수 할인
+                                    reranked_candidates.at[idx, 'llm_rerank_reason'] = f"유사매칭(8자리): {llm_data['llm_rerank_reason']}"
+                                    matched_count += 1
+                                    matched_similar = True
+                                    print(f"    🔄 유사 매칭(8자리): {hs_code} ↔ {llm_hs_code} (점수: {llm_data['llm_rerank_score']*0.7})")
+                                    break
+                        
+                        # 3차 더 넓은 유사 매칭 (6자리)
+                        if not matched_similar:
+                            for llm_hs_code, llm_data in rerank_info.items():
+                                # 6자리 매칭 (호까지 동일)
+                                if len(hs_code) >= 6 and len(llm_hs_code) >= 6:
+                                    if hs_code[:6] == llm_hs_code[:6]:
+                                        # 더 낮은 가중치 적용
+                                        current_score = row.get('ultimate_score', 0)
+                                        llm_rerank_score = llm_data['llm_rerank_score'] / 10.0
+                                        final_score = (current_score * 0.9) + (llm_rerank_score * 0.1)  # 더 낮은 가중치
+                                        
+                                        reranked_candidates.at[idx, 'ultimate_score'] = final_score
+                                        reranked_candidates.at[idx, 'llm_rank'] = llm_data['llm_rank'] + 200  # 더 큰 순위 페널티
+                                        reranked_candidates.at[idx, 'llm_rerank_score'] = llm_data['llm_rerank_score'] * 0.5  # 더 큰 점수 할인
+                                        reranked_candidates.at[idx, 'llm_rerank_reason'] = f"광범위매칭(6자리): {llm_data['llm_rerank_reason']}"
+                                        matched_count += 1
+                                        matched_similar = True
+                                        print(f"    🌐 광범위 매칭(6자리): {hs_code} ↔ {llm_hs_code} (점수: {llm_data['llm_rerank_score']*0.5})")
+                                        break
+                        
+                        if not matched_similar:
+                            unmatched_count += 1
+                            print(f"    ❌ 매칭 실패: {hs_code} (LLM 응답에 없음)")
+                
+                print(f"    📊 매칭 결과: 성공 {matched_count}개, 실패 {unmatched_count}개")
                 
                 # 최종 점수로 재정렬
                 reranked_candidates = reranked_candidates.sort_values('ultimate_score', ascending=False).reset_index(drop=True)
@@ -938,13 +1045,292 @@ class HSCodeRecommender:
                 print(f"    ✅ LLM 재순위 완료")
                 return reranked_candidates
                 
-            except json.JSONDecodeError:
-                print(f"    ⚠️ LLM 재순위 파싱 실패, 원본 순서 유지")
+            except json.JSONDecodeError as e:
+                print(f"    ⚠️ LLM 재순위 파싱 실패: {e}")
+                print(f"    📄 응답 내용: {response.choices[0].message.content}")
+                print(f"    🔄 원본 순서 유지")
                 return candidates
                 
         except Exception as e:
             print(f"    ⚠️ LLM 재순위 실패: {e}, 원본 순서 유지")
             return candidates
+    
+    def _search_hs_code_in_data(self, hs_code: str) -> pd.Series:
+        """HS 코드를 데이터에서 검색하여 해당 행 데이터를 반환"""
+        try:
+            print(f"    🔍 HS코드 검색 시도: {hs_code}")
+            
+            if not hasattr(self, 'df') or self.df is None:
+                print(f"    ❌ 데이터프레임 없음")
+                return None
+            
+            print(f"    📊 전체 데이터 행수: {len(self.df)}")
+            print(f"    📋 컬럼 목록: {list(self.df.columns)}")
+                
+            # 정확 매칭 시도
+            exact_match = self.df[self.df['HS부호'] == hs_code]
+            print(f"    🎯 정확 매칭 (HS부호 == {hs_code}): {len(exact_match)}개")
+            if not exact_match.empty:
+                print(f"    ✅ 정확 매칭 성공!")
+                return exact_match.iloc[0]
+            
+            # HS_KEY로 매칭 시도
+            if 'HS_KEY' in self.df.columns:
+                key_match = self.df[self.df['HS_KEY'] == hs_code]
+                print(f"    🔑 HS_KEY 매칭 (HS_KEY == {hs_code}): {len(key_match)}개")
+                if not key_match.empty:
+                    print(f"    ✅ HS_KEY 매칭 성공!")
+                    return key_match.iloc[0]
+            
+            # 8자리 매칭 시도
+            if len(hs_code) >= 8:
+                partial_match = self.df[self.df['HS부호'].str.startswith(hs_code[:8])]
+                print(f"    🔢 8자리 매칭 ({hs_code[:8]}로 시작): {len(partial_match)}개")
+                if not partial_match.empty:
+                    print(f"    ✅ 8자리 매칭 성공!")
+                    return partial_match.iloc[0]
+            
+            # 6자리 매칭 시도
+            if len(hs_code) >= 6:
+                broad_match = self.df[self.df['HS부호'].str.startswith(hs_code[:6])]
+                print(f"    🌐 6자리 매칭 ({hs_code[:6]}로 시작): {len(broad_match)}개")
+                if not broad_match.empty:
+                    print(f"    ✅ 6자리 매칭 성공!")
+                    return broad_match.iloc[0]
+            
+            # 더 광범위한 검색 (392로 시작)
+            if hs_code.startswith('392'):
+                prefix_match = self.df[self.df['HS부호'].str.startswith('392')]
+                print(f"    🔍 392 접두어 매칭: {len(prefix_match)}개")
+                if not prefix_match.empty:
+                    # 가장 유사한 것 선택 (3924류 우선)
+                    similar_3924 = prefix_match[prefix_match['HS부호'].str.startswith('3924')]
+                    if not similar_3924.empty:
+                        print(f"    ✅ 3924류 유사 매칭 성공!")
+                        return similar_3924.iloc[0]
+                    else:
+                        print(f"    ⚠️ 392류 첫번째 매칭 사용")
+                        return prefix_match.iloc[0]
+                    
+            print(f"    ❌ 모든 매칭 시도 실패")
+            return None
+            
+        except Exception as e:
+            print(f"    ❌ HS코드 검색 실패: {e}")
+            return None
+        
+    def _get_top_rerank_candidates(self, reranked_results: pd.DataFrame, top_n: int = 2) -> Dict[str, Dict]:
+        """LLM 재순위 상위권 후보 추출"""
+        top_candidates = {}
+        
+        for idx, row in reranked_results.iterrows():
+            hs_code = row.get('HS_KEY') or row.get('HS부호', '')
+            llm_rank = row.get('llm_rank', 999)
+            llm_rerank_score = row.get('llm_rerank_score', 0)
+            
+            # 재순위 1-3위이면서 8점 이상인 후보
+            if (pd.notna(llm_rank) and llm_rank <= top_n and 
+                pd.notna(llm_rerank_score) and llm_rerank_score >= 8.0):
+                top_candidates[hs_code] = {
+                    'rank': llm_rank,
+                    'score': llm_rerank_score,
+                    'reason': row.get('llm_rerank_reason', '')
+                }
+                print(f"    🏆 재순위 상위권: {hs_code} (순위: {llm_rank}, 점수: {llm_rerank_score})")
+        
+        return top_candidates
+    
+    def _boost_high_scoring_llm_candidates(self, llm_candidates: List[Dict], reranked_results: pd.DataFrame, query: str = "", material: str = "", usage: str = "") -> pd.DataFrame:
+        """🚀 단순화된 점수 기반 부스팅: LLM 고득점 후보들의 점수를 배수로 증폭"""
+        try:
+            print(f"    🔧 점수 기반 부스팅 시작...")
+            
+            # 1. 모든 후보를 하나의 리스트로 통합
+            all_candidates = reranked_results.copy()
+            
+            # 2. LLM 직접 제안 고득점 후보 추가 (기존에 없는 경우)
+            high_score_threshold = 8.0
+            new_candidates = []
+            
+            # 2-1. LLM 직접 제안 후보들 처리
+            for llm_candidate in llm_candidates:
+                confidence = llm_candidate.get('confidence', 0)
+                hs_code = llm_candidate.get('hs_code', '')
+                
+                # 높은 확신도 후보이면서 기존 결과에 없는 경우
+                if confidence >= high_score_threshold:
+                    existing = all_candidates[
+                        (all_candidates['HS_KEY'] == hs_code) |
+                        (all_candidates.get('HS부호', '') == hs_code)
+                    ]
+                    
+                    if existing.empty and llm_candidate.get('row_data') is not None:
+                        # 새로운 LLM 고확신 후보 추가 (적절한 초기 점수로 설정)
+                        new_row = llm_candidate['row_data'].copy()
+                        new_row['ultimate_score'] = min(0.85, confidence / 10.0)  # 최대 0.85로 제한 완화
+                        new_row['llm_confidence'] = confidence
+                        new_row['llm_reason'] = llm_candidate.get('reason', '')
+                        new_row['match_type'] = 'llm_high_score_new'
+                        new_row['llm_rerank_score'] = confidence
+                        new_row['llm_rank'] = 1
+                        new_row['llm_rerank_reason'] = f"LLM 고확신 직접 제안 (확신도: {confidence}/10)"
+                        new_candidates.append(new_row)
+                        print(f"    ➕ 신규 고확신 후보 추가: {hs_code} (확신도: {confidence}, 점수: {min(0.85, confidence / 10.0):.3f})")
+            
+            # 2-2. LLM 재순위에서 누락된 고득점 코드 직접 추가 ⭐ 핵심 해결!
+            if query and self.openai_client:
+                try:
+                    print(f"    🔍 LLM 재순위 누락 고득점 코드 탐색...")
+                    
+                    # LLM에게 직접 최고 추천 코드를 요청
+                    prompt = f"""다음 상품에 대한 가장 적합한 HS 코드 3개를 추천해주세요:
+
+상품 정보:
+- 상품명: {query}
+- 재질: {material if material else '명시되지 않음'}
+- 용도: {usage if usage else '명시되지 않음'}
+
+각 코드에 대해 1-10점으로 확신도를 매겨주세요.
+
+응답 형식 (JSON):
+{{
+  "recommendations": [
+    {{
+      "hs_code": "3924100000",
+      "confidence": 9.5,
+      "reason": "추천 근거"
+    }}
+  ]
+}}"""
+                    
+                    response = self.openai_client.chat.completions.create(
+                        model="gpt-4.1-mini",
+                        messages=[
+                            {"role": "system", "content": "당신은 HS 코드 분류 전문가입니다."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        max_tokens=800,
+                        temperature=0.2
+                    )
+                    
+                    import json
+                    direct_response = json.loads(response.choices[0].message.content)
+                    recommendations = direct_response.get('recommendations', [])
+                    
+                    for rec in recommendations:
+                        hs_code = rec.get('hs_code', '')
+                        confidence = rec.get('confidence', 0)
+                        reason = rec.get('reason', '')
+                        
+                        if confidence >= 9.0:  # 9점 이상 고확신도만
+                            # 기존 후보에 없는지 확인
+                            existing = all_candidates[
+                                (all_candidates['HS_KEY'] == hs_code) |
+                                (all_candidates.get('HS부호', '') == hs_code)
+                            ]
+                            
+                            if existing.empty:
+                                # HS 코드를 실제 데이터에서 검색하여 row_data 생성
+                                hs_data = self._search_hs_code_in_data(hs_code)
+                                if hs_data is not None:
+                                    new_row = hs_data.copy()
+                                    new_row['ultimate_score'] = min(0.9, confidence / 10.0)
+                                    new_row['llm_confidence'] = confidence
+                                    new_row['llm_reason'] = reason
+                                    new_row['match_type'] = 'llm_rerank_missing'
+                                    new_row['llm_rerank_score'] = confidence
+                                    new_row['llm_rank'] = 1
+                                    new_row['llm_rerank_reason'] = f"LLM 재순위 누락 고득점 (확신도: {confidence}/10)"
+                                    new_candidates.append(new_row)
+                                    print(f"    🎯 재순위 누락 고득점 추가: {hs_code} (확신도: {confidence}, 점수: {min(0.9, confidence / 10.0):.3f})")
+                                else:
+                                    print(f"    ❌ HS코드 데이터 없음: {hs_code}")
+                    
+                except Exception as e:
+                    print(f"    ⚠️ 재순위 누락 처리 실패: {e}")
+            
+            # 새로운 후보들 통합
+            if new_candidates:
+                new_df = pd.DataFrame(new_candidates)
+                all_candidates = pd.concat([all_candidates, new_df], ignore_index=True)
+            
+            # 3. 균형 잡힌 점수 기반 부스팅 적용
+            boosted_count = 0
+            search_max_score = all_candidates[all_candidates.get('match_type', '') != 'llm_high_score_new']['ultimate_score'].max() if not all_candidates.empty else 0.8
+            print(f"    📊 검색 결과 최고 점수: {search_max_score:.3f}")
+            
+            for idx, row in all_candidates.iterrows():
+                hs_code = row.get('HS_KEY') or row.get('HS부호', '')
+                current_score = row.get('ultimate_score', 0)
+                llm_rerank_score = row.get('llm_rerank_score', 0)
+                llm_confidence = row.get('llm_confidence', 0)
+                match_type = row.get('match_type', '')
+                
+                boost_multiplier = 1.0  # 기본 배수
+                boost_reason = ""
+                
+                # 🎯 LLM 신규 고확신 후보: 확신도에 따른 적극적 부스팅
+                if match_type in ['llm_high_score_new', 'llm_rerank_missing']:
+                    confidence = row.get('llm_confidence', 0)
+                    if confidence >= 9.5:
+                        # 9.5점 이상 최고 확신도: 검색 최고점의 140%로 설정 (확실한 1위)
+                        adjusted_score = search_max_score * 1.4
+                        boost_reason = f"최고확신도 신규후보 ({current_score:.3f} → {adjusted_score:.3f})"
+                    elif confidence >= 9.0:
+                        # 9점 이상 최고 확신도: 검색 최고점의 125%로 설정
+                        adjusted_score = search_max_score * 1.2
+                        boost_reason = f"최고확신도 신규후보 ({current_score:.3f} → {adjusted_score:.3f})"
+                    elif confidence >= 8.5:
+                        # 8.5점 이상 고확신도: 검색 최고점의 110%로 설정
+                        adjusted_score = search_max_score * 1.1
+                        boost_reason = f"고확신도 신규후보 ({current_score:.3f} → {adjusted_score:.3f})"
+                    else:
+                        # 8.0점 이상: 검색 최고점 수준으로 설정
+                        adjusted_score = search_max_score
+                        boost_reason = f"신규 LLM 후보 균형 조정 ({current_score:.3f} → {adjusted_score:.3f})"
+                    
+                    all_candidates.at[idx, 'ultimate_score'] = adjusted_score
+                    boosted_count += 1
+                    print(f"    ⚖️  적극 부스팅: {hs_code} {boost_reason}")
+                
+                # 🚀 기존 후보 부스팅 (적당한 강도)
+                elif pd.notna(llm_rerank_score) and llm_rerank_score >= 9.0:
+                    # LLM 재순위 최고점 (8.5점 이상)
+                    boost_multiplier = 1.3  # 20% 증폭으로 강화
+                    boost_reason = f"재순위 최고점({llm_rerank_score})"
+               
+                elif pd.notna(llm_rerank_score) and llm_rerank_score >= 8.0:
+                    # LLM 재순위 고점 (8.0점 이상)
+                    boost_multiplier = 1.15  # 15% 증폭
+                    boost_reason = f"재순위 고점({llm_rerank_score})"
+                    
+                elif pd.notna(llm_confidence) and llm_confidence >= 8.5:
+                    # LLM 직접 제안 최고 확신도
+                    boost_multiplier = 1.18  # 18% 증폭으로 강화
+                    boost_reason = f"직접 제안 최고확신도({llm_confidence})"
+                elif pd.notna(llm_confidence) and llm_confidence >= 8.0:
+                    # LLM 직접 제안 고확신도
+                    boost_multiplier = 1.12  # 12% 증폭
+                    boost_reason = f"직접 제안 고확신도({llm_confidence})"
+                
+                # 부스팅 적용
+                if boost_multiplier > 1.0:
+                    boosted_score = current_score * boost_multiplier
+                    all_candidates.at[idx, 'ultimate_score'] = boosted_score
+                    boosted_count += 1
+                    print(f"    🚀 점수 부스팅: {hs_code} ({current_score:.3f} → {boosted_score:.3f}) [{boost_reason}]")
+            
+            # 4. 최종 점수로 정렬
+            final_results = all_candidates.sort_values('ultimate_score', ascending=False).reset_index(drop=True)
+            
+            print(f"    ✅ 점수 부스팅 완료: {boosted_count}개 후보 부스팅됨")
+            
+            return final_results
+                
+        except Exception as e:
+            print(f"    ❌ 점수 부스팅 실패: {e}")
+            return reranked_results
+
     
     def _format_ultimate_recommendations(self, results: pd.DataFrame, final_count: int) -> List[Dict]:
         """ 추천 결과 포맷팅 (nan 문제 해결)"""
@@ -1030,23 +1416,54 @@ class HSCodeRecommender:
             
             # LLM 정보 추가 (nan 처리)
             llm_info = {}
+            
+            # 1. LLM 직접 제안 정보 (항상 포함 가능)
             llm_confidence = row.get('llm_confidence', 0)
             if pd.notna(llm_confidence) and llm_confidence > 0:
                 llm_info['llm_direct'] = {
                     'confidence': int(llm_confidence),
                     'reason': str(row.get('llm_reason', ''))
                 }
+                print(f"    📍 {hs_code} LLM 직접 제안 정보 추가 (확신도: {llm_confidence})")
             
+            # 2. LLM 재순위 정보 (매칭 성공시만)
             llm_rerank_score = row.get('llm_rerank_score', 0)
+            print(f"    🔍 {hs_code} llm_rerank_score: {llm_rerank_score} (type: {type(llm_rerank_score)})")
+            
             if pd.notna(llm_rerank_score) and llm_rerank_score > 0:
                 llm_info['llm_rerank'] = {
                     'score': float(llm_rerank_score),
                     'rank': int(row.get('llm_rank', 999)) if pd.notna(row.get('llm_rank')) else 999,
                     'reason': str(row.get('llm_rerank_reason', ''))
                 }
+                print(f"    ✅ {hs_code} LLM 재순위 정보 추가됨!")
+            else:
+                print(f"    ⚠️ {hs_code} LLM 재순위 정보 없음 (score={llm_rerank_score})")
+            
+            # 3. 매칭 실패한 경우를 위한 개선된 폴백 처리
+            if not llm_info:
+                # LLM 정보가 전혀 없는 경우, 구체적인 분석 정보 제공
+                match_type = row.get('match_type', '')
+                data_source = row.get('data_source', '')
+                
+                # 매칭 유형별 구체적인 설명 생성
+                analysis_reason = self._generate_detailed_analysis_reason(
+                    hs_code, match_type, data_source, confidence, row
+                )
+                
+                llm_info['enhanced_search'] = {
+                    'confidence': min(max(confidence * 10, 1), 10),  # 0-1 -> 1-10 변환
+                    'reason': analysis_reason,
+                    'analysis_type': self._get_analysis_type_label(match_type),
+                    'data_quality': self._assess_data_quality(row)
+                }
+                print(f"    🔄 {hs_code} 개선된 폴백 정보 추가 ({self._get_analysis_type_label(match_type)})")
             
             if llm_info:
                 recommendation['llm_analysis'] = llm_info
+                print(f"    ✅ {hs_code} llm_analysis 최종 포함!")
+            else:
+                print(f"    ❌ {hs_code} llm_analysis 최종 제외")
             
             recommendations.append(recommendation)
             
@@ -1143,3 +1560,99 @@ class HSCodeRecommender:
             if search_info.get('llm_analysis') and search_info['llm_analysis'].get('recommendation'):
                 print(f"\n전체 AI 추천 의견:")
                 print(f"  {search_info['llm_analysis']['recommendation']}")
+    
+    def _generate_detailed_analysis_reason(self, hs_code: str, match_type: str, data_source: str, 
+                                         confidence: float, row: pd.Series) -> str:
+        """매칭 유형별 구체적인 분석 설명 생성"""
+        try:
+            # 기본 정보 추출
+            name_kr = self._extract_best_name(row, ['한글품목명', '세번10단위품명', '표준품명'])
+            chapter = hs_code[:2] if len(hs_code) >= 2 else ''
+            heading = hs_code[:4] if len(hs_code) >= 4 else ''
+            
+            # 매칭 유형별 구체적인 설명
+            if 'hybrid' in match_type:
+                return f"키워드 매칭과 의미 분석을 결합하여 찾은 결과입니다. " \
+                       f"'{name_kr}' (제{chapter}류, 호 {heading})는 검색어와 높은 관련성을 보입니다. " \
+                       f"신뢰도: {confidence:.1%}"
+            
+            elif 'semantic' in match_type:
+                return f"의미 분석(AI 임베딩)을 통해 찾은 유사 항목입니다. " \
+                       f"검색어와 의미적으로 연관된 '{name_kr}' 항목으로, " \
+                       f"제{chapter}류에 분류됩니다. 의미 유사도: {confidence:.1%}"
+            
+            elif 'keyword' in match_type:
+                return f"키워드 매칭을 통해 찾은 직접 연관 항목입니다. " \
+                       f"'{name_kr}'는 검색어와 직접적인 키워드 일치를 보이며, " \
+                       f"HS코드 체계상 제{chapter}류에 해당합니다. 키워드 점수: {confidence:.1%}"
+            
+            elif 'standard' in match_type:
+                return f"표준 품명 데이터베이스에서 찾은 공식 분류입니다. " \
+                       f"'{name_kr}'는 관세청 표준 품명으로 등록된 항목이며, " \
+                       f"HS코드 {hs_code} (제{chapter}류)로 정확히 분류됩니다."
+            
+            else:
+                # 기본 설명
+                keyword_score = row.get('keyword_score', 0)
+                semantic_score = row.get('semantic_score', 0)
+                
+                analysis_parts = []
+                if keyword_score and pd.notna(keyword_score) and keyword_score > 0:
+                    analysis_parts.append(f"키워드 유사도 {keyword_score:.1%}")
+                if semantic_score and pd.notna(semantic_score) and semantic_score > 0:
+                    analysis_parts.append(f"의미 유사도 {semantic_score:.1%}")
+                
+                score_info = ", ".join(analysis_parts) if analysis_parts else f"전체 신뢰도 {confidence:.1%}"
+                
+                return f"검색엔진 분석 결과 '{name_kr}' 항목을 추천합니다. " \
+                       f"HS코드 {hs_code} (제{chapter}류, 호 {heading})로 분류되며, " \
+                       f"{score_info}로 검색어와 관련성이 있습니다."
+                       
+        except Exception as e:
+            return f"검색엔진 분석을 통해 추천된 항목입니다 (HS코드: {hs_code})"
+    
+    def _get_analysis_type_label(self, match_type: str) -> str:
+        """매칭 유형별 라벨 반환"""
+        type_labels = {
+            'llm_search_match': 'AI+검색 통합',
+            'llm_only_with_data': 'AI 직접 제안',
+            'llm_only': 'AI 전용',
+            'llm_high_score_boost': 'AI 고확신',
+            'llm_high_score_only': 'AI 고확신 전용',
+            'llm_high_score_existing': 'AI 고확신 기존',
+            'search_only': '검색엔진 기반',
+            'hybrid_search': '하이브리드 검색',
+            'semantic_search': '의미 분석',
+            'keyword_search': '키워드 매칭',
+            'standard_match': '표준 품명'
+        }
+        return type_labels.get(match_type, '통합 분석')
+    
+    def _assess_data_quality(self, row: pd.Series) -> str:
+        """데이터 품질 평가"""
+        try:
+            # 데이터 완성도 확인
+            name_kr = row.get('한글품목명', '')
+            name_en = row.get('영문품목명', '')
+            description = row.get('final_combined_text', '')
+            data_source = row.get('data_source', '')
+            
+            quality_score = 0
+            if name_kr and pd.notna(name_kr) and len(str(name_kr)) > 1:
+                quality_score += 25
+            if name_en and pd.notna(name_en) and len(str(name_en)) > 1:
+                quality_score += 25  
+            if description and pd.notna(description) and len(str(description)) > 10:
+                quality_score += 25
+            if data_source and 'standard' in data_source:
+                quality_score += 25
+            
+            if quality_score >= 75:
+                return '높음'
+            elif quality_score >= 50:
+                return '보통'
+            else:
+                return '기본'
+                
+        except Exception:
+            return '기본'
