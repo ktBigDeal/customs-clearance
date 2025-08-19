@@ -4,7 +4,12 @@ import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-
+import { 
+  recommendHSCode, 
+  convertToUSHSCode,
+  HSCodeRecommendRequest,
+  HSCodeRecommendResponse
+} from '@/lib/api';
 interface HSCodeRecommendation {
   hs_code: string;
   name_kr: string;
@@ -46,7 +51,8 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  private baseURL = 'http://localhost:8003/api/v1';
+  // Google Cloud Run 서비스 직접 호출
+  private baseURL = process.env.NEXT_PUBLIC_HSCODE_RECOMMEND_URL;
   
   async recommendHSCode(request: {
     query: string;
@@ -57,7 +63,12 @@ class HSCodeAPI {
     use_llm?: boolean;
     include_details?: boolean;
   }): Promise<RecommendResponse> {
-    const response = await fetch(`${this.baseURL}/recommend/`, {
+    if (!this.baseURL) {
+      throw new Error('HS Code 추천 서비스 URL이 설정되지 않았습니다.');
+    }
+
+    const response = await fetch(`${this.baseURL}/api/v1/recommend`, {
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +77,8 @@ class HSCodeAPI {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
     
     return await response.json();
@@ -135,7 +147,7 @@ export default function HSCodePage() {
       let errorMessage = 'HS 코드 추천 중 오류가 발생했습니다.';
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'API 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.\n\n서버 실행: cd application-tier/models/model-hscode && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8003';
+        errorMessage = 'Google Cloud Run 서비스에 연결할 수 없습니다. 서비스가 정상 운영 중인지 확인해주세요.';
       } else if (error instanceof Error) {
         errorMessage = `오류: ${error.message}`;
       }

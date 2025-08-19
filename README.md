@@ -280,7 +280,7 @@ customs-clearance/
 │   │   │   ├── (auth)/login/        # 로그인 페이지
 │   │   │   ├── (dashboard)/         # 메인 대시보드
 │   │   │   │   ├── chat/            # 🤖 AI 챗봇 페이지 (SSE, 마크다운 지원)
-│   │   │   │   ├── hscode/          # HS코드 검색 페이지
+│   │   │   │   ├── hscode/          # HS코드 추천 페이지
 │   │   │   │   ├── report/          # 보고서 생성 페이지
 │   │   │   │   └── admin/           # 관리자 패널
 │   │   │   └── layout.tsx           # 루트 레이아웃

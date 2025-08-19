@@ -18,30 +18,24 @@ COPY pyproject.toml uv.lock ./
 # Install dependencies (no dev dependencies for production)
 RUN uv sync --no-dev --frozen
 
-# Copy only necessary application files for HS Code recommendation
-COPY app/ ./app/
-COPY main.py ./
+# Copy only necessary application files for US converter
+COPY src/ ./src/
 COPY config.py ./
 
-# Copy essential data files for HS Code recommendation
-COPY data/ ./data/
-COPY cache/ ./cache/
-
-# Create cache directory if it doesn't exist
-RUN mkdir -p cache/hs_code_cache
+# Copy essential data files for US converter
+COPY us_tariff_table_20250714.xlsx ./
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV UV_SYSTEM_PYTHON=1
 ENV ENVIRONMENT=production
-ENV PORT=8003
 
-# Expose port
-EXPOSE 8003
+# Expose port (Cloud Run will set PORT automatically)
+EXPOSE 8006
 
-# Health check
+# Health check (use PORT from environment)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8003/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8006}/health || exit 1
 
-# Command to run the HS Code recommendation application  
-CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port 8003"]
+# Command to run the US converter application (let Cloud Run set PORT)
+CMD ["sh", "-c", "uv run uvicorn src.us_main:app --host 0.0.0.0 --port ${PORT:-8006}"]

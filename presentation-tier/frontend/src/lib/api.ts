@@ -386,6 +386,107 @@ class ApiClient {
   async healthCheck() {
     return this.get('/health');
   }
+
+  /**
+   * Cloud Run 프록시를 통한 API 호출 메서드들
+   * 
+   * Vercel의 API 프록시를 통해 Cloud Run 서비스들과 통신합니다.
+   * 개발환경에서는 로컬 서비스로, 프로덕션에서는 실제 Cloud Run URL로 자동 라우팅됩니다.
+   */
+
+  /**
+   * Cloud Run 서비스에 GET 요청
+   * 
+   * @param {string} path - API 경로 (예: 'chatbot/health', 'ocr/extract')
+   * @param {AxiosRequestConfig} [config] - 추가 설정
+   * @returns {Promise<T>} 응답 데이터
+   */
+  async cloudRunGet<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await fetch(`/api/cloud-run/${path}${config?.params ? `?${new URLSearchParams(config.params).toString()}` : ''}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Cloud Run API 오류: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Cloud Run 서비스에 POST 요청
+   * 
+   * @param {string} path - API 경로
+   * @param {D} [data] - 요청 본문 데이터
+   * @returns {Promise<T>} 응답 데이터
+   */
+  async cloudRunPost<T, D = unknown>(path: string, data?: D): Promise<T> {
+    const response = await fetch(`/api/cloud-run/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Cloud Run API 오류: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Cloud Run 서비스에 PUT 요청
+   */
+  async cloudRunPut<T, D = unknown>(path: string, data?: D): Promise<T> {
+    const response = await fetch(`/api/cloud-run/${path}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Cloud Run API 오류: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Cloud Run 서비스에 DELETE 요청
+   */
+  async cloudRunDelete<T>(path: string): Promise<T> {
+    const response = await fetch(`/api/cloud-run/${path}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Cloud Run API 오류: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * 인증 헤더 생성
+   */
+  private getAuthHeaders(): Record<string, string> {
+    const token = this.getAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
 }
 
 // Create singleton instance
@@ -445,3 +546,136 @@ declare module 'axios' {
     };
   }
 }
+/**
+ * HS Code 관련 API 함수들
+ * Google Cloud Run 서비스와 직접 통신
+ */
+
+export interface HSCodeRecommendRequest {
+  product_description: string;
+  additional_info?: string;
+}
+
+export interface HSCodeRecommendResponse {
+  recommended_codes: Array<{
+    hs_code: string;
+    description: string;
+    confidence: number;
+    category: string;
+  }>;
+  analysis_summary: string;
+}
+
+export interface USConvertRequest {
+  korean_hs_code: string;
+  product_description?: string;
+}
+
+export interface USConvertResponse {
+  us_hs_code: string;
+  korean_hs_code: string;
+  description: string;
+  tariff_rate?: string;
+  notes?: string;
+}
+
+/**
+ * HS Code 추천 API 호출
+ * Google Cloud Run 서비스와 직접 통신
+ */
+export const recommendHSCode = async (
+  request: HSCodeRecommendRequest
+): Promise<HSCodeRecommendResponse> => {
+  const RECOMMEND_URL = process.env.NEXT_PUBLIC_HSCODE_RECOMMEND_URL;
+  
+  if (!RECOMMEND_URL) {
+    throw new Error('HS Code 추천 서비스 URL이 설정되지 않았습니다.');
+  }
+
+  const response = await fetch(`${RECOMMEND_URL}/recommend`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HS Code 추천 API 오류: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * US HS Code 변환 API 호출
+ * Google Cloud Run 서비스와 직접 통신
+ */
+export const convertToUSHSCode = async (
+  request: USConvertRequest
+): Promise<USConvertResponse> => {
+  const CONVERT_URL = process.env.NEXT_PUBLIC_HSCODE_US_CONVERT_URL;
+  
+  if (!CONVERT_URL) {
+    throw new Error('US HS Code 변환 서비스 URL이 설정되지 않았습니다.');
+  }
+
+  const response = await fetch(`${CONVERT_URL}/convert`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`US HS Code 변환 API 오류: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * HS Code 서비스들의 헬스 체크
+ */
+export const checkHSCodeServices = async (): Promise<{
+  recommend: { status: boolean; url: string };
+  convert: { status: boolean; url: string };
+}> => {
+  const RECOMMEND_URL = process.env.NEXT_PUBLIC_HSCODE_RECOMMEND_URL;
+  const CONVERT_URL = process.env.NEXT_PUBLIC_HSCODE_US_CONVERT_URL;
+
+  const [recommendHealth, convertHealth] = await Promise.allSettled([
+    fetch(`${RECOMMEND_URL}/health`).then(res => res.ok),
+    fetch(`${CONVERT_URL}/health`).then(res => res.ok)
+  ]);
+
+  return {
+    recommend: {
+      status: recommendHealth.status === 'fulfilled' ? recommendHealth.value : false,
+      url: RECOMMEND_URL || 'URL 미설정'
+    },
+    convert: {
+      status: convertHealth.status === 'fulfilled' ? convertHealth.value : false,
+      url: CONVERT_URL || 'URL 미설정'
+    }
+  };
+};
+
+/**
+ * HS Code 서비스 API 문서 확인 (개발용)
+ */
+export const getHSCodeServiceDocs = (): {
+  recommend: string;
+  convert: string;
+} => {
+  const RECOMMEND_URL = process.env.NEXT_PUBLIC_HSCODE_RECOMMEND_URL;
+  const CONVERT_URL = process.env.NEXT_PUBLIC_HSCODE_US_CONVERT_URL;
+
+  return {
+    recommend: `${RECOMMEND_URL}/docs`,
+    convert: `${CONVERT_URL}/docs`
+  };
+};

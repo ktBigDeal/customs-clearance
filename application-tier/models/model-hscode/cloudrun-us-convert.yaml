@@ -1,0 +1,70 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hscode-us-convert-service
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "5"
+        autoscaling.knative.dev/minScale: "1"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/memory: "1Gi"
+        run.googleapis.com/cpu: "500m"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - name: hscode-us-convert-container
+        image: asia-northeast3-docker.pkg.dev/customs-clearance-system/docker-repo/hscode-us-converter:latest
+        ports:
+        - name: http1
+          containerPort: 8006
+        env:
+        - name: PORT
+          value: "8006"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: SERVICE_NAME
+          value: "US-Korea HS Code Converter Service"
+        - name: UV_SYSTEM_PYTHON
+          value: "1"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENABLE_DOCS
+          value: "true"
+        - name: PYTHONPATH
+          value: "/app"
+        - name: US_TARIFF_FILE
+          value: "/app/us_tariff_table_20250714.xlsx"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: OPENAI_API_KEY
+              name: openai-api-key
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        command: ["/bin/sh"]
+        args: ["-c", "uv run uvicorn src.us_main:app --host 0.0.0.0 --port ${PORT}"]
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 5
+  traffic:
+  - percent: 100
+    latestRevision: true
