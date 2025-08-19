@@ -51,9 +51,8 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  // Google Cloud Run 서비스 직접 호출
-  private baseURL = process.env.NEXT_PUBLIC_HSCODE_RECOMMEND_URL;
-  
+  private baseURL = '/api/cloud-run';
+
   async recommendHSCode(request: {
     query: string;
     material?: string;
@@ -63,12 +62,8 @@ class HSCodeAPI {
     use_llm?: boolean;
     include_details?: boolean;
   }): Promise<RecommendResponse> {
-    if (!this.baseURL) {
-      throw new Error('HS Code 추천 서비스 URL이 설정되지 않았습니다.');
-    }
-
-    const response = await fetch(`${this.baseURL}/api/v1/recommend`, {
-
+    // Cloud Run의 올바른 API 경로로 요청 (마지막 슬래시 추가)
+    const response = await fetch(`${this.baseURL}/hscode/api/v1/recommend/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,6 +79,7 @@ class HSCodeAPI {
     return await response.json();
   }
 }
+
 
 export default function HSCodePage() {
   const [query, setQuery] = useState('');

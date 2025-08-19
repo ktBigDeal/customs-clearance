@@ -26,12 +26,15 @@ async function handleRequest(
   method: string
 ) {
   const { searchParams } = new URL(request.url);
-  const path = params.path?.join('/') || '';
+  let path = params.path?.join('/') || '';
   
   // 요청한 서비스에 따라 적절한 Cloud Run URL 선택
   let cloudRunUrl = '';
   
   // 경로에 따라 서비스 라우팅
+  console.log(`🔍 요청 경로: ${path}`);
+  console.log(`🔍 환경변수 CLOUD_RUN_HSCODE_URL: ${process.env.CLOUD_RUN_HSCODE_URL}`);
+  
   if (path.startsWith('chatbot') || path.startsWith('chat')) {
     cloudRunUrl = process.env.CLOUD_RUN_CHATBOT_URL;
   } else if (path.startsWith('ocr')) {
@@ -40,16 +43,25 @@ async function handleRequest(
     cloudRunUrl = process.env.CLOUD_RUN_REPORT_URL;
   } else if (path.startsWith('hscode')) {
     cloudRunUrl = process.env.CLOUD_RUN_HSCODE_URL;
+    console.log(`✅ hscode 경로 매치! URL: ${cloudRunUrl}`);
+    // hscode 접두사 제거하여 올바른 API 경로로 전달
+    path = path.replace('hscode/', '');
+    console.log(`🔄 변경된 경로: ${path}`);
+  } else if (path.startsWith('us-convert')) {
+    cloudRunUrl = process.env.CLOUD_RUN_US_CONVERT_URL;
+    // us-convert 접두사 제거하여 올바른 API 경로로 전달
+    path = path.replace('us-convert/', '');
   } else if (path.startsWith('gateway') || path.startsWith('ai')) {
     cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL;
   } else {
     // 기본값으로 게이트웨이 사용
+    console.log(`⚠️ 기본 라우팅 사용: ${path}`);
     cloudRunUrl = process.env.CLOUD_RUN_GATEWAY_URL;
   }
 
   if (!cloudRunUrl) {
     return NextResponse.json(
-      { error: '서비스 URL이 설정되지 않았습니다.' },
+      { error: '서비스 URL이 설정되지 않았습니다.', path, service: path.split('/')[0] },
       { status: 500 }
     );
   }
@@ -86,7 +98,11 @@ async function handleRequest(
 
     console.log(`Proxying ${method} request to:`, fullUrl);
     
-    const response = await fetch(fullUrl, requestInit);
+    // Cloud Run API는 마지막 슬래시가 필요할 수 있음
+    const finalUrl = fullUrl.endsWith('/') ? fullUrl : fullUrl + '/';
+    console.log(`Final URL with slash:`, finalUrl);
+    
+    const response = await fetch(finalUrl, requestInit);
     
     const responseHeaders = new Headers();
     // CORS 헤더 설정
@@ -130,7 +146,9 @@ async function handleRequest(
     return NextResponse.json(
       { 
         error: 'Cloud Run 서비스 요청 중 오류가 발생했습니다.',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        requestedUrl: `${cloudRunUrl}/${path}`,
+        service: path.split('/')[0]
       },
       { status: 500 }
     );
