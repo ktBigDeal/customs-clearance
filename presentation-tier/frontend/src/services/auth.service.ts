@@ -54,7 +54,7 @@ class AuthService {
    * 사용자 로그인
    */
   async loginUser(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/user/login/user?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const response = await fetch(`${this.authURL}/api/v1/user/login/user?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -72,7 +72,7 @@ class AuthService {
    * 관리자 로그인
    */
   async loginAdmin(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/user/login/admin?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const response = await fetch(`${this.authURL}/api/v1/user/login/admin?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -156,7 +156,7 @@ class AuthService {
    * 회원가입
    */
   async register(userData: RegisterRequest): Promise<void> {
-    const response = await fetch(`${this.authURL}/user/register`, {
+    const response = await fetch(`${this.authURL}/api/v1/user/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -178,7 +178,7 @@ class AuthService {
     if (!token) throw new Error('로그인이 필요합니다.');
 
     // 백엔드에 GET /user/{userId} 엔드포인트가 있다고 가정
-    const response = await fetch(`${this.userURL}/user/${username}`, {
+    const response = await fetch(`${this.userURL}/api/v1/user/${username}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
