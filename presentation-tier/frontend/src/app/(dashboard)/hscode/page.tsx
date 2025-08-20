@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { logService } from '@/services/log.service';
+import { recommendHSCode } from '@/lib/api';
 
 interface HSCodeRecommendation {
   hs_code: string;
@@ -61,7 +62,7 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  private baseURL = 'http://localhost:8003/api/v1';
+  private baseURL = 'https://hscode-recommend-service-805290929724.asia-northeast3.run.app';
   
   async recommendHSCode(request: {
     query: string;
@@ -72,7 +73,7 @@ class HSCodeAPI {
     use_llm?: boolean;
     include_details?: boolean;
   }): Promise<RecommendResponse> {
-    const response = await fetch(`${this.baseURL}/recommend/`, {
+    const response = await fetch(`${this.baseURL}/recommend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
