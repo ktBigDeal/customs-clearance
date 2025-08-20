@@ -76,8 +76,8 @@ class ApiClient {
    */
   constructor() {
     this.client = axios.create({
-      /** API 서버의 기본 URL (환경변수 또는 기본값 사용) */
-      baseURL: process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1` : 'http://localhost:8080/api/v1',
+      /** API 서버의 기본 URL (Next.js 리라이트 사용) */
+      baseURL: '/api/v1',
       /** 요청 타임아웃 (100초) */
       timeout: 100000,
       /** 기본 HTTP 헤더 */
