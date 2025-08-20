@@ -1,24 +1,21 @@
 package com.customs.clearance.controller;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.customs.clearance.entity.Attachment;
 import com.customs.clearance.entity.Declaration;
+import com.customs.clearance.security.JwtTokenProvider;
 import com.customs.clearance.dto.DeclarationAdminDto;
 import com.customs.clearance.service.DeclarationService;
-import com.customs.clearance.util.DeclarationServiceUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import com.customs.clearance.dto.DeclarationStatsDto;
@@ -30,6 +27,7 @@ import com.customs.clearance.dto.DeclarationStatsDto;
 public class DeclarationController {
 
     private final DeclarationService declarationService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
     public Declaration postDeclaration(
@@ -284,6 +282,10 @@ public class DeclarationController {
         
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+        }
+
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new IllegalArgumentException("사용자 접근 거부");
         }
 
         Map<String, Object> result = new HashMap<>();
