@@ -16,40 +16,72 @@ const nextConfig = {
         hostname: '*.amazonaws.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.run.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.railway.app',
+        pathname: '/**',
+      },
     ],
   },
   async rewrites() {
-    // 개발/프로덕션 모두에서 rewrites 사용
     return [
-      // 특정 API 경로들만 백엔드로 프록시 (cloud-run 제외)
-      {
-        source: '/api/v1/:path*',
-        destination: `${process.env.BACKEND_URL || 'http://localhost:8080'}/api/v1/:path*`,
-      },
+      // Java Backend API (Railway)
       {
         source: '/api/auth/:path*',
-        destination: `${process.env.BACKEND_URL || 'http://localhost:8080'}/api/auth/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/auth/:path*`,
       },
       {
         source: '/api/admin/:path*',
-        destination: `${process.env.BACKEND_URL || 'http://localhost:8080'}/api/admin/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/admin/:path*`,
       },
-      // cloud-run 경로는 의도적으로 제외 (Next.js route.ts가 처리)
+      {
+        source: '/api/user/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/user/:path*`,
+      },
+      
+      // AI Gateway (Cloud Run)
+      {
+        source: '/api/v1/:path*',
+        destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL}/api/v1/:path*`,
+      },
+      
+      // 직접 Cloud Run 서비스 접근 (필요시)
+      {
+        source: '/api/ocr/:path*',
+        destination: `${process.env.CLOUD_RUN_OCR_URL}/:path*`,
+      },
+      {
+        source: '/api/report/:path*',
+        destination: `${process.env.CLOUD_RUN_REPORT_URL}/:path*`,
+      },
+      {
+        source: '/api/chatbot/:path*',
+        destination: `${process.env.CLOUD_RUN_CHATBOT_URL}/:path*`,
+      },
     ];
   },
   env: {
-    BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:8080',
-    API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:3000/api',
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+    // 서버사이드에서 사용할 환경변수들
+    CLOUD_RUN_GATEWAY_URL: process.env.CLOUD_RUN_GATEWAY_URL,
+    CLOUD_RUN_CHATBOT_URL: process.env.CLOUD_RUN_CHATBOT_URL,
+    CLOUD_RUN_OCR_URL: process.env.CLOUD_RUN_OCR_URL,
+    CLOUD_RUN_REPORT_URL: process.env.CLOUD_RUN_REPORT_URL,
+    HSCODE_URL: process.env.HSCODE_URL,
+    HSCODE_CONVERT_URL: process.env.HSCODE_CONVERT_URL,
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   eslint: {
-    ignoreDuringBuilds: true,  // 빌드 시 ESLint 에러 무시
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,   // TypeScript 에러도 무시 (안전장치)
+    ignoreBuildErrors: true,
   },
   poweredByHeader: false,
   reactStrictMode: true,
