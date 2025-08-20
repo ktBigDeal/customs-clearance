@@ -41,8 +41,8 @@ export interface AuthUser {
 }
 
 class AuthService {
-  // 인증 관련 (로그인/회원가입) - 직접 Railway 백엔드 호출 (Vercel 리라이트 문제 해결)
-  private authURL = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app';  
+  // 인증 관련 (로그인/회원가입) - Next.js 리라이트 사용
+  private authURL = '/api/v1/user';  
 
   // 사용자 관리 (프로필 조회/수정) - Next.js 리라이트 사용
   private userURL = '/api/v1/user';
@@ -54,7 +54,7 @@ class AuthService {
    * 사용자 로그인
    */
   async loginUser(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/user/login/user?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const response = await fetch(`${this.authURL}/login/user?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -72,7 +72,7 @@ class AuthService {
    * 관리자 로그인
    */
   async loginAdmin(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/user/login/admin?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const response = await fetch(`${this.authURL}/login/admin?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
