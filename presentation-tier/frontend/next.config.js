@@ -29,48 +29,58 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    return [
+    const rewrites = [
       // Java Backend API (Railway)
       {
         source: '/api/auth/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/auth/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/auth/:path*`,
       },
       {
         source: '/api/admin/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/admin/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/admin/:path*`,
       },
       {
         source: '/api/user/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/user/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/user/:path*`,
       },
       
       // AI Gateway (Cloud Run)
       {
         source: '/api/v1/:path*',
-        destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL}/api/v1/:path*`,
-      },
-      
-      // 직접 Cloud Run 서비스 접근 (필요시)
-      {
-        source: '/api/ocr/:path*',
-        destination: `${process.env.CLOUD_RUN_OCR_URL}/:path*`,
-      },
-      {
-        source: '/api/report/:path*',
-        destination: `${process.env.CLOUD_RUN_REPORT_URL}/:path*`,
-      },
-      {
-        source: '/api/chatbot/:path*',
-        destination: `${process.env.CLOUD_RUN_CHATBOT_URL}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL || 'https://ai-gateway-service-805290929724.asia-northeast3.run.app'}/api/v1/:path*`,
       },
     ];
+
+    // 선택적으로 Cloud Run 서비스 추가 (환경변수가 설정된 경우에만)
+    if (process.env.CLOUD_RUN_OCR_URL) {
+      rewrites.push({
+        source: '/api/ocr/:path*',
+        destination: `${process.env.CLOUD_RUN_OCR_URL}/:path*`,
+      });
+    }
+
+    if (process.env.CLOUD_RUN_REPORT_URL) {
+      rewrites.push({
+        source: '/api/report/:path*',
+        destination: `${process.env.CLOUD_RUN_REPORT_URL}/:path*`,
+      });
+    }
+
+    if (process.env.CLOUD_RUN_CHATBOT_URL) {
+      rewrites.push({
+        source: '/api/chatbot/:path*',
+        destination: `${process.env.CLOUD_RUN_CHATBOT_URL}/:path*`,
+      });
+    }
+
+    return rewrites;
   },
   env: {
-    // 서버사이드에서 사용할 환경변수들
-    CLOUD_RUN_GATEWAY_URL: process.env.CLOUD_RUN_GATEWAY_URL,
-    CLOUD_RUN_CHATBOT_URL: process.env.CLOUD_RUN_CHATBOT_URL,
+    // 서버사이드에서 사용할 환경변수들 (안전한 기본값 포함)
+    CLOUD_RUN_GATEWAY_URL: process.env.CLOUD_RUN_GATEWAY_URL || process.env.NEXT_PUBLIC_AI_GATEWAY_URL,
     CLOUD_RUN_OCR_URL: process.env.CLOUD_RUN_OCR_URL,
     CLOUD_RUN_REPORT_URL: process.env.CLOUD_RUN_REPORT_URL,
+    CLOUD_RUN_CHATBOT_URL: process.env.CLOUD_RUN_CHATBOT_URL,
     HSCODE_URL: process.env.HSCODE_URL,
     HSCODE_CONVERT_URL: process.env.HSCODE_CONVERT_URL,
   },

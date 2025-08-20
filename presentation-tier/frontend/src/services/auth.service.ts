@@ -41,8 +41,8 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private authURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user`;
-  private userURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user`;
+  private authURL = '/api/auth';  
+  private userURL = '/api/user';
 
   /**
    * 회원가입
@@ -64,21 +64,20 @@ class AuthService {
    * 로그인
    */
   async login(username: string, password: string, role: string): Promise<string> {
-    const response = await fetch(
-      `${this.authURL}/login/${role.toLowerCase()}?username=${encodeURIComponent(
-        username
-      )}&password=${encodeURIComponent(password)}`,
-      { method: 'POST' }
-    );
+    const response = await fetch(`${this.authURL}/login/${role.toLowerCase()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
 
-    if (!response.ok) {
-      throw new Error('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
-    }
-
-    const token = await response.text();
-    this.setToken(token);
-    return token;
+  if (!response.ok) {
+    throw new Error('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
   }
+
+  const token = await response.text();
+  this.setToken(token);
+  return token;
+}
 
   /**
    * 사용자 프로필 조회
