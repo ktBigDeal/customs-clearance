@@ -34,24 +34,24 @@ const nextConfig = {
     console.log('🔍 Environment Variables Check:');
     console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app/api/v1';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app';
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
       // 사용자 인증 API (백엔드: /user)
       {
         source: '/api/v1/user/:path*',
-        destination: `${apiUrl}/user/:path*`,
+        destination: `${apiUrl}/api/v1/user/:path*`,
       },
       // 신고서 API (백엔드: /declaration)
       {
         source: '/api/v1/declaration/:path*',
-        destination: `${apiUrl}/declaration/:path*`,
+        destination: `${apiUrl}/api/v1/declaration/:path*`,
       },
       // 관리자 API (백엔드: /api/v1/admin)
       {
         source: '/api/v1/admin/:path*',
-        destination: `${apiUrl}/admin/:path*`,
+        destination: `${apiUrl}/api/v1/admin/:path*`,
       },
       // AI Gateway (Cloud Run)
       {
