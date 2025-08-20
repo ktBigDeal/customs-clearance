@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal dependencies
+RUN pip install fastapi uvicorn
+
+# Copy test app
+COPY test_simple_app.py ./
+
+# Expose port
+EXPOSE 8080
+
+# Run simple app
+CMD ["python", "test_simple_app.py"]

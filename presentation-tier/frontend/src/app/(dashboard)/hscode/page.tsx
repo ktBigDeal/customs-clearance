@@ -4,12 +4,8 @@ import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { 
-  recommendHSCode, 
-  convertToUSHSCode,
-  HSCodeRecommendRequest,
-  HSCodeRecommendResponse
-} from '@/lib/api';
+import { logService } from '@/services/log.service';
+
 interface HSCodeRecommendation {
   hs_code: string;
   name_kr: string;
@@ -31,6 +27,20 @@ interface HSCodeRecommendation {
       score: number;
       reason: string;
     };
+    llm_direct?: {
+      confidence: number;
+      reason: string;
+    };
+    search_only?: {
+      confidence: number;
+      reason: string;
+    };
+    enhanced_search?: {
+      analysis_type: string;
+      confidence: number;
+      reason: string;
+      data_quality: string;
+    };
   };
 }
 
@@ -51,8 +61,8 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  private baseURL = '/api/cloud-run';
-
+  private baseURL = 'http://localhost:8003/api/v1';
+  
   async recommendHSCode(request: {
     query: string;
     material?: string;
@@ -62,8 +72,7 @@ class HSCodeAPI {
     use_llm?: boolean;
     include_details?: boolean;
   }): Promise<RecommendResponse> {
-    // Cloud Run의 올바른 API 경로로 요청 (마지막 슬래시 추가)
-    const response = await fetch(`${this.baseURL}/hscode/api/v1/recommend/`, {
+    const response = await fetch(`${this.baseURL}/recommend/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,14 +81,12 @@ class HSCodeAPI {
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     return await response.json();
   }
 }
-
 
 export default function HSCodePage() {
   const [query, setQuery] = useState('');
@@ -107,6 +114,7 @@ export default function HSCodePage() {
   const handleRecommend = useCallback(async () => {
     if (!query.trim()) return;
 
+    const startTime = Date.now();
     setLoading(true);
     try {
       const response = await hsCodeAPI.recommendHSCode({
@@ -135,6 +143,14 @@ export default function HSCodePage() {
         setTimeout(() => {
           resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+
+        // HS코드 추천 성공 로그 기록
+        await logService.logHSCodeRecommendation(
+          newQuery,
+          response.recommendations.length,
+          1, // TODO: 실제 사용자 ID로 변경
+          'test_user' // TODO: 실제 사용자명으로 변경
+        );
       }
     } catch (error) {
       console.error('HS 코드 추천 실패:', error);
@@ -143,12 +159,21 @@ export default function HSCodePage() {
       let errorMessage = 'HS 코드 추천 중 오류가 발생했습니다.';
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'Google Cloud Run 서비스에 연결할 수 없습니다. 서비스가 정상 운영 중인지 확인해주세요.';
+        errorMessage = 'API 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.\n\n서버 실행: cd application-tier/models/model-hscode && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8003';
       } else if (error instanceof Error) {
         errorMessage = `오류: ${error.message}`;
       }
       
       alert(errorMessage);
+
+      // HS코드 추천 실패 로그 기록
+      await logService.logUserActivity({
+        action: `HS코드 추천 실패 (검색어: "${query.trim()}")`,
+        source: 'HSCODE',
+        userId: 1, // TODO: 실제 사용자 ID로 변경
+        userName: 'test_user', // TODO: 실제 사용자명으로 변경
+        details: `에러: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      });
     } finally {
       setLoading(false);
     }
@@ -394,48 +419,96 @@ export default function HSCodePage() {
                             </div>
                           </div>
                           
-                          {/* AI 분석 근거 - 재순위 분석만 표시 */}
-                          {rec.llm_analysis && rec.llm_analysis.llm_rerank && (
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                  </svg>
-                                  <span className="text-sm font-medium text-blue-800">AI 분석 근거</span>
+                          {/* AI 분석 근거 - 다양한 분석 유형 지원 */}
+                          {rec.llm_analysis && (
+                            <div className="mt-4 space-y-2">
+                              {/* LLM 재순위 분석 */}
+                              {rec.llm_analysis.llm_rerank && (
+                                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                      </svg>
+                                      <span className="text-sm font-medium text-blue-800">
+                                        AI 재순위 분석
+                                        {rec.llm_analysis.llm_rerank.reason?.includes('유사매칭') && (
+                                          <span className="ml-2 px-2 py-1 text-xs bg-blue-200 text-blue-800 rounded">유사매칭</span>
+                                        )}
+                                        {rec.llm_analysis.llm_rerank.reason?.includes('광범위매칭') && (
+                                          <span className="ml-2 px-2 py-1 text-xs bg-indigo-200 text-indigo-800 rounded">광범위매칭</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-blue-600">
+                                      점수: {rec.llm_analysis.llm_rerank.score}/10
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-blue-700">{rec.llm_analysis.llm_rerank.reason}</p>
                                 </div>
-                                <span className="text-xs text-blue-600">
-                                  점수: {rec.llm_analysis.llm_rerank.score}/10
-                                </span>
-                              </div>
-                              <p className="text-sm text-blue-700">{rec.llm_analysis.llm_rerank.reason}</p>
+                              )}
+                              
+                              {/* LLM 직접 제안 */}
+                              {rec.llm_analysis.llm_direct && (
+                                <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                      </svg>
+                                      <span className="text-sm font-medium text-green-800">AI 직접 제안</span>
+                                    </div>
+                                    <span className="text-xs text-green-600">
+                                      확신도: {rec.llm_analysis.llm_direct.confidence}/10
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-green-700">{rec.llm_analysis.llm_direct.reason}</p>
+                                </div>
+                              )}
+                              
+                              {/* 검색엔진 기반 폴백 (기존) */}
+                              {rec.llm_analysis.search_only && (
+                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                      </svg>
+                                      <span className="text-sm font-medium text-gray-800">검색엔진 기반</span>
+                                    </div>
+                                    <span className="text-xs text-gray-600">
+                                      점수: {rec.llm_analysis.search_only.confidence}/10
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700">{rec.llm_analysis.search_only.reason}</p>
+                                </div>
+                              )}
+
+                              {/* 개선된 검색엔진 분석 (NEW!) */}
+                              {rec.llm_analysis.enhanced_search && (
+                                <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                      </svg>
+                                      <span className="text-sm font-medium text-purple-800">
+                                        {rec.llm_analysis.enhanced_search.analysis_type}
+                                      </span>
+                                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                                        품질: {rec.llm_analysis.enhanced_search.data_quality}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-purple-600">
+                                      신뢰도: {rec.llm_analysis.enhanced_search.confidence}/10
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-purple-700">{rec.llm_analysis.enhanced_search.reason}</p>
+                                </div>
+                              )}
                             </div>
                           )}
                           
-                          {/* AI 분석이 없는 경우 디버깅 정보 표시 */}
-                          {(!rec.llm_analysis || !rec.llm_analysis.llm_rerank) && (
-                            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-                                </svg>
-                                <span className="text-sm font-medium text-yellow-800">AI 분석 정보 없음</span>
-                              </div>
-                              <p className="text-xs text-yellow-700">
-                                LLM 분석 데이터가 포함되지 않았습니다. use_llm=true로 요청했는지 확인해주세요.
-                              </p>
-                              <details className="mt-2">
-                                <summary className="text-xs text-yellow-600 cursor-pointer">디버그 정보</summary>
-                                <pre className="text-xs mt-1 p-2 bg-yellow-100 rounded overflow-auto">
-                                  {JSON.stringify({
-                                    llm_analysis: rec.llm_analysis,
-                                    data_source: rec.data_source,
-                                    confidence: rec.confidence
-                                  }, null, 2)}
-                                </pre>
-                              </details>
-                            </div>
-                          )}
                           
                           {(rec.keyword_score || rec.semantic_score || rec.hybrid_score) && (
                             <div className="mt-3 flex space-x-4 text-xs text-gray-500">

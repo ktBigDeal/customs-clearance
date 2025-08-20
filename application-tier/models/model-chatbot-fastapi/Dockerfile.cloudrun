@@ -1,0 +1,53 @@
+# Cloud Run 배포용 ChatBot FastAPI Dockerfile
+# RAG 기반 텍스트 챗봇 + Cloud SQL PostgreSQL 연결
+
+FROM python:3.11-slim
+
+# Cloud Run 환경변수 지원
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 시스템 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 기본 도구
+    curl \
+    ca-certificates \
+    build-essential \
+    # PostgreSQL 클라이언트 라이브러리 (Cloud SQL 연결용)
+    libpq5 \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# uv 설치
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH"
+
+# 프로젝트 파일 복사
+COPY pyproject.toml uv.lock* ./
+COPY . .
+
+# uv를 사용하여 의존성 설치 (루트 권한으로)
+RUN uv sync --frozen --no-dev
+
+# 환경 변수 설정
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 파일 권한 설정 (루트 사용자 유지)
+RUN chmod +x /root/.local/bin/uv || true
+
+# 포트 노출 (Cloud Run uses PORT env var)
+EXPOSE 8080
+
+# 헬스체크 설정
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
+
+# 애플리케이션 실행 (Cloud SQL 연결)
+CMD ["/root/.local/bin/uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

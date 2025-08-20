@@ -156,6 +156,16 @@ client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential
 executor = ThreadPoolExecutor()
 
 # --- API 엔드포인트 ---
+@app.get("/")
+async def root():
+    """루트 엔드포인트"""
+    return {"message": "OCR Service is running", "service": "model-ocr"}
+
+@app.get("/health")
+async def health():
+    """헬스체크 엔드포인트"""
+    return {"status": "healthy", "service": "model-ocr"}
+
 @app.post("/ocr/")
 async def analyze_docs(
     invoice_file: Optional[UploadFile] = File(None),

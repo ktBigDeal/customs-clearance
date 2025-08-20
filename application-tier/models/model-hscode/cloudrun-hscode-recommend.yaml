@@ -4,11 +4,13 @@ metadata:
   name: hscode-recommend-service
   annotations:
     run.googleapis.com/ingress: all
-    run.googleapis.com/execution-environment: gen2
+    # run.googleapis.com/execution-environment 제거!
 spec:
   template:
     metadata:
       annotations:
+        # 여기로 이동!
+        run.googleapis.com/execution-environment: gen2
         autoscaling.knative.dev/maxScale: "10"
         autoscaling.knative.dev/minScale: "1"
         run.googleapis.com/cpu-throttling: "false"
@@ -22,12 +24,12 @@ spec:
         image: asia-northeast3-docker.pkg.dev/customs-clearance-system/docker-repo/hscode-recommender:latest
         ports:
         - name: http1
-          containerPort: 8003
+          containerPort: 8080
         env:
-        - name: PORT
-          value: "8003"
         - name: ENVIRONMENT
           value: "production"
+        - name: BUILD_VERSION
+          value: "v3"
         - name: SERVICE_NAME
           value: "HS Code Recommendation Service"
         - name: UV_SYSTEM_PYTHON
@@ -41,7 +43,7 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              key: OPENAI_API_KEY
+              key: latest
               name: openai-api-key
         resources:
           limits:
@@ -49,20 +51,6 @@ spec:
             memory: 2Gi
         command: ["/bin/sh"]
         args: ["-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8003
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8003
-          initialDelaySeconds: 15
-          periodSeconds: 5
-          timeoutSeconds: 5
   traffic:
   - percent: 100
     latestRevision: true

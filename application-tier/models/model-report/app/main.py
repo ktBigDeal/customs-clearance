@@ -28,6 +28,16 @@ load_dotenv(dotenv_path="../.env")
 
 app = FastAPI()
 
+@app.get("/")
+async def root():
+    """루트 엔드포인트"""
+    return {"message": "Report Service is running", "service": "model-report"}
+
+@app.get("/health")
+async def health():
+    """헬스체크 엔드포인트"""
+    return {"status": "healthy", "service": "model-report"}
+
 base_path = Path(__file__).parent.parent
 
 

@@ -14,9 +14,14 @@ import pandas as pd
 
 # 프로젝트 루트 경로 추가
 project_root = Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-sys.path.append(str(project_root / "src"))
+src_path = project_root / "src"
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(src_path))
 
+# src 디렉토리에서 직접 import
+import sys
+import os
+sys.path.append('/app/src')
 from hs_recommender import HSCodeRecommender
 from app.core.config import Settings
 

@@ -20,6 +20,7 @@ RUN uv sync --no-dev --frozen
 
 # Copy only necessary application files for HS Code recommendation
 COPY app/ ./app/
+COPY src/ ./src/
 COPY main.py ./
 COPY config.py ./
 
@@ -30,18 +31,17 @@ COPY cache/ ./cache/
 # Create cache directory if it doesn't exist
 RUN mkdir -p cache/hs_code_cache
 
-# Set environment variables
+# Set environment variables (PORT 제거!)
 ENV PYTHONPATH=/app
 ENV UV_SYSTEM_PYTHON=1
 ENV ENVIRONMENT=production
-ENV PORT=8003
 
-# Expose port
-EXPOSE 8003
+# Expose port (8080으로 변경)
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8003/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Command to run the HS Code recommendation application  
-CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port 8003"]
+# Command to run the application
+CMD ["sh", "-c", "uv run uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

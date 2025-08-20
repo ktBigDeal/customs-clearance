@@ -41,17 +41,16 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private baseURL = '/api/v1/user';
+  private authURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth`;
+  private userURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user`;
 
   /**
    * 회원가입
    */
   async register(userData: RegisterRequest): Promise<void> {
-    const response = await fetch(`${this.baseURL}/register`, {
+    const response = await fetch(`${this.authURL}/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
     });
 
@@ -66,10 +65,10 @@ class AuthService {
    */
   async login(username: string, password: string, role: string): Promise<string> {
     const response = await fetch(
-      `${this.baseURL}/login/${role.toLowerCase()}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-      {
-        method: 'POST',
-      }
+      `${this.authURL}/login/${role.toLowerCase()}?username=${encodeURIComponent(
+        username
+      )}&password=${encodeURIComponent(password)}`,
+      { method: 'POST' }
     );
 
     if (!response.ok) {
@@ -86,14 +85,10 @@ class AuthService {
    */
   async getUserProfile(username: string): Promise<UserResponse> {
     const token = this.getToken();
-    if (!token) {
-      throw new Error('로그인이 필요합니다.');
-    }
+    if (!token) throw new Error('로그인이 필요합니다.');
 
-    const response = await fetch(`${this.baseURL}/${username}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const response = await fetch(`${this.userURL}/${username}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!response.ok) {
@@ -112,15 +107,13 @@ class AuthService {
    */
   async updateUser(username: string, userData: UpdateUserRequest): Promise<UserResponse> {
     const token = this.getToken();
-    if (!token) {
-      throw new Error('로그인이 필요합니다.');
-    }
+    if (!token) throw new Error('로그인이 필요합니다.');
 
-    const response = await fetch(`${this.baseURL}/${username}`, {
+    const response = await fetch(`${this.userURL}/${username}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(userData),
     });
