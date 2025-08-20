@@ -76,8 +76,8 @@ class ApiClient {
    */
   constructor() {
     this.client = axios.create({
-      /** API 서버의 기본 URL (Next.js 리라이트 사용) */
-      baseURL: '/api/v1',
+      /** API 서버의 기본 URL (직접 Railway 백엔드 호출) */
+      baseURL: 'https://customs-backend-java.up.railway.app/api/v1',
       /** 요청 타임아웃 (100초) */
       timeout: 100000,
       /** 기본 HTTP 헤더 */
