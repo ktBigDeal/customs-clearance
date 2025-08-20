@@ -38,14 +38,14 @@ const nextConfig = {
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
-      // Java Backend API (Railway) - 수정된 부분
-      {
-        source: '/api/user/:path*',
-        destination: `${apiUrl}/api/v1/user/:path*`, // /api/v1 추가
-      },
-      // AI Gateway (Cloud Run) - 그대로 유지
+      // Java Backend API (Railway) - 모든 /api/v1 요청을 Railway로
       {
         source: '/api/v1/:path*',
+        destination: `${apiUrl}/api/v1/:path*`,
+      },
+      // AI Gateway (Cloud Run) - 특정 AI 서비스들만
+      {
+        source: '/api/ai/:path*',
         destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL || 'https://ai-gateway-service-805290929724.asia-northeast3.run.app'}/api/v1/:path*`,
       },
     ];

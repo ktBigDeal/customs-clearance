@@ -42,13 +42,13 @@ export interface AuthUser {
 
 class AuthService {
   // 인증 관련 (로그인/회원가입) - Next.js 리라이트 사용
-  private authURL = '/api/user';  
+  private authURL = '/api/v1/user';  
 
   // 사용자 관리 (프로필 조회/수정)
   private userURL = this.authURL;
   
   // 관리자 기능
-  private adminURL = '/api/user/admin';  // 관리자 전용 기능
+  private adminURL = '/api/v1/user/admin';  // 관리자 전용 기능
 
   /**
    * 사용자 로그인
