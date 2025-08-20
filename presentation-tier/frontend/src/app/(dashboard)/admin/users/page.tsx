@@ -43,9 +43,7 @@ export default function UsersPage() {
       console.log('Token:', authService.getToken());
 
       const response = await fetch(`${API_BASE}/api/v1/user/users`, {
-        headers: {
-          'Authorization': `Bearer ${authService.getToken()}`,
-        },
+        headers: { Authorization: `Bearer ${authService.getToken()}` },
       });
       
       if (response.ok) {
