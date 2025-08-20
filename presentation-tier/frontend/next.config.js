@@ -34,7 +34,7 @@ const nextConfig = {
     console.log('🔍 Environment Variables Check:');
     console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app/api/v1';
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
@@ -51,7 +51,7 @@ const nextConfig = {
       // 관리자 API (백엔드: /api/v1/admin)
       {
         source: '/api/v1/admin/:path*',
-        destination: `${apiUrl}/api/v1/admin/:path*`,
+        destination: `${apiUrl}/admin/:path*`,
       },
       // AI Gateway (Cloud Run)
       {
