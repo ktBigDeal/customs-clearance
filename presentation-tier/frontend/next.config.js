@@ -33,20 +33,17 @@ const nextConfig = {
     // 🔧 디버깅 코드 추가 (여기에 넣으세요)
     console.log('🔍 Environment Variables Check:');
     console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-    console.log('NEXT_PUBLIC_AI_GATEWAY_URL:', process.env.NEXT_PUBLIC_AI_GATEWAY_URL);
-    console.log('NODE_ENV:', process.env.NODE_ENV);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app';
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
-      // Java Backend API (Railway)
-   
+      // Java Backend API (Railway) - 수정된 부분
       {
         source: '/api/user/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/user/:path*`, // /api/user 제거
+        destination: `${apiUrl}/api/v1/user/:path*`, // /api/v1 추가
       },
-      // AI Gateway (Cloud Run)
+      // AI Gateway (Cloud Run) - 그대로 유지
       {
         source: '/api/v1/:path*',
         destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL || 'https://ai-gateway-service-805290929724.asia-northeast3.run.app'}/api/v1/:path*`,
