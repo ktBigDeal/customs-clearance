@@ -132,7 +132,7 @@ public class DeclarationService {
         MultipartFile billOfLadingFile
     ) throws IOException {
 
-        String fastApiUrl = "http://localhost:8000/api/v1/pipeline/process-complete-workflow";
+        String fastApiUrl = "https://ai-gateway-service-805290929724.asia-northeast3.run.app/api/v1/pipeline/process-complete-workflow";
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("declaration_type", declarationType.toLowerCase());
