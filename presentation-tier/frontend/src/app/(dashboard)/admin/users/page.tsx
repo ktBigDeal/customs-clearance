@@ -149,7 +149,7 @@ export default function UsersPage() {
     
     try {
       const userId = parseInt(deleteModal.user.id, 10);
-      const response = await fetch(`http://localhost:8080/api/v1/user/${userId}`, {
+      const response = await fetch(`/api/v1/user/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,
