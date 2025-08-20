@@ -62,7 +62,8 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  private baseURL = 'https://hscode-recommend-service-805290929724.asia-northeast3.run.app/';
+  // 올바른 백엔드 API 기본 경로로 수정
+  private baseURL = 'https://hscode-recommend-service-805290929724.asia-northeast3.run.app/api/v1';
   
   async recommendHSCode(request: {
     query: string;
@@ -73,7 +74,8 @@ class HSCodeAPI {
     use_llm?: boolean;
     include_details?: boolean;
   }): Promise<RecommendResponse> {
-    const response = await fetch(`${this.baseURL}/recommend`, {
+    // 올바른 엔드포인트 `/recommend/`로 요청
+    const response = await fetch(`${this.baseURL}/recommend/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -88,7 +90,6 @@ class HSCodeAPI {
     return await response.json();
   }
 }
-
 export default function HSCodePage() {
   const [query, setQuery] = useState('');
   const [material, setMaterial] = useState('');
