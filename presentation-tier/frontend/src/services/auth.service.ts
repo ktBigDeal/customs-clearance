@@ -42,8 +42,8 @@ export interface AuthUser {
 
 class AuthService {
   // 인증 관련 (로그인/회원가입)
-  private authURL = '/api/user';  // 실제로는 /user 경로지만 프록시를 통해 접근
-  
+  private authURL = 'https://customs-backend-java.up.railway.app/user';  
+
   // 사용자 관리 (프로필 조회/수정)
   private userURL = '/api/user';
   
