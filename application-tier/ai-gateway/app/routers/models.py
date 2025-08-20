@@ -7,6 +7,7 @@ AI 모델 관리 엔드포인트
 
 from typing import List, Optional, Dict, Any
 import httpx
+import os
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query, UploadFile, File
 
@@ -29,7 +30,7 @@ model_registry: Dict[str, ModelInfo] = {
         status=ModelStatus.READY,
         description="Azure Document Intelligence를 사용한 관세 문서 OCR 처리 (Invoice, Packing List, Bill of Lading)",
         metadata={
-            "service_url": "http://localhost:8001",
+            "service_url": os.getenv("MODEL_OCR_URL", "http://localhost:8001"),
             "endpoint": "/ocr/",
             "supported_documents": ["invoice", "packing_list", "bill_of_lading"],
             "supported_formats": ["pdf", "jpg", "png", "tiff"],
@@ -46,7 +47,7 @@ model_registry: Dict[str, ModelInfo] = {
         status=ModelStatus.READY,
         description="LangChain과 OpenAI GPT를 사용한 한국 관세청 규정 기반 수입/수출 신고서 자동 생성",
         metadata={
-            "service_url": "http://localhost:8002",
+            "service_url": os.getenv("MODEL_REPORT_URL", "http://localhost:8002"),
             "endpoints": {
                 "import": "/generate-customs-declaration/import",
                 "export": "/generate-customs-declaration/export"
@@ -66,7 +67,7 @@ model_registry: Dict[str, ModelInfo] = {
         status=ModelStatus.READY,
         description="HS Code 변환 및 조회 서비스",
         metadata={
-            "service_url": "http://localhost:8006",
+            "service_url": os.getenv("MODEL_HSCODE_URL", "http://localhost:8006"),
             "endpoints": {
                 "convert": "/convert",
                 "lookup": "/lookup"

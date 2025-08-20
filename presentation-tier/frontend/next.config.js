@@ -40,7 +40,7 @@ const nextConfig = {
   env: {
     BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:8080',
     API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:3000/api',
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',

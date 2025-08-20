@@ -73,7 +73,7 @@ async def check_dependencies() -> Dict[str, Any]:
         import httpx
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{settings.SPRING_BOOT_BASE_URL}/health",
+                f"{settings.SPRING_BOOT_BASE_URL}/api/v1/actuator/health",
                 timeout=5.0
             )
             checks["spring_boot"] = {

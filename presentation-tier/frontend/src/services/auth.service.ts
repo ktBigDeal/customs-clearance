@@ -41,7 +41,7 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private authURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth`;
+  private authURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user`;
   private userURL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/user`;
 
   /**

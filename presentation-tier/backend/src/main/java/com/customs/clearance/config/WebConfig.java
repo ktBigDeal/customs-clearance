@@ -33,7 +33,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(
                     "https://customs-backend-java.up.railway.app",
-                    "https://customs-clearance-s3ro.vercel.app"
+                    "https://customs-clearance-s3ro.vercel.app",
+                    "http://localhost:3000",
+                    "http://localhost:8080",
+                    "https://vercel.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
