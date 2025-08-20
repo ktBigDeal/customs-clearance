@@ -38,12 +38,22 @@ const nextConfig = {
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
-      // Java Backend API (Railway) - 모든 /api/v1 요청을 Railway로
+      // 사용자 인증 API (백엔드: /user)
       {
-        source: '/api/v1/:path*',
-        destination: `${apiUrl}/api/v1/:path*`,
+        source: '/api/v1/user/:path*',
+        destination: `${apiUrl}/user/:path*`,
       },
-      // AI Gateway (Cloud Run) - 특정 AI 서비스들만
+      // 신고서 API (백엔드: /declaration)
+      {
+        source: '/api/v1/declaration/:path*',
+        destination: `${apiUrl}/declaration/:path*`,
+      },
+      // 관리자 API (백엔드: /api/v1/admin)
+      {
+        source: '/api/v1/admin/:path*',
+        destination: `${apiUrl}/api/v1/admin/:path*`,
+      },
+      // AI Gateway (Cloud Run)
       {
         source: '/api/ai/:path*',
         destination: `${process.env.NEXT_PUBLIC_AI_GATEWAY_URL || 'https://ai-gateway-service-805290929724.asia-northeast3.run.app'}/api/v1/:path*`,

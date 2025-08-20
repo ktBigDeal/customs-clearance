@@ -99,7 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         // 짧은 지연 후 리다이렉션
         setTimeout(() => {
-          if (currentUser.role === 'ADMIN') {
+          if (currentUser.role.toUpperCase() === 'ADMIN') {
             console.log('🔄 관리자 대시보드로 리다이렉션...');
             router.replace('/admin/dashboard');
           } else {
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
   return (
     <AuthContext.Provider value={{

@@ -28,10 +28,10 @@ export function ProtectedRoute({
         return;
       }
 
-      if (requiredRole && user.role !== requiredRole) {
+      if (requiredRole && user.role.toUpperCase() !== requiredRole.toUpperCase()) {
         // 권한이 부족한 사용자
         console.log(`User role ${user.role} doesn't match required role ${requiredRole}`);
-        if (user.role === 'ADMIN') {
+        if (user.role.toUpperCase() === 'ADMIN') {
           router.replace('/admin/dashboard');
         } else {
           router.replace('/dashboard');
