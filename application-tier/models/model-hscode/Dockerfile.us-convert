@@ -25,17 +25,17 @@ COPY config.py ./
 # Copy essential data files for US converter
 COPY us_tariff_table_20250714.xlsx ./
 
+# Copy Korean recommendation system cache data and source data
+COPY cache/ ./cache/
+COPY data/ ./data/
+
 # Set environment variables
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/src
 ENV UV_SYSTEM_PYTHON=1
 ENV ENVIRONMENT=production
 
 # Expose port (Cloud Run will set PORT automatically)
-EXPOSE 8006
-
-# Health check (use PORT from environment)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-8006}/health || exit 1
+EXPOSE 8080
 
 # Command to run the US converter application (let Cloud Run set PORT)
-CMD ["sh", "-c", "uv run uvicorn src.us_main:app --host 0.0.0.0 --port ${PORT:-8006}"]
+CMD ["uv", "run", "uvicorn", "src.us_main:app", "--host", "0.0.0.0", "--port", "8080"]

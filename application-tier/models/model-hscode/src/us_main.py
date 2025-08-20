@@ -377,8 +377,8 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     
-    # .env 파일에서 포트 설정 로드 (기본값 8006)
-    port = int(os.getenv("PORT", 8006))
+    # .env 파일에서 포트 설정 로드 (기본값 8080)
+    port = int(os.getenv("PORT", 8080))
     
     print("HS Code Converter API 서버 시작")
     print(f"API 문서: http://localhost:{port}/docs")

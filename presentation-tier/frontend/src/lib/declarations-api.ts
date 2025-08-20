@@ -127,7 +127,12 @@ export class DeclarationsApi {
 
   /**사용자 신고서 목록 */
   async listByUser(): Promise<DeclarationResponseDto[]> {
-    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user`);
+    // 현재 로그인한 사용자의 ID를 localStorage에서 가져오기
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userId = user?.id || 1; // 기본값 1 (테스트용)
+    
+    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user/${userId}`);
   }
 
   /** 사용자 신고서 목록(상태 필터) */
