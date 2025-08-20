@@ -30,6 +30,15 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    // 🔧 디버깅 코드 추가 (여기에 넣으세요)
+    console.log('🔍 Environment Variables Check:');
+    console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    console.log('NEXT_PUBLIC_AI_GATEWAY_URL:', process.env.NEXT_PUBLIC_AI_GATEWAY_URL);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app';
+    console.log('🎯 Final API URL:', apiUrl);
+    
     const rewrites = [
       // Java Backend API (Railway)
    
@@ -44,6 +53,8 @@ const nextConfig = {
       },
     ];
 
+    console.log('📋 Generated Rewrites:', JSON.stringify(rewrites, null, 2));
+    
     // 선택적으로 Cloud Run 서비스 추가 (환경변수가 설정된 경우에만)
     if (process.env.CLOUD_RUN_OCR_URL) {
       rewrites.push({
