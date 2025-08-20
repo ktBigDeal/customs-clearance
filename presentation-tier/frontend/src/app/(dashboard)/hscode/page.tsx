@@ -62,7 +62,7 @@ interface RecommendResponse {
 }
 
 class HSCodeAPI {
-  private baseURL = 'https://hscode-recommend-service-805290929724.asia-northeast3.run.app';
+  private baseURL = 'https://hscode-recommend-service-805290929724.asia-northeast3.run.app/';
   
   async recommendHSCode(request: {
     query: string;
