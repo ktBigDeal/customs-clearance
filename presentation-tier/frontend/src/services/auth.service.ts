@@ -41,11 +41,11 @@ export interface AuthUser {
 }
 
 class AuthService {
-  // 인증 관련 (로그인/회원가입)
-  private authURL = 'https://customs-backend-java.up.railway.app/user';  
+  // 인증 관련 (로그인/회원가입) - Next.js 리라이트 사용
+  private authURL = '/api/user';  
 
   // 사용자 관리 (프로필 조회/수정)
-  private userURL = '/api/user';
+  private userURL = this.authURL;
   
   // 관리자 기능
   private adminURL = '/api/user/admin';  // 관리자 전용 기능
@@ -54,10 +54,9 @@ class AuthService {
    * 사용자 로그인
    */
   async loginUser(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/login/user`, {
+    const response = await fetch(`${this.authURL}/login/user?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
     });
 
     if (!response.ok) {
@@ -73,10 +72,9 @@ class AuthService {
    * 관리자 로그인
    */
   async loginAdmin(username: string, password: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/login/admin`, {
+    const response = await fetch(`${this.authURL}/login/admin?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
     });
 
     if (!response.ok) {
