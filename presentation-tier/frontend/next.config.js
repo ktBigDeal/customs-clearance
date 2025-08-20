@@ -21,6 +21,7 @@ const nextConfig = {
         hostname: '*.run.app',
         pathname: '/**',
       },
+
       {
         protocol: 'https',
         hostname: '*.railway.app',
@@ -31,19 +32,11 @@ const nextConfig = {
   async rewrites() {
     const rewrites = [
       // Java Backend API (Railway)
-      {
-        source: '/api/auth/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/auth/:path*`,
-      },
-      {
-        source: '/api/admin/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/admin/:path*`,
-      },
+   
       {
         source: '/api/user/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/api/user/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://customs-backend-java.up.railway.app'}/user/:path*`, // /api/user 제거
       },
-      
       // AI Gateway (Cloud Run)
       {
         source: '/api/v1/:path*',

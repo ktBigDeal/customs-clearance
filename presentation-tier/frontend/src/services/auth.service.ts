@@ -41,53 +41,79 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private authURL = '/api/auth';  
+  // 인증 관련 (로그인/회원가입)
+  private authURL = '/api/user';  // 실제로는 /user 경로지만 프록시를 통해 접근
+  
+  // 사용자 관리 (프로필 조회/수정)
   private userURL = '/api/user';
+  
+  // 관리자 기능
+  private adminURL = '/api/user/admin';  // 관리자 전용 기능
 
   /**
-   * 회원가입
+   * 사용자 로그인
    */
-  async register(userData: RegisterRequest): Promise<void> {
-    const response = await fetch(`${this.authURL}/register`, {
+  async loginUser(username: string, password: string): Promise<string> {
+    const response = await fetch(`${this.authURL}/login/user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({ username, password }),
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(errorData || '회원가입에 실패했습니다.');
+      throw new Error('사용자 로그인에 실패했습니다.');
+    }
+
+    const token = await response.text();
+    this.setToken(token);
+    return token;
+  }
+
+  /**
+   * 관리자 로그인
+   */
+  async loginAdmin(username: string, password: string): Promise<string> {
+    const response = await fetch(`${this.authURL}/login/admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error('관리자 로그인에 실패했습니다.');
+    }
+
+    const token = await response.text();
+    this.setToken(token);
+    return token;
+  }
+
+  /**
+   * 통합 로그인 메서드 (기존 호환성 유지)
+   */
+  async login(username: string, password: string, role: string): Promise<string> {
+    if (role.toLowerCase() === 'admin') {
+      return this.loginAdmin(username, password);
+    } else {
+      return this.loginUser(username, password);
     }
   }
 
   /**
-   * 로그인
+   * 관리자 기능 - 사용자 정보 수정
    */
-  async login(username: string, password: string, role: string): Promise<string> {
-    const response = await fetch(`${this.authURL}/login/${role.toLowerCase()}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-
-  if (!response.ok) {
-    throw new Error('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
-  }
-
-  const token = await response.text();
-  this.setToken(token);
-  return token;
-}
-
-  /**
-   * 사용자 프로필 조회
-   */
-  async getUserProfile(username: string): Promise<UserResponse> {
+  async updateUserByAdmin(userId: string, userData: UpdateUserRequest): Promise<UserResponse> {
     const token = this.getToken();
     if (!token) throw new Error('로그인이 필요합니다.');
 
-    const response = await fetch(`${this.userURL}/${username}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    // 백엔드 경로: PATCH /user/admin/{userId}
+    const response = await fetch(`${this.adminURL}/${userId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
     });
 
     if (!response.ok) {
@@ -95,20 +121,21 @@ class AuthService {
         this.logout();
         throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
       }
-      throw new Error('사용자 정보를 가져오는데 실패했습니다.');
+      throw new Error('사용자 정보 수정에 실패했습니다.');
     }
 
     return await response.json();
   }
 
   /**
-   * 사용자 정보 수정
+   * 일반 사용자 정보 수정
    */
-  async updateUser(username: string, userData: UpdateUserRequest): Promise<UserResponse> {
+  async updateUser(userId: string, userData: UpdateUserRequest): Promise<UserResponse> {
     const token = this.getToken();
     if (!token) throw new Error('로그인이 필요합니다.');
 
-    const response = await fetch(`${this.userURL}/${username}`, {
+    // 백엔드 경로: PUT /user/{userId}
+    const response = await fetch(`${this.userURL}/${userId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -127,6 +154,49 @@ class AuthService {
 
     return await response.json();
   }
+  /**
+   * 회원가입
+   */
+  async register(userData: RegisterRequest): Promise<void> {
+    const response = await fetch(`${this.userURL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || '회원가입에 실패했습니다.');
+    }
+  }
+
+
+
+  /**
+   * 사용자 프로필 조회
+   */
+  async getUserProfile(username: string): Promise<UserResponse> {
+    const token = this.getToken();
+    if (!token) throw new Error('로그인이 필요합니다.');
+
+    // 백엔드에 GET /user/{userId} 엔드포인트가 있다고 가정
+    const response = await fetch(`${this.userURL}/${username}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.logout();
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+      }
+      throw new Error('사용자 정보를 가져오는데 실패했습니다.');
+    }
+
+    return await response.json();
+  }
+
+
+
 
   /**
    * 토큰 저장
