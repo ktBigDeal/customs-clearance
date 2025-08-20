@@ -127,12 +127,8 @@ export class DeclarationsApi {
 
   /**사용자 신고서 목록 */
   async listByUser(): Promise<DeclarationResponseDto[]> {
-    // 현재 로그인한 사용자의 ID를 localStorage에서 가져오기
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
-    const userId = user?.id || 1; // 기본값 1 (테스트용)
-    
-    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user/${userId}`);
+    // JWT 토큰을 통해 사용자 식별 (백엔드에서 자동 처리)
+    return apiClient.get<DeclarationResponseDto[]>(`${BASE}/user`);
   }
 
   /** 사용자 신고서 목록(상태 필터) */
