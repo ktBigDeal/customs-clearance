@@ -38,21 +38,6 @@ const nextConfig = {
     console.log('🎯 Final API URL:', apiUrl);
     
     const rewrites = [
-      // 사용자 인증 API (백엔드: /user)
-      {
-        source: '/api/v1/user/:path*',
-        destination: `${apiUrl}/api/v1/user/:path*`,
-      },
-      // 신고서 API (백엔드: /declaration)
-      {
-        source: '/api/v1/declaration/:path*',
-        destination: `${apiUrl}/api/v1/declaration/:path*`,
-      },
-      // 관리자 API (백엔드: /api/v1/admin)
-      {
-        source: '/api/v1/admin/:path*',
-        destination: `${apiUrl}/api/v1/admin/:path*`,
-      },
       // AI Gateway (Cloud Run)
       {
         source: '/api/ai/:path*',

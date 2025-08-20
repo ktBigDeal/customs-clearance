@@ -40,6 +40,8 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true);
+      console.log('Token:', authService.getToken());
+
       const response = await fetch(`${API_BASE}/api/v1/user/users`, {
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,
