@@ -78,7 +78,7 @@ export function MainNav({ className, onItemClick, isAdmin = false }: MainNavProp
     },
     {
       title: t('admin.logViewer'),
-      href: '/admin/logs',
+      href: '/admin/logpage',
       icon: History,
       description: '시스템 로그 조회',
     },
