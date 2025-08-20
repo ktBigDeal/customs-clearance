@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [userFormModal, setUserFormModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [isDeleting, setIsDeleting] = useState(false);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
   // 실제 사용자 목록 가져오기
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/v1/user/users', {
+      const response = await fetch(`${API_BASE}/api/v1/user/users`, {
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,
         },
@@ -104,7 +105,7 @@ export default function UsersPage() {
       if (userFormModal.user) {
         // 수정 모드: PUT 요청
         const userId = parseInt(userFormModal.user.id, 10);
-        response = await fetch(`/api/v1/user/${userId}`, {
+        response = await fetch(`${API_BASE}/api/v1/user/${userId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +115,7 @@ export default function UsersPage() {
         });
       } else {
         // 추가 모드: POST 요청
-        response = await fetch(`/api/v1/user/register`, {
+        response = await fetch(`${API_BASE}/api/v1/user/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -149,7 +150,7 @@ export default function UsersPage() {
     
     try {
       const userId = parseInt(deleteModal.user.id, 10);
-      const response = await fetch(`/api/v1/user/${userId}`, {
+      const response = await fetch(`${API_BASE}/api/v1/user/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authService.getToken()}`,
