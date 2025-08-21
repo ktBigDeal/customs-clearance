@@ -34,7 +34,6 @@ export default function UsersPage() {
 
   // 실제 사용자 목록 가져오기
   useEffect(() => {
-    console.log('Token:', authService.getToken());
     loadUsers();
   }, []);
 

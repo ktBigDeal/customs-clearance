@@ -81,8 +81,7 @@ const nextConfig = {
     HSCODE_CONVERT_URL: process.env.HSCODE_CONVERT_URL,
   },
   compiler: {
-    // removeConsole: process.env.NODE_ENV === 'production',
-    removeConsole: false,
+    removeConsole: process.env.NODE_ENV === 'production',
   },
   eslint: {
     ignoreDuringBuilds: true,
