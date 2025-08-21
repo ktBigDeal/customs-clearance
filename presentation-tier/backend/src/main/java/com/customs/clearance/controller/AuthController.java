@@ -4,8 +4,12 @@ import com.customs.clearance.dto.RegisterRequest;
 import com.customs.clearance.dto.UpdateUserRequest;
 import com.customs.clearance.dto.UserResponseDto;
 import com.customs.clearance.entity.User;
+import com.customs.clearance.repository.UserRepository;
 import com.customs.clearance.security.JwtTokenProvider;
 import com.customs.clearance.service.UserService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,19 +50,13 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/user")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider tokenProvider;
+    private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
-
-    public AuthController(AuthenticationManager authenticationManager,
-                          JwtTokenProvider tokenProvider,
-                          UserService userService) {
-        this.authenticationManager = authenticationManager;
-        this.tokenProvider = tokenProvider;
-        this.userService = userService;
-    }
+    private final UserRepository userRepository;
 
     /**
      * 새로운 사용자를 등록합니다.
@@ -100,7 +98,7 @@ public class AuthController {
         userService.updateLastLogin(username);
         
         // 역할이 일치하면 역할 포함 JWT 발급
-        return tokenProvider.generateToken(username, role);
+        return jwtTokenProvider.generateToken(username, role);
     }
 
     /**
@@ -113,31 +111,39 @@ public class AuthController {
      * @return 전체 사용자 목록
      */
     @GetMapping("/users")
-    public List<UserResponseDto> getAllUsers() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new AccessDeniedException("인증되지 않았습니다.");
+    public List<UserResponseDto> getAllUsers(
+        HttpServletRequest request
+    ) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
         }
 
-        boolean isAdmin = auth.getAuthorities().stream()
-            .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            throw new IllegalArgumentException("사용자 접근 거부");
+        }
 
-        if (!isAdmin) {
+        String username = jwtTokenProvider.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("사용자 정보 없음"));
+
+        if (!user.getRole().equals("ADMIN")) {
             throw new AccessDeniedException("관리자 권한이 필요합니다.");
         }
 
         List<UserResponseDto> result = userService.findAllUsers().stream()
-            .map(user -> {
-                System.out.println("사용자: " + user.getUsername() + ", lastLogin: " + user.getLastLogin()); // 디버깅용
+            .map(u -> {
+                System.out.println("사용자: " + u.getUsername() + ", lastLogin: " + u.getLastLogin()); // 디버깅용
                 UserResponseDto dto = new UserResponseDto(
-                    user.getId(),
-                    user.getUsername(),
-                    user.getName(),
-                    user.getEmail(),
-                    user.getRole(),
-                    user.isEnabled(),
-                    user.getCompany(),
-                    user.getLastLogin()
+                    u.getId(),
+                    u.getUsername(),
+                    u.getName(),
+                    u.getEmail(),
+                    u.getRole(),
+                    u.isEnabled(),
+                    u.getCompany(),
+                    u.getLastLogin()
                 );
                 System.out.println("DTO 생성 후 - " + user.getUsername() + ", DTO lastLogin: " + dto.getLastLogin()); // 디버깅용
                 return dto;
