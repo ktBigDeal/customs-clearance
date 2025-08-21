@@ -83,7 +83,6 @@ class AuthService {
 
     const token = await response.text();
     this.setToken(token);
-    console.log(token);
 
     return token;
   }
