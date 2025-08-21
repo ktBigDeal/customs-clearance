@@ -52,7 +52,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setName(registerRequest.getName());
         user.setEmail(registerRequest.getEmail());
-        user.setRole(registerRequest.getRole());
+        user.setRole(registerRequest.getRole().toUpperCase());
         user.setCompany(registerRequest.getCompany());
         user.setEnabled(true);
         return userRepository.save(user);
