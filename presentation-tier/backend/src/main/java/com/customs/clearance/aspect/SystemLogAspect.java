@@ -13,8 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.time.LocalDateTime;
-
 /**
  * 시스템 로그를 자동으로 수집하는 AOP Aspect
  * 
@@ -101,7 +99,6 @@ public class SystemLogAspect {
             
         } catch (Exception e) {
             // 에러 로그 저장
-            long processingTime = System.currentTimeMillis() - startTime;
             
             systemLogService.logSystemEvent(
                 getLogSource(className, methodName) + "_ERROR",
