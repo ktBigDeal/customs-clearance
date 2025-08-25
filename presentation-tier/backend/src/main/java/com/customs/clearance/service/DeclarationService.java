@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.time.LocalDateTime;
 
 import com.customs.clearance.dto.DeclarationStatsDto;
-import com.customs.clearance.service.KcsImportXmlMapper;
-import com.customs.clearance.service.KcsExportXmlMapper;
 
 @Service
 @RequiredArgsConstructor
